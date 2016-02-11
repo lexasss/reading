@@ -13,9 +13,11 @@
         
         this._slideout = document.querySelector( this.root );
 
-        var colors = [
-            { selector: '.readingText', id: 'text' },
-            { selector: '.readingText .currentWord', id: 'currentWord' },
+        var cssRules = [
+            { name: 'color', type: 'color', cssrule: '.readingText', id: 'text', prefix: '#', suffix: '' },
+            { name: 'color', type: 'color', cssrule: '.readingText .currentWord', id: 'currentWord', prefix: '#', suffix: '' },
+            { name: 'font-size', type: 'string', cssrule: '.readingText', id: 'fontSize', prefix: '', suffix: '' },
+            { name: 'line-height', type: 'string', cssrule: '.readingText', id: 'lineHeight', prefix: '', suffix: '' },
         ];
 
         this._style = document.createElement( 'style' );
@@ -25,7 +27,7 @@
         
         var apply = document.querySelector( this.root + ' .save' );
         apply.addEventListener( 'click', function () {
-            getColorsFromEditors( self._style, colors );
+            getRulesFromEditors( self._style, cssRules );
             self._slideout.classList.remove( 'expanded' );
         });
 
@@ -37,12 +39,12 @@
         var slideoutTitle = document.querySelector( this.root + ' .title');
         slideoutTitle.addEventListener( 'click', function (e) {
             self._slideout.classList.toggle( 'expanded' );
-            setColorsToEditors( colors );
+            setRulesToEditors( cssRules );
         });
 
         window.addEventListener( 'load', function () {
-            obtainInitialColors( colors );
-            bindColorsToEditors( colors, self.root + ' #' );
+            obtainInitialRules( cssRules );
+            bindRulesToEditors( cssRules, self.root + ' #' );
         });
     }
 
@@ -58,16 +60,18 @@
         this._slideout.classList.remove( 'locked' );
     };
 
-    function componentToHex(c) {
+    // private
+
+    function componentToHex( c ) {
         var hex = c.toString(16);
         return hex.length == 1 ? "0" + hex : hex;
     }
 
-    function rgbToHex(r, g, b) {
+    function rgbToHex( r, g, b ) {
         return '#' + componentToHex( r ) + componentToHex( g ) + componentToHex( b );
     }
 
-    function cssColorToHex(cssColor) {
+    function cssColorToHex( cssColor ) {
         
         var colorRegex = /^\D+(\d+)\D+(\d+)\D+(\d+)\D+$/gim;
         var colorComps = colorRegex.exec( cssColor );
@@ -78,49 +82,81 @@
             parseInt( colorComps[ 3 ] ) );
     }
 
-    function obtainInitialColors( colors ) {
+    function cssToJS( cssName ) {
+
+        var dashIndex = cssName.indexOf( '-' );
+        while (dashIndex >= 0) {
+            var char = cssName.charAt( dashIndex + 1);
+            cssName = cssName.replace( '-' + char,  char.toUpperCase() );
+            dashIndex = cssName.indexOf( '-' );
+        }
+        return cssName;
+    }
+
+    function obtainInitialRules( rules ) {
 
         for (var s = 0; s < document.styleSheets.length; s++) {
             var sheet = document.styleSheets[ s ];
             for (var r = 0; r < sheet.cssRules.length; r++) {
                 var rule = sheet.cssRules[ r ];
-                for (var c = 0; c < colors.length; c++) {
-                    var color = colors[ c ];
-                    if (rule.selectorText === color.selector) {
-                        color.initial = cssColorToHex( rule.style.color );
-                        color.value = color.initial;
+                for (var c = 0; c < rules.length; c++) {
+                    var customRule = rules[ c ];
+                    if (rule.selectorText === customRule.cssrule) {
+                        if (customRule.type === 'color') {
+                            customRule.initial = cssColorToHex( rule.style.color );
+                        }
+                        else if (customRule.type === 'string') {
+                            customRule.initial = rule.style[ cssToJS( customRule.name ) ];
+                        }
+                        customRule.value = customRule.initial;
                     }
                 }
             }
         }
     }
 
-    function bindColorsToEditors( colors, idBase ) {
+    function bindRulesToEditors( rules, idBase ) {
 
-        for (var i = 0; i < colors.length; i++) {
-            var color = colors[ i ];
-            color.editor = document.querySelector( idBase + color.id );
-            color.editor.color.fromString( color.initial );
+        for (var i = 0; i < rules.length; i++) {
+            var rule = rules[ i ];
+            rule.editor = document.querySelector( idBase + rule.id );
+
+            if (rule.type === 'color') {
+                rule.editor.color.fromString( rule.initial );
+            }
+            else if (rule.type === 'string') {
+                rule.editor.value = rule.initial;
+            }
         }
     }
 
 
-    function getColorsFromEditors( style, colors ) {
+    function getRulesFromEditors( style, rules ) {
 
         var styleText = '';
-        for (var i = 0; i < colors.length; i++) {
-            var color = colors[ i ];
-            color.value = '#' + color.editor.color;
-            styleText += color.selector + ' { color: ' + color.value + ' !important; } ';
+        for (var i = 0; i < rules.length; i++) {
+            var rule = rules[ i ];
+            if (rule.type === 'color') {
+                rule.value = '#' + rule.editor.color;
+            }
+            else if (rule.type === 'string') {
+                rule.value = rule.editor.value;
+            }
+            styleText += rule.cssrule + ' { ' + rule.name + ': ' + rule.value + rule.suffix + ' !important; } ';
         }
         style.innerHTML = styleText;
     }
 
-    function setColorsToEditors( colors ) {
+    function setRulesToEditors( rules ) {
 
-        for (var i = 0; i < colors.length; i++) {
-            var color = colors[ i ];
-            color.editor.color.fromString( color.value );
+        for (var i = 0; i < rules.length; i++) {
+            var rule = rules[ i ];
+            if (rule.type === 'color') {
+                rule.editor.color.fromString( rules.value );
+            }
+            else if (rule.type === 'string') {
+                rule.editor.value = rule.value;
+            }
         }
     }
 

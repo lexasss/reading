@@ -7,11 +7,18 @@ mixin options(id)
         div.slideout_inner
             .group Colors
                 .row
-                    .label Text color
+                    .label Text
                     input.color.value#text
                 .row
                     .label Current word
                     input.color.value#currentWord
+            .group Font
+                .row
+                    .label Size
+                    input.value#fontSize
+                .row
+                    .label Line spacing
+                    input.value#lineHeight
             br
             input.save(type="button", value="Save")
             input.close(type="button", value="Close")
