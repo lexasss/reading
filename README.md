@@ -2,7 +2,7 @@
 Records gaze data while reading text
 
 ##Dependencies
-Install (ETU-Driver)[http://www.sis.uta.fi/~csolsp/downloads.php?id=ETUDriver].
+Install [ETU-Driver](http://www.sis.uta.fi/~csolsp/downloads.php?id=ETUDriver).
 Run ETU-Driver Service with "Websocket server" enabled.
 
 ##Install and run
