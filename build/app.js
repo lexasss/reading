@@ -340,17 +340,17 @@ var Reading = Reading || {};
 
     Record.prototype.stop = function () {
         this.duration += performance.now() - this._startTime;
-    }
+    };
 
     Record.prototype.toString = function () {
         return this.text + '\t' + Math.round(this.duration) + '\t' + this.focusCount + '\t' +
             Math.round(this.rect.left) + '\t' + Math.round(this.rect.top) + '\t' + 
             Math.round(this.rect.width) + '\t' + Math.round(this.rect.height);
-    }
+    };
 
     Record.getHeader = function () {
         return 'text\tdur\tfocus\tx\ty\tw\th';
-    }
+    };
 
     // export
 

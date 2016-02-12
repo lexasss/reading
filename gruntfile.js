@@ -64,6 +64,19 @@ module.exports = function(grunt) {
             css: {
                 src: 'build/*.css'
             }
+        },
+        
+        jshint: {
+            files: [
+                'src/js/**/*.js'
+            ],
+            options: {
+                globals: {
+                    console: true,
+                    module: true
+                },
+                multistr: true
+            }
         }
     });
 
@@ -73,6 +86,8 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-postcss');
+    grunt.loadNpmTasks('grunt-contrib-jshint');
 
     grunt.registerTask('default', ['clean', 'jade', 'less', 'concat', 'copy', 'postcss']);
+    grunt.registerTask('compile', ['jshint']);
 };
