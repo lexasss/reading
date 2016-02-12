@@ -264,7 +264,7 @@ var Reading = Reading || {};
     Statistics.prototype.print = function () {
         
         if (_currentWord) {
-            record = _map.get(_currentWord);
+            var record = _map.get(_currentWord);
             if (record) {
                 record.stop();
             }
