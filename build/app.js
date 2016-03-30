@@ -36,13 +36,13 @@ var Reading = Reading || {};
                 }
             ],
             mapping: {
-                type: GazeTargets.mapping.types.expanded,  
+                type: GazeTargets.mapping.types.reading,  
                 source: GazeTargets.mapping.sources.fixations,
-                model: GazeTargets.mapping.models.none,
                 expansion: 30,
                 reading: {
-                    maxSaccadeLength: 250,      // maximum progressing saccade length, in pixels
-                    maxSaccadeAngleRatio: 0.7   // |sacc.y| / sacc.dx
+                    maxSaccadeLength: 250,
+                    maxSaccadeAngleRatio: 0.7,
+                    fixedText: true
                 }
             }
         }, {

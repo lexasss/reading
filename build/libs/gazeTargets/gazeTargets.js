@@ -3422,6 +3422,11 @@
         fixations: 1
     };
 
+    GazeTargets.mapping.readingModel = {
+        simplest: 'Simplest',
+        campbell: 'Campbell'
+    };
+
     GazeTargets.mapping.settings = {
         defaults: {                 // default mapping settings
             className: 'gt-focused'       // this class is added to the focused element
@@ -3436,8 +3441,17 @@
         
         // reading mapping
         reading: {
-            maxSaccadeLength: 250,      // maximum progressing saccade length, in pixels
-            maxSaccadeAngleRatio: 0.7   // |sacc.y| / sacc.dx
+            commons: {
+                fixedText: false,           // the flag indicates whether the text geometry is fixed.
+            },
+                                        // (fixed text is demanding for CPU power)
+            Simplest: {
+                maxSaccadeLength: 250,      // maximum progressing saccade length, in pixels
+                maxSaccadeAngleRatio: 0.7,  // |sacc.y| / sacc.dx
+            },
+            Campbell: {
+
+            }
         }
     };
 
@@ -3715,7 +3729,8 @@
                             //  - the keys from GazeTargets.mapping.settings.[TYPE]
                             //    (see comments to the corresponding type in GazeTargets.mapping)
             type: GazeTargets.mapping.types.naive,       // mapping type, see GazeTargets.mapping.types
-            source: GazeTargets.mapping.sources.samples  // data source for mapping, see GazeTargets.source
+            source: GazeTargets.mapping.sources.samples, // data source for mapping, see GazeTargets.source
+            readingModel: GazeTargets.mapping.readingModel.simplest // reading model for type="reading", see GazeTargets.mapping.readingModel
         },
         pointer: {          // gaze pointer settings
             show: true,             // boolean or a function returning boolean
@@ -4380,9 +4395,9 @@
 // Mapping routine
 // 
 // Require objects in GazeTargets:
-//         mapping.types
-//      mapping.models
-//         events: { focused, left }
+//      mapping:: { types }
+//      events: { focused, left }
+//      Models: { Naive, Expanded, Reading }
 
 (function (root) {
 
@@ -4394,8 +4409,6 @@
             isTargetDisabled = _isTargetDisabled;
             targetEvent = (typeof _targetEvent === 'function') ? _targetEvent : null;
             
-            mappingTypes = GazeTargets.mapping.types;
-
             createModel();
         },
 
@@ -4441,18 +4454,20 @@
     };
 
     var createModel = function () {
+        var types = GazeTargets.mapping.types;
+
         switch (settings.type) {
-        case mappingTypes.naive:
+        case types.naive:
             model = root.GazeTargets.Models.Naive;
             model.init(settings.naive);
             break;
-        case mappingTypes.expanded:
+        case types.expanded:
             model = root.GazeTargets.Models.Expanded;
             model.init(settings.expanded);
             break;
-        case mappingTypes.reading:
-            model = root.GazeTargets.Models.Reading;
-            model.init(settings.reading);
+        case types.reading:
+            model = root.GazeTargets.Models.Reading[ settings.readingModel ];
+            model.init(settings.reading[ settings.readingModel ], settings.reading.commons);
             break;
         default:
             model = {
@@ -4463,79 +4478,6 @@
             break;
         }
     };
-
-/*
-    var map = function (x, y) {
-        if (!targets) {
-            return null;
-        }
-        
-        var mapped = null;
-
-        switch (settings.type) {
-        case mappingTypes.naive:
-            mapped = mapNaive(x, y);
-            break;
-        case mappingTypes.expanded:
-            mapped = mapExpanded(x, y);
-            break;
-        default:
-            break;
-        }
-
-        return mapped;
-    };
-
-    var mapNaive = function (x, y) {
-        var mapped = null;
-        var i;
-        for (i = 0; i < targets.length; i += 1) {
-            var target = targets[i];
-            if (isTargetDisabled(target)) {
-                continue;
-            }
-            
-            var rect = target.getBoundingClientRect();
-            if (x >= rect.left && x < rect.right && y >= rect.top && y < rect.bottom) {
-                if (mapped) {
-                    if (document.elementFromPoint(x, y) === target) {
-                        mapped = target;
-                        break;
-                    }
-                } else {
-                    mapped = target;
-                }
-            }
-        }
-        return mapped;
-    };
-
-    var mapExpanded = function (x, y) {
-        var mapped = null;
-        var i;
-        var minDist = Number.MAX_VALUE;
-        for (i = 0; i < targets.length; i += 1) {
-            var target = targets[i];
-            if (isTargetDisabled(target)) {
-                continue;
-            }
-            
-            var rect = target.getBoundingClientRect();
-            var dx = x < rect.left ? rect.left - x : (x > rect.right ? x - rect.right : 0);
-            var dy = y < rect.top ? rect.top - y : (y > rect.bottom ? y - rect.bottom : 0);
-            var dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < minDist && dist < settings.expansion) {
-                mapped = target;
-                minDist = dist;
-            } else if (dist === 0) {
-                if (document.elementFromPoint(x, y) === target) {
-                    mapped = target;
-                    break;
-                }
-            }
-        }
-        return mapped;
-    };*/
 
     var changeFocus = function (mapped) {
         var event;
@@ -4572,7 +4514,6 @@
         }
     };
 
-
     var settings;
     var targets;
     var isTargetDisabled;
@@ -4580,8 +4521,6 @@
 
     var focused = null;
     var lastFocused = null;
-
-    var mappingTypes;
 
     var model;
 
@@ -4718,19 +4657,26 @@
 
     'use strict';
 
-    var Reading = {
+    var Campbell = {
 
         // Initializes the model
         // Arguments:
         //  _settings:                 - settings:
-        //      maxSaccadeLength            maximum progressive saccade length
+        //      fontSize:                   font size in pixels
+        //      maxSaccadeLength:           - max saccade threshold
+        //          progressive:
+        //              reading
+        //              skimming
+        //          regressive:
         //      maxSaccadeAngleRatio        maximum progressive saccade |dy|/dx ration
-        init: function (_settings) {
+        init: function (_settings, _commons) {
             settings = _settings;
+            commons = _commons;
         },
 
         feed: function (targets, x, y, fixationDuration) {
 
+            return;
             obtainGeometry(targets);
 
             var newFixation = false;
@@ -4756,7 +4702,8 @@
                 isReadingFixation = saccade <= settings.maxSaccadeLength && 
                     Math.abs(dy) / dx <= settings.maxSaccadeAngleRatio;
 
-                if (!isReadingFixation) {
+                var saccadeIndicator = lastMapped ? (lastMapped.line.right - lastMapped.line.left) * 0.5 : 1000000;
+                if (!isReadingFixation || dx < -saccadeIndicator) {
                     yOffset = 0;
                 }
 
@@ -4768,7 +4715,7 @@
             lastMapped = mapped;
             select(lastMapped);
 
-            return mapped;
+            return mapped ? mapped.dom : null;
         },
 
         reset: function () {
@@ -4781,12 +4728,15 @@
             isReadingFixation = false;
             lastMapped = null;
             lineSpacing = 0;
+            lines.length = 0;
         }
     };
 
     // internal
     var settings;
-    var lines;
+    var commons;
+
+    var lines = [];
     var lineSpacing;
     var lastMapped;
 
@@ -4799,7 +4749,12 @@
     var isReadingFixation;
 
     function obtainGeometry(targets) {
-        lines = [];
+
+        if (commons.fixedText && lines.length > 0) {
+            return;
+        }
+
+        lines.length = 0;
         lineSpacing = 0;
         
         var lineY = 0;
@@ -4833,7 +4788,7 @@
     }
 
     function createLine(rect, target) {
-        return {
+        var line = {
             left: rect.left,
             top: rect.top,
             right: rect.right,
@@ -4850,10 +4805,15 @@
                 }
                 this.words.push({
                     rect: rect,
-                    dom: target
+                    dom: target,
+                    line: this
                 });
             }
         };
+
+        line.words[0].line = line;
+
+        return line;
     }
 
     function map(x, y) {
@@ -4871,7 +4831,7 @@
                 var dy = y < rect.top ? rect.top - y : (y > rect.bottom ? y - rect.bottom : 0);
                 var dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist < minDist) {
-                    result = word.dom;
+                    result = word;
                     minDist = dist;
                     if (dist === 0) {
                         i = lines.length;
@@ -4884,9 +4844,9 @@
         return minDist < lineSpacing ? result : null;
     }
 
-    function select(target) {
-        if (target && isReadingFixation) {
-            var rect = target.getBoundingClientRect();
+    function select(word) {
+        if (word && isReadingFixation) {
+            var rect = word.dom.getBoundingClientRect();
             yOffset = (rect.top + rect.height / 2) - lastY;
         }
         else {
@@ -4903,7 +4863,227 @@
         root.GazeTargets.Models = {};
     }
 
-    root.GazeTargets.Models.Reading = Reading;
+    if (!root.GazeTargets.Models.Reading) {
+        root.GazeTargets.Models.Reading = {};
+    }
+
+    root.GazeTargets.Models.Reading.Campbell = Campbell;
+
+})(window);
+// Model for eading
+// 
+// Require objects in GazeTargets:
+//        none
+
+(function (root) {
+
+    'use strict';
+
+    var Simplest = {
+
+        // Initializes the model
+        // Arguments:
+        //  _settings:                 - settings:
+        //      maxSaccadeLength            maximum progressive saccade length
+        //      maxSaccadeAngleRatio        maximum progressive saccade |dy|/dx ration
+        init: function (_settings, _commons) {
+            settings = _settings;
+            commons = _commons;
+        },
+
+        feed: function (targets, x, y, fixationDuration) {
+
+            obtainGeometry(targets);
+
+            var newFixation = false;
+            if (prevFixDuration > fixationDuration) {
+                prevFixX = lastX;
+                prevFixY = lastY;
+                newFixation = true;
+            }
+
+            prevFixDuration = fixationDuration;
+
+            lastX = x;
+            lastY = y;
+
+            var mapped = lastMapped;
+
+            if (newFixation) {
+                console.log(x, y);
+                var dx = x - prevFixX;
+                var dy = y - prevFixY;
+                var saccade = Math.sqrt(dx * dx + dy * dy);
+
+                isReadingFixation = saccade <= settings.maxSaccadeLength && 
+                    Math.abs(dy) / dx <= settings.maxSaccadeAngleRatio;
+
+                var saccadeIndicator = lastMapped ? (lastMapped.line.right - lastMapped.line.left) * 0.5 : 1000000;
+                if (!isReadingFixation || dx < -saccadeIndicator) {
+                    yOffset = 0;
+                }
+
+                mapped = map(x, y + yOffset);
+
+                //console.log("new fix: " + dx + "," + dy + " = " + saccade + " : " + (isReadingFixation ? "reading" : "-"));
+            }
+
+            lastMapped = mapped;
+            select(lastMapped);
+
+            return mapped ? mapped.dom : null;
+        },
+
+        reset: function () {
+            yOffset = 0;
+            lastX = -1000;
+            lastY = -1000;
+            prevFixX = -1000;
+            prevFixY = -1000;
+            prevFixDuration = 1000000;
+            isReadingFixation = false;
+            lastMapped = null;
+            lineSpacing = 0;
+            lines.length = 0;
+        }
+    };
+
+    // internal
+    var settings;
+    var commons;
+
+    var lines = [];
+    var lineSpacing;
+    var lastMapped;
+
+    var yOffset;
+    var lastX;
+    var lastY;
+    var prevFixX;
+    var prevFixY;
+    var prevFixDuration;
+    var isReadingFixation;
+
+    function obtainGeometry(targets) {
+
+        if (settings.fixedText && lines.length > 0) {
+            return;
+        }
+
+        lines.length = 0;
+        lineSpacing = 0;
+        
+        var lineY = 0;
+        var currentLine = null;
+
+        for (var i = 0; i < targets.length; ++i) {
+            var target = targets[i];
+            var rect = target.getBoundingClientRect();
+            if (lineY < rect.top || !currentLine) {
+                if (currentLine) {
+                    lineSpacing += rect.top - currentLine.top;
+                }
+                currentLine = createLine(rect, target);
+                lines.push(currentLine);
+                lineY = rect.top;
+            }
+            else {
+                currentLine.addWord(rect, target);
+            }
+
+//                console.log('{ left: ' + Math.round(rect.left) + ', top: ' + Math.round(rect.top) + ', right: ' + Math.round(rect.right) + ', bottom: ' + Math.round(rect.bottom) + ' }');
+        }
+
+        if (lines.length > 1) {
+            lineSpacing /= lines.length - 1;
+        }
+        else if (lines.length > 0) {
+            var line = lines[0];
+            lineSpacing = 2 * (line.bottom - line.top);
+        }
+    }
+
+    function createLine(rect, target) {
+        var line = {
+            left: rect.left,
+            top: rect.top,
+            right: rect.right,
+            bottom: rect.bottom,
+            words: [{
+                rect: rect,
+                dom: target
+            }],
+
+            addWord: function (rect, target) {
+                this.right = rect.right;
+                if (this.bottom < rect.bottom) {
+                    this.bottom = rect.bottom;
+                }
+                this.words.push({
+                    rect: rect,
+                    dom: target,
+                    line: this
+                });
+            }
+        };
+
+        line.words[0].line = line;
+
+        return line;
+    }
+
+    function map(x, y) {
+
+        var result = null;
+        var minDist = Number.MAX_VALUE;
+
+        for (var i = 0; i < lines.length; ++i) {
+            var words = lines[i].words;
+            for (var j = 0; j < words.length; ++j) {
+                var word = words[j];
+                var rect = word.rect;
+                
+                var dx = x < rect.left ? rect.left - x : (x > rect.right ? x - rect.right : 0);
+                var dy = y < rect.top ? rect.top - y : (y > rect.bottom ? y - rect.bottom : 0);
+                var dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < minDist) {
+                    result = word;
+                    minDist = dist;
+                    if (dist === 0) {
+                        i = lines.length;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return minDist < lineSpacing ? result : null;
+    }
+
+    function select(word) {
+        if (word && isReadingFixation) {
+            var rect = word.dom.getBoundingClientRect();
+            yOffset = (rect.top + rect.height / 2) - lastY;
+        }
+        else {
+            yOffset = 0;
+        }
+    }
+
+    // Publication
+    if (!root.GazeTargets) {
+        root.GazeTargets = {};
+    }
+
+    if (!root.GazeTargets.Models) {
+        root.GazeTargets.Models = {};
+    }
+
+    if (!root.GazeTargets.Models.Reading) {
+        root.GazeTargets.Models.Reading = {};
+    }
+
+    root.GazeTargets.Models.Reading.Simplest = Simplest;
 
 })(window);
 // Gaze pointer

@@ -84,7 +84,7 @@
     //        word:         - the focused word 
     TextHighlighter.prototype.setFocusedWord = function (word) {
 
-        currentWord = document.querySelector( '.currentWord' );
+        var currentWord = document.querySelector( '.currentWord' );
         if (currentWord != word) {
             if (currentWord) {
                 currentWord.classList.remove( 'currentWord' );
