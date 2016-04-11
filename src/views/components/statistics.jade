@@ -6,4 +6,7 @@ mixin statistics(id)
         div.container
             div.title Statistics
             textarea.text
-            input.close(type="button", value="Close")
+            div.button-strip
+                input.close(type="button", value="Close")
+                input.saveLocal(type="button", value="Save to file")
+                input.saveRemote(type="button", value="Save to DB")

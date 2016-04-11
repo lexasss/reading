@@ -12,9 +12,21 @@
         _view = document.querySelector( this.root );
         _view.style.display = 'none';
 
+        var self = this;
+
         var close = document.querySelector( this.root + ' .close' );
         close.addEventListener('click', function () {
             _view.style.display = 'none';
+        });
+
+        var saveLocal = document.querySelector( this.root + ' .saveLocal' );
+        saveLocal.addEventListener('click', function () {
+            self._saveLocal();
+        });
+
+        var saveRemote = document.querySelector( this.root + ' .saveRemote' );
+        saveRemote.addEventListener('click', function () {
+            self._saveRemote();
         });
     }
 
@@ -34,6 +46,24 @@
             text += record.toString() + '\n';
         });
 
+        text += '\n' + Fixation.getHeader() + '\n';
+
+        _fixationsFiltered = [];        
+        var lastFix = null;
+        for (var i = 0; i < _fixations.length; i += 1) {
+            var fix = _fixations[i];
+            if (fix.duration <= 80) {
+                continue;
+            }
+            if (!lastFix || lastFix.ts !== fix.ts) {
+                text += fix.toString() + '\n';
+                if (lastFix) {
+                    _fixationsFiltered.push( lastFix );
+                }
+            }
+            lastFix = fix;
+        }
+
         var textarea = document.querySelector( this.root + ' textarea' );
         textarea.value = text;
 
@@ -45,6 +75,7 @@
         
         _currentWord = null;
         _map.clear();
+        _fixations = [];
         
         _view.style.display = 'none';
     };
@@ -76,10 +107,47 @@
         _currentWord = word;
     };
 
+    // Logs fixation
+    Statistics.prototype.logFixation = function (fixation) {
+        _fixations.push(new Fixation(fixation));
+    };
+
+    // private
+    Statistics.prototype._saveLocal = function () {
+        var textToWrite = document.querySelector( this.root + ' textarea' ).value;
+        var textFileAsBlob = new Blob([textToWrite], {type: 'text/plain'});
+        
+        var downloadLink = document.createElement("a");
+        downloadLink.download = 'results.txt';
+        downloadLink.innerHTML = 'Download File';
+
+        var URL = window.URL || window.webkitURL;
+        downloadLink.href = URL.createObjectURL( textFileAsBlob );
+        downloadLink.onclick = function(event) { // self-destrly
+            document.body.removeChild(event.target);
+        };
+        downloadLink.style.display = 'none';
+        document.body.appendChild( downloadLink );
+
+        downloadLink.click();
+    }
+
+    Statistics.prototype._saveRemote = function () {
+        var name = prompt( 'Please enter the name', GUID() );
+        if (name) {
+            var record = app.firebase.child( name );
+            record.set({
+                fixations: _fixationsFiltered
+            });
+        }
+    }
+
     // private
     var _view;
     var _currentWord = null;
     var _map = new Map();
+    var _fixations = [];
+    var _fixationsFiltered = [];
 
     // definitions
 
@@ -110,6 +178,25 @@
         return 'text\tdur\tfocus\tx\ty\tw\th';
     };
 
+    function Fixation(fixation) {
+        this.ts = fixation.ts;
+        this.x = Math.round(fixation.x);
+        this.y = Math.round(fixation.y);
+        this.duration = fixation.duration;
+    }
+
+    Fixation.prototype.toString = function () {
+        return this.ts + '\t' + this.x + '\t' + this.y + '\t' + this.duration;
+    };
+    
+    Fixation.getHeader = function () {
+        return 'ts\tx\ty\tdur';
+    };
+
+    function GUID() {
+        return Math.random().toString(36).substring(2, 15) +
+            Math.random().toString(36).substring(2, 15);
+    }
     // export
 
     app.Statistics = Statistics;

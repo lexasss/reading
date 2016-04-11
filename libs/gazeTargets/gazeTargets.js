@@ -3364,6 +3364,116 @@
     root.GazeTargets.Keyboard = Keyboard;
 
 })(window);
+// Logging utils
+
+(function (root) {
+
+    'use strict';
+
+    var Logger = {
+
+        log: function (...args) {
+
+            this.closeBuffer();
+
+            if (args.length > 1 && typeof args[0] === 'symbol') {
+                var type = args[0];
+                args = args.slice(1);
+                
+                if (type === this.Type['error']) {
+                    console.error(header, 'ERROR: ', ...args);
+                    return true;
+                }
+                
+                if (type === this.Type['info']) {
+                    console.info(header, ...args);
+                    return true;
+                }
+            }
+
+            if (level === this.Level.debug) {
+                console.log(header, ...args);
+                return true;
+            }
+
+            return false;
+        },
+
+        push: function (...args) {
+            if (args.length > 1 && typeof args[0] === 'symbol') {
+                var type = args[0];
+                args = args.slice(1);
+                
+                if (type === this.Type['error']) {
+                    buffer.push('ERROR: ' + args.join(' '));
+                    return true;
+                }
+                
+                if (type === this.Type['info']) {
+                    buffer.push(args.join(' '));
+                    return true;
+                }
+            }
+
+            if (level === this.Level.debug) {
+                buffer.push(args.join(' '));
+                return true;
+            }
+
+            return false;
+        },
+
+        closeBuffer: function () {
+            if (buffer.length > 0) {
+                console.log(header, buffer.join(' ; '));
+                buffer.length = 0;
+            }
+        },
+
+        level: function (_level) {
+            if (_level !== undefined) {
+                level = _level;
+            }
+            else {
+                return level;
+            }
+        },
+
+        header: function (_header) {
+            if (_header !== undefined) {
+                header = _header;
+            }
+            else {
+                return header;
+            }
+        },
+
+        Level: {
+            silent: 'silent',
+            info: 'info',
+            debug: 'debug'
+        },
+
+        Type: {
+            info: Symbol('info'),       // default
+            debug: Symbol('debug'),
+            error: Symbol('error')
+        }
+    };
+
+    // internal
+    var level = Logger.Level.silent;
+    var header = '[GT/R]  ';
+    var buffer = [];
+
+    // Publication
+    if (!root.GazeTargets) {
+        root.GazeTargets = {};
+    }
+
+    root.GazeTargets.Logger = Logger;
+
+})(window);
 // Main script
 // Dependencies:
 //      utils.js
@@ -3442,7 +3552,7 @@
         // reading mapping
         reading: {
             commons: {
-                fixedText: false,           // the flag indicates whether the text geometry is fixed.
+                fixedText: false,   // the flag indicates whether the text geometry is fixedl therefore. the geometry model is computed only once resulting in lower computational stress
             },
                                         // (fixed text is demanding for CPU power)
             Simplest: {
@@ -3450,7 +3560,14 @@
                 maxSaccadeAngleRatio: 0.7,  // |sacc.y| / sacc.dx
             },
             Campbell: {
-
+                forgettingFactor: 0.2,
+                readingThreshold: 3,        // number of fixations
+                nonreadingThreshold: 2,     // number of fixations
+                slope: 0.15,
+                progressiveLeft: -1.5,      // em
+                progressiveRight: 10,       // em
+                readingZoneMarginY: 1,      // em
+                neutralZoneMarginY: 2       // em
             }
         }
     };
@@ -3854,6 +3971,11 @@
         //   ec = {xl, yl, xr, yr} - eye-camera values (float 0..1)
         sample: null,
         
+        // Fires on each sample and provides new or updated fixation
+        // arguments:
+        //   fixation = {ts, x, y, duration, saccade = {dx, dy}, samples = [{x, y}] } - Fixation object
+        fixation: null,
+        
         // Fires on target enter, leave and selection
         // arguments:
         //   event - a value from GazeTargets.event
@@ -4104,14 +4226,20 @@
         if (typeof callbacks.sample === 'function') {
             callbacks.sample(ts, point.x, point.y, pupil, ec);
         }
+        if (typeof callbacks.fixation === 'function') {
+            callbacks.fixation(fixdet.currentFix);
+        }
 
         // Find the focused target
-        var useFix = settings.mapping.source == GazeTargets.mapping.sources.fixations && fixdet.currentFix;
-        var mappingX = useFix ? fixdet.currentFix.x : point.x,
-            mappingY = useFix ? fixdet.currentFix.y : point.y,
-            fixationDuration = useFix ? fixdet.currentFix.duration : 0;
+        var mappingResult;
+        var fixation = settings.mapping.source == GazeTargets.mapping.sources.fixations ? fixdet.currentFix : null;
+        if (fixation) {
+            mappingResult = mapper.feed(fixation);
+        }
+        else {
+            mappingResult = mapper.feed(point.x, point.y);
+        }
         
-        var mappingResult = mapper.feed(mappingX, mappingY, fixationDuration);
         if (progress && mappingResult.isNewFocused) {
             progress.moveTo(mappingResult.focused);
         }
@@ -4422,7 +4550,10 @@
             targets = _targets;
         },
 
-        feed: function (x, y, fixationDuration) {
+        // Arguments: 
+        //  if both data1 and data2 are defined: this is x and y of a sample
+        //  if daat2 is undefined: daat1 is a fixation
+        feed: function (data1, data2) {
 
             var mapped = null;
 
@@ -4436,7 +4567,7 @@
                     activeTargets.push(target);
                 }
 
-                mapped = model.feed(activeTargets, x, y, fixationDuration);
+                mapped = model.feed(activeTargets, data1, data2);
             }
 
             var isNewFocused = false;
@@ -4549,10 +4680,21 @@
             settings = _settings;
         },
 
-        feed: function (targets, x, y, fixationDuration) {
+        feed: function (targets, data1, data2) {
 
             var mapped = null;
             var minDist = Number.MAX_VALUE;
+            var x, y;
+
+            if (data2) {
+                x = data1;
+                y = data2;
+            }
+            else {
+                var fix = data1;
+                x = fix.x;
+                y = fix.y;
+            }
 
             for (var i = 0; i < targets.length; i += 1) {
                 var target = targets[i];
@@ -4608,9 +4750,20 @@
         init: function () {
         },
 
-        feed: function (targets, x, y, fixationDuration) {
+        feed: function (targets, data1, data2) {
 
             var mapped = null;
+            var x, y;
+
+            if (data2) {
+                x = data1;
+                y = data2;
+            }
+            else {
+                var fix = data1;
+                x = fix.x;
+                y = fix.y;
+            }
 
             for (var i = 0; i < targets.length; i += 1) {
                 var target = targets[i];
@@ -4648,7 +4801,7 @@
     root.GazeTargets.Models.Naive = Naive;
 
 })(window);
-// Model for eading
+// Model for reading
 // 
 // Require objects in GazeTargets:
 //        none
@@ -4661,22 +4814,1247 @@
 
         // Initializes the model
         // Arguments:
+        //  _settings
+        //      forgettingFactor        relative number 0.1..0.5
+        //      readingThreshold        number of fixations
+        //      nonreadingThreshold     number of fixations
+        //      slope                   0.1..0.2
+        //      progressiveLeft         em
+        //      progressiveRight        em
+        //      readingZoneMarginY      em
+        //      neutralZoneMarginY      em
+        init: function (_settings, _commons) {
+            _settings = _settings || {};
+            _commons = _commons || {};
+
+            settings = {
+                forgettingFactor: _settings.forgettingFactor || 0.2,
+                readingThreshold: _settings.readingThreshold || 3,
+                nonreadingThreshold: _settings.nonreadingThreshold || 2,
+                slope: _settings.slope || 0.15,
+                progressiveLeft: _settings.progressiveLeft || -1,
+                progressiveRight: _settings.progressiveRight || 9,
+                readingZoneMarginY: _settings.readingZoneMarginY || 1,
+                neutralZoneMarginY: _settings.neutralZoneMarginY || 2
+            };
+
+            if (_commons.fixedText === undefined) _commons.fixedText = true;
+
+            geometry = root.GazeTargets.Models.Reading.Geometry;
+            geometry.init(_commons.fixedText);
+
+            fixations = root.GazeTargets.Models.Reading.Fixations;
+            fixations.init();
+
+            zone = root.GazeTargets.Models.Reading.Zone;
+            newLineDetector = root.GazeTargets.Models.Reading.NewLineDetector;
+            linePredictor = root.GazeTargets.Models.Reading.LinePredictor;
+
+            logger = root.GazeTargets.Logger;
+        },
+
+        feed: function (targets, data1, data2) {
+
+            createGeometry(targets);
+
+            var mapped = lastMapped;
+
+            var newFixation = fixations.feed(data1, data2);
+            if (newFixation) {
+
+                logger.log( newFixation.toString() );
+
+                // new line searcfh disabled -->
+                //var newLine = classifySaccadeZone( newFixation );
+                var guessedZone = scoreReading === 0 && newFixation.saccade.x < 0 ?
+                    zone.nonreading :
+                    zone.match( newFixation.saccade );
+
+                logger.push( 'zone', guessedZone );
+                newFixation.saccade.zone = guessedZone;
+                updateScores( guessedZone );
+                // --> replacement
+
+                var switched = updateMode();
+                var state = {
+                    isReading: isReadingMode,
+                    isSwitched: switched.toReading || switched.toNonReading
+                };
+                currentLine = linePredictor.get( state, newFixation, currentLine, offset );
+                //currentLine = linePredictor.getAlways( state, newLine, newFixation, currentLine, offset );
+
+                updateOffset( newFixation, currentLine );
+
+                mapped = map( newFixation, currentLine );
+                newFixation.word = mapped;
+
+                if (switched.toReading && mapped) {
+                    backtrackFixations( newFixation, mapped.line );
+                }
+                else if (isReadingMode && mapped) {
+                    var outlier = searchOutlier( newFixation, mapped.line.index );
+                    if (outlier) {
+                        logger.log('outlier is backtracked: line #', mapped.line.index);
+                        map(outlier, mapped.line, true);
+                    }
+                }
+                //logger.log('new fix: ' + dx + ',' + dy + ' = ' + saccade + ' : ' + (isReadingFixation ? 'reading' : '-'));
+                
+                lastMapped = mapped;
+            }
+
+            lastFixation = newFixation;
+            //select( lastMapped );
+
+            logger.closeBuffer();
+
+            return mapped ? mapped.dom : null;
+        },
+
+        reset: function () {
+
+            geometry.reset();
+            fixations.reset();
+            zone.reset();
+            newLineDetector.reset();
+            linePredictor.reset();
+
+            isReadingMode = false;
+            scoreReading = 0;
+            scoreNonReading = 0;
+            
+            offset = 0;
+            currentLine = null;
+            lastMapped = null;
+            lastFixation = null;
+        },
+
+        currentWord: function () {
+            return lastMapped;
+        },
+
+        mappedFix: function () {
+            return lastFixation;
+        }
+    };
+
+    // internal
+    var settings;
+
+    var geometry;
+    var fixations;
+    var zone;
+    var newLineDetector;
+    var linePredictor;
+
+    var isReadingMode;
+    var scoreReading;
+    var scoreNonReading;
+
+    var offset;
+    var currentLine;
+    var lastMapped;
+    var lastFixation;
+
+    var logger;
+
+    function createGeometry(targets) {
+        var geomModel = geometry.create(targets);
+        if (geomModel) {
+            zone.init({
+                progressiveLeft: settings.progressiveLeft,
+                progressiveRight: settings.progressiveRight,
+                readingMarginY: settings.readingZoneMarginY,
+                neutralMarginY: settings.neutralZoneMarginY,
+                slope: settings.slope
+            }, geomModel);
+            newLineDetector.init({
+                minMarginY: 0.3,
+                maxMarginY: 1.3,
+                slope: settings.slope
+            }, geomModel);
+            linePredictor.init( geomModel );
+        }
+    }
+
+    // function classifySaccadeZone(currentFixation) {
+        
+    //     var newLine = newLineDetector.search( currentFixation );
+
+    //     var guessedZone;
+    //     if (newLine) {
+    //         guessedZone = zone.reading;
+    //         currentFixation.saccade.newLine = true;
+    //     }
+    //     else {
+    //         guessedZone = zone.match( currentFixation.saccade );
+    //     }
+
+    //     logger.log( 'zone', guessedZone );
+    //     currentFixation.saccade.zone = guessedZone;
+    //     updateScores( guessedZone );
+
+    //     return newLine;
+    // }
+
+    function updateScores(guessedZone) {
+        switch (guessedZone) {
+            case zone.reading:
+                logger.push('in reading zone');
+                scoreReading++;
+                scoreNonReading -= settings.forgettingFactor;
+                break;
+            case zone.neutral:
+                logger.push('in neutral zone');
+                //scoreNonReading++;
+                break;
+            default:
+                logger.push('in nonreading zone');
+                scoreNonReading = settings.nonreadingThreshold;
+                scoreReading = 0;
+        }
+
+        scoreReading = scoreReading < settings.readingThreshold ? scoreReading : settings.readingThreshold;
+        scoreReading = scoreReading > 0 ? scoreReading : 0;
+        scoreNonReading = scoreNonReading < settings.nonreadingThreshold ? scoreNonReading : settings.nonreadingThreshold;
+        scoreNonReading = scoreNonReading > 0 ? scoreNonReading : 0;
+    }
+
+    function updateMode() {
+        var result = {
+            toReading: false,
+            toNonReading: false
+        };
+
+        if (!isReadingMode && scoreReading === settings.readingThreshold) {
+            changeMode(true);
+            result.toReading = true;
+        }
+        else if (isReadingMode && scoreNonReading === settings.nonreadingThreshold) {
+            changeMode(false);
+            result.toNonReading = true;
+        }
+
+        return result;
+    }
+
+    function changeMode(toReading) {
+        logger.push('change Mode', toReading);
+        isReadingMode = toReading;
+    }
+
+    function updateOffset( fixation, line ) {
+        if (isReadingMode && line) {
+            offset = line.center.y - fixation.y;
+            logger.push('offset', offset);
+        }
+    }
+
+    function map(fixation, line, skipFix) {
+
+        logger.closeBuffer();
+        logger.push('[MAP]');
+        // if (!isReadingMode) {
+        //     logger.log('    none');
+        //     return null;
+        // }
+
+        if (!line) {
+            //logger.log(logger.Type.error, '    ???');
+            return null;
+        }
+
+        if (isReadingMode && !skipFix) {
+            line.addFixation( fixation );
+        }
+        
+        var x = fixation.x;
+        var result = null;
+        var minDist = Number.MAX_VALUE;
+
+        var words = line.words;
+        for (var i = 0; i < words.length; ++i) {
+            var word = words[i];
+            var rect = word.rect;
+                
+            var dist = x < rect.left ? (rect.left - x) : (x > rect.right ? x - rect.right : 0);
+            if (dist < minDist) {
+                result = word;
+                minDist = dist;
+                if (dist === 0) {
+                    break;
+                }
+            }
+        }
+
+        logger.push('[d=', Math.floor( minDist ), ']', result ? result.line.index + ',' + result.index : '' );
+        return result;
+    }
+
+    function backtrackFixations( currentFixation, line ) {
+        logger.log( '------ backtrack ------' );    
+        var isReadingZone = true;
+        var fixation = currentFixation.previous;
+        while (fixation && !fixation.saccade.newLine) {
+            if (fixation.saccade.zone === zone.nonreading) {
+                fixation.word = map( fixation, line, true );
+                break;
+            }
+            if (!isReadingZone && fixation.saccade.zone !== zone.reading) {
+                break;
+            }
+            fixation.word = map( fixation, line );
+            isReadingZone = fixation.saccade.zone === zone.reading;
+            fixation = fixation.previous;
+        }
+        logger.log( '------ ///////// ------' );
+    }
+
+    function searchOutlier( fixation, lineIndex ) {
+        var candidate = null;
+        var pattern = [true, false, true];
+        var matched = 0;
+        var index = 0;
+
+        while (index < 3 && fixation) {
+            if (!fixation.word) {
+                break;
+            }
+
+            var isOnCurrentLine = lineIndex === fixation.word.line.index;
+            if (isOnCurrentLine === pattern[ index ]) {
+                ++matched;
+            }
+            if (index === 1) {
+                candidate = fixation;
+            }
+
+            fixation = fixation.previous;
+            ++index;
+        }
+                
+        return matched === pattern.length ? candidate : null;
+    }
+    
+    function select(word) {
+        if (word) {
+            // var rect = word.dom.getBoundingClientRect();
+            // offsetX = (rect.top + rect.height / 2) - lastY;
+            // offsetY = (rect.top + rect.height / 2) - lastY;
+        }
+        else {
+            // offsetY = 0;
+        }
+    }
+
+    // Publication
+    if (!root.GazeTargets) {
+        root.GazeTargets = {};
+    }
+
+    if (!root.GazeTargets.Models) {
+        root.GazeTargets.Models = {};
+    }
+
+    if (!root.GazeTargets.Models.Reading) {
+        root.GazeTargets.Models.Reading = {};
+    }
+
+    root.GazeTargets.Models.Reading.Campbell = Campbell;
+
+})(window);
+// Reading model: fixation start detetor, definition of fixation and sacccade
+// 
+// Depends:
+//      GazeTargets.Models.Reading.Zone
+
+(function (root) {
+
+    'use strict';
+
+    var Fixations = {
+
+        init: function (_minDuration, _threshold, _sampleDuration) {
+            minDuration = _minDuration || 80;
+            threshold = _threshold || 70;
+            sampleDuration = _sampleDuration || 33;
+            
+            zones = GazeTargets.Models.Reading.Zone;
+            logger = root.GazeTargets.Logger;
+
+            currentFixation = new Fixation(-10000, -10000, Number.MAX_VALUE);
+            currentFixation.saccade = new Saccade(0, 0);
+            candidate = null;
+        },
+
+        feed: function (data1, data2) {
+
+            var result;
+            if (data2) {    // this is smaple
+                result = parseSample(data1, data2);
+            }
+            else {
+                result = parseFixation(data1);
+            }
+            return result;
+        },
+
+        reset: function () {
+            // fixations.forEach(function (value) {
+            //     logger.log('{ x: ' + value.x + 
+            //         ', y: ' + value.y + 
+            //         ', d: ' + value.duration + ' },');
+            // });
+            fixations.length = 0;
+
+            currentFixation = new Fixation(-10000, -10000, Number.MAX_VALUE);
+            currentFixation.saccade = new Saccade(0, 0);
+            candidate = null;
+        },
+
+        current: function() {
+            return currentFixation;
+        }
+    };
+
+    // internal
+    var minDuration;
+    var threshold;
+    var sampleDuration;
+
+    var fixations = [];
+    var currentFixation;
+    
+    var candidate;
+    var lpc = 0.8;
+    var invLpc = 1 - lpc;
+
+    var zones;
+    var logger;
+
+    function parseSample(x, y) {
+        var dx = x - currentFixation.x;
+        var dy = y - currentFixation.y;
+        if (Math.sqrt( dx * dx + dy * dy) > threshold) {
+            if (!candidate) {
+                candidate = new Fixation(x, y, sampleDuration);
+                candidate.previous = currentFixation;
+                candidate.saccade = new Saccade(x - currentFixation.x, y - currentFixation.y);
+            }
+            else {
+                candidate.x = (candidate.x + x) / 2;
+                candidate.y = (candidate.y + y) / 2;
+                candidate.duration += sampleDuration;
+                currentFixation = candidate;
+                candidate = null;
+            }
+        }
+        else {
+            var prevDuration = currentFixation.duration;
+            currentFixation.duration += sampleDuration;
+            currentFixation.x = lpc * currentFixation.x + invLpc * x;
+            currentFixation.y = lpc * currentFixation.y + invLpc * y;
+            
+            if (prevDration < minDuration && currentFixation.duration >= minDuration) {
+                result = currentFixation;
+            }
+        }
+
+        return null;
+    }
+
+    function parseFixation(f) {
+
+        if (f.duration < minDuration) {
+            return null;
+        }
+
+        var result = null;
+        if (currentFixation.duration > f.duration) {
+            var fixation = new Fixation(f.x, f.y, f.duration);
+            fixation.previous = currentFixation;
+            
+            var saccade = f.saccade;
+            if (saccade) {
+                fixation.saccade = new Saccade(saccade.dx, saccade.dy);
+            }
+            else {
+                fixation.saccade = new Saccade(f.x - currentFixation.x, f.y - currentFixation.y);
+            }
+            
+            currentFixation = fixation;
+            fixations.push( currentFixation );
+                
+            result = currentFixation;
+        }
+        else {
+            currentFixation.duration = f.duration;
+        }
+
+        return result;
+    }
+
+    // Fixation
+    function Fixation(x, y, duration) {
+        this.x = x;
+        this.y = y;
+        this.duration = duration;
+        this.saccade = null;
+        this.word = null;
+        this.previous = null;
+    }
+
+    Fixation.prototype.toString = function () {
+        return 'FIX ' + this.x + ',' + this.y + ' / ' + this.duration +
+            'ms S=[' + this.saccade + '], W=[' + this.word + ']';
+    };
+
+    // Saccade
+    function Saccade(x, y) {
+        this.x = x;
+        this.y = y;
+        this.zone = zones.nonreading;
+        this.newLine = false;
+    }
+
+    Saccade.prototype.toString = function () {
+        return this.x + ',' + this.y + ' / ' + this.zone + ',' + this.newLine;
+    };
+
+    // Publication
+    if (!root.GazeTargets) {
+        root.GazeTargets = {};
+    }
+
+    if (!root.GazeTargets.Models) {
+        root.GazeTargets.Models = {};
+    }
+
+    if (!root.GazeTargets.Models.Reading) {
+        root.GazeTargets.Models.Reading = {};
+    }
+
+    root.GazeTargets.Models.Reading.Fixations = Fixations;
+    root.GazeTargets.Models.Reading.Fixation = Fixation;
+    root.GazeTargets.Models.Reading.Saccade = Saccade;
+
+})(window);
+// Reading model: text geometry model creator
+// Depends on:
+//      libs/regression
+
+(function (root) {
+
+    'use strict';
+
+    var Geometry = {
+
+        init: function(_isTextFixed) {
+            isTextFixed = _isTextFixed;
+
+            logger = root.GazeTargets.Logger;
+        },
+
+        create: function (targets) {
+            if (isTextFixed && lines.length > 0) {
+                return null;
+            }
+
+            this.reset();
+        
+            compute(targets);
+
+            return this.model();
+        },
+
+        reset: function () {
+            // lines.forEach(function (line) {
+            //     line.forEach(function (w) {
+            //         logger.log('new Word({ left: ' + w.rect.left + 
+            //             ', top: ' + w.rect.top + 
+            //             ', right: ' + w.rect.right + 
+            //             ', bottom: ' + w.rect.bottom + ' }),');
+            //     });
+            // });
+            lines = [];
+            lineSpacing = 0;
+            lineHeight = 0;
+            lineWidth = 0;
+        },
+
+        model: function () {
+            return {
+                lines: lines,
+                lineSpacing: lineSpacing,
+                lineHeight: lineHeight,
+                lineWidth: lineWidth
+            };
+        }
+    };
+
+    // internal
+    var modelMaxGradient = 0.15;
+    var modelTypeSwitchThreshold = 8;
+    var modelRemoveOldFixThreshold = 14;
+    
+    var isTextFixed;
+
+    var lines = [];
+    var lineSpacing;
+    var lineHeight;
+    var lineWidth;
+
+    var logger;
+
+    function compute(targets) {
+
+        var lineY = 0;
+        var currentLine = null;
+
+        for (var i = 0; i < targets.length; ++i) {
+            var target = targets[i];
+            var rect = target.getBoundingClientRect();
+            if (lineY < rect.top || !currentLine) {
+                if (currentLine) {
+                    lineSpacing += rect.top - currentLine.top;
+                    lineHeight += currentLine.bottom - currentLine.top;
+                    if (lineWidth < currentLine.right - currentLine.left) {
+                        lineWidth = currentLine.right - currentLine.left;
+                    }
+                }
+                currentLine = new Line(rect, target, lines.length, lines[lines.length - 1]);
+                lines.push(currentLine);
+                lineY = rect.top;
+            }
+            else {
+                currentLine.add(rect, target);
+            }
+//                logger.log('{ left: ' + Math.round(rect.left) + ', top: ' + Math.round(rect.top) + ', right: ' + Math.round(rect.right) + ', bottom: ' + Math.round(rect.bottom) + ' }');
+        }
+
+        if (currentLine) {
+            lineHeight += currentLine.bottom - currentLine.top;
+            lineHeight /= lines.length;
+            if (lineWidth < currentLine.right - currentLine.left) {
+                lineWidth = currentLine.right - currentLine.left;
+            }
+        }
+
+        if (lines.length > 1) {
+            lineSpacing /= lines.length - 1;
+        }
+        else if (lines.length > 0) {
+            var line = lines[0];
+            lineSpacing = 2 * (line.bottom - line.top);
+        }
+        
+        logger.log('geometry model created', lines.length);
+    }
+
+    // Line object
+    function Line(word, dom, index, prevLine) {
+        this.left = word.left;
+        this.top = word.top;
+        this.right = word.right;
+        this.bottom = word.bottom;
+        this.center = {
+            x: (word.left + word.right) / 2,
+            y: (word.top + word.bottom) / 2
+        };
+
+        this.words = [];
+        this.words.push(new Word(word, dom, this));
+
+        this.index = index;
+        this.previous = prevLine;
+        this.next = null;
+        if (this.previous) {
+            this.previous.next = this;
+        }
+        
+        this.fixations = [];
+        this.fitEq = null;
+    }
+
+    Line.prototype.add = function (word, dom) {
+
+        this.right = word.right;
+        if (this.bottom < word.bottom) {
+            this.bottom = word.bottom;
+        }
+
+        this.words.push(new Word(word, dom, this));
+    };
+
+    Line.prototype.addFixation = function (fixation) {
+
+        this.fixations.push( [fixation.x, fixation.y, fixation.saccade] );
+
+        if (this.fixations.length > 1) {
+            this.removeOldFixation();
+            var type = this.fixations.length < modelTypeSwitchThreshold ? 'linear' : 'polynomial';
+            var model = window.regression.model( type, this.fixations, 2 );
+            this.fitEq = model.equation;
+            logger.push( 'model for line', this.index, ':', this.fitEq );
+
+            if (type === 'linear') {    // put restriction on the gradient
+                if (this.fitEq[1] < -modelMaxGradient) {
+                    this.fitEq = fixLinearModel( this.fixations, -modelMaxGradient );
+                    logger.push( 'model reset to', this.fitEq );
+                }
+                else if (this.fitEq[1] > modelMaxGradient) {
+                    this.fitEq = fixLinearModel( this.fixations, modelMaxGradient );
+                    logger.push( 'model reset to', this.fitEq );
+                }
+            }
+        }
+    };
+
+    Line.prototype.removeOldFixation = function () {
+        var lastIndex = this.fixations.length - 1;
+        if (lastIndex < 5) {
+            return;
+        }
+
+        var index = lastIndex;
+        var fix;
+        while (index > 0) {
+            fix = this.fixations[ index ];
+            if (index > 0 && fix[2].newLine) {       // the current line started here
+                if (lastIndex - index + 1 > modelRemoveOldFixThreshold) {     // lets have at least 15 fixations
+                    this.fixations = this.fixations.slice( index );
+                    logger.push( 'line fixations: reduced' );
+                }
+                break;
+            }
+            index -= 1;
+        }
+    };
+
+    // returns difference between model x and the actual x
+    Line.prototype.fit = function (x, y) {
+        if (this.fitEq) {
+            var result = y - window.regression.fit( this.fitEq, x );
+            //logger.push( 'fitting', x, 'to line', this.index, ': error is ', result );
+            logger.push( 'e[', this.index, '] =', Math.floor( result ) );
+            return result;
+        }
+        return Number.MAX_VALUE;
+    };
+
+    // Word object
+    function Word(rect, dom, line) {
+        this.rect = rect;
+        this.dom = dom;
+        this.line = line;
+        this.index = line.words.length;
+    }
+
+    Word.prototype.toString = function () {
+        return this.rect.left + ',' + this.rect.top + ' / ' + this.line.index;
+    };
+
+    function fixLinearModel( fixations, gradient ) {
+        var sum = 0;
+        for (var i = 0; i < fixations.length; ++i) {
+            var fix = fixations[i];
+            sum += fix[1] - gradient * fix[0];
+        }
+        return [sum / fixations.length, gradient];
+    }
+
+    // Publication
+    if (!root.GazeTargets) {
+        root.GazeTargets = {};
+    }
+
+    if (!root.GazeTargets.Models) {
+        root.GazeTargets.Models = {};
+    }
+
+    if (!root.GazeTargets.Models.Reading) {
+        root.GazeTargets.Models.Reading = {};
+    }
+
+    root.GazeTargets.Models.Reading.Geometry = Geometry;
+    root.GazeTargets.Models.Reading.Geometry.Line = Line;
+    root.GazeTargets.Models.Reading.Geometry.Word = Word;
+
+})(window);
+// Reading model: line predictor
+
+(function (root) {
+
+    'use strict';
+
+    var LinePredictor = {
+
+        init: function(_geomModel, _settings) {
+            geomModel = _geomModel;
+
+            _settings = _settings || {};
+            currentLinePrefRate = _settings.currentLinePrefRate || 1.3;
+
+            guessMaxDist = 3 * geomModel.lineSpacing;
+            currentLineDefDist = 0.5 * geomModel.lineSpacing;
+            currentLineMaxDist = 0.7 * geomModel.lineSpacing;
+            newLineSaccadeLength = -0.7 * geomModel.lineWidth;
+
+            logger = root.GazeTargets.Logger;
+        },
+
+        get: function(state, currentFixation, currentLine, offset) {
+            var result = null;
+            
+            logger.closeBuffer();
+            logger.push('[LP]');
+
+            if (!state.isReading) {
+                return null;
+            }
+            else if (currentFixation.previous && currentFixation.previous.saccade.newLine && !currentLine.fitEq) {
+                result = checkAgainstCurrentLine( currentFixation, offset );
+            }
+            else if ((state.isReading && state.isSwitched) || currentFixation) {
+                result = guessCurrentLine( currentFixation, currentLine, offset );
+            }
+
+            if (!result) {
+                result = getClosestLine( currentFixation, offset );
+            }
+
+            if (result && (!currentLine || result.index !== currentLine.index)) {
+                currentFixation.saccade.newLine = true;
+            }
+
+            logger.closeBuffer();
+            return result;
+        },
+
+        getAlways: function(state, newLine, currentFixation, currentLine, offset) {
+            var result = null;
+
+            logger.closeBuffer();
+            logger.push('[LP]');
+
+            if (newLine) {
+                result = newLine;
+                logger.push('current line is #', newLine.index);
+            }
+            else if (!state.isReading) {
+                result = getClosestLine( currentFixation, offset );
+            }
+            else if (state.isReading && state.isSwitched) {
+                result = guessCurrentLine( currentFixation, currentLine, offset );
+            }
+            // else if (switched.toNonReading) {
+            //     logger.log('    current line reset');
+            //     return null;
+            // }
+            else if (currentFixation.previous && currentFixation.previous.saccade.newLine) {
+                    //currentFixation.previous.word && 
+                    // currentFixation.previous.word.line.fixations.length < 3) {
+                result = checkAgainstCurrentLine( currentFixation, offset );
+            }
+            else if (currentFixation) {
+                result = guessCurrentLine( currentFixation, currentLine, offset );
+            }
+
+            if (!result) {
+                result = getClosestLine( currentFixation, offset );
+            }
+
+            if (result && (!currentLine || result.index !== currentLine.index)) {
+                currentFixation.saccade.newLine = true;
+            }
+
+            return result;
+        },
+
+        reset: function() {
+            geomModel = null;
+        }
+    };
+
+    // internal
+    var geomModel;
+    var logger;
+
+    var currentLinePrefRate;
+    var guessMaxDist;
+    var currentLineMaxDist;
+    var currentLineDefDist;
+    var newLineSaccadeLength;
+
+    // TODO: penalize all lines but the current one - the current lline should get priority
+    function guessCurrentLine(fixation, currentLine, offset) {
+
+        var result = null;
+        var perfectLineMatch = false;
+        var minDiff = Number.MAX_VALUE;
+        var minDiffAbs = Number.MAX_VALUE;
+        var currentLineIndex = currentLine ? currentLine.index : -1;
+        var x = fixation.x;
+        var y = fixation.y;
+
+        var lines = geomModel.lines;
+        for (var i = 0; i < lines.length; ++i) {
+            var line = lines[i];
+            var diff = line.fit( x, y );
+            var diffAbs = Math.abs( diff );
+            if (currentLineIndex === line.index) {          // current line has priority:
+                if (diffAbs < currentLineDefDist) {     // it must be followed in case the current fixation follows it
+                    result = line;
+                    minDiffAbs = diffAbs;
+                    perfectLineMatch = true;
+                    logger.push( 'following the current line #', currentLineIndex );
+                    break;
+                }
+                else {                                  // and also otherwise
+                    diff /= currentLinePrefRate;
+                    diffAbs = Math.abs( diff );
+                    logger.push( '>>', Math.floor( diff ) );
+                }
+            }
+            if (diffAbs < minDiffAbs) {
+                minDiffAbs = diffAbs;
+                minDiff = diff;
+                result = line;
+            }
+        }
+
+        if (!perfectLineMatch) {
+            logger.push( 'diff =', Math.floor( minDiff ) );
+        }
+
+        // threshold must depend on the saccade type: long regressive is most likely belong to a new line, 
+        // thus compare the diff against reduced threshold from the lower bound
+
+        var threshold = fixation.saccade.x < newLineSaccadeLength ? currentLineDefDist : currentLineMaxDist;
+        if (minDiffAbs < threshold ) {
+            if (!perfectLineMatch) {
+                logger.push( 'most likely:', result ? result.index : '---' );
+            }
+        }
+        else if (currentLine) {     // maybe, this is a quick jump to some other line?
+            logger.push( 'dist =', Math.floor( minDiff ) );
+            var lineIndex = currentLineIndex + Math.round( minDiff / geomModel.lineSpacing );
+            if (0 <= lineIndex && lineIndex < lines.length) {
+
+                var acceptSupposedLine = true;
+                // check which one fits better
+                var supposedLine = lines[ lineIndex ];
+                if (supposedLine.fitEq) {
+                    var supposedLineDiff = Math.abs( supposedLine.fit( x, y ) );
+                    logger.push( 'new dist =', Math.floor( supposedLineDiff ) );
+                    if (supposedLineDiff >= minDiffAbs) {
+                        acceptSupposedLine = false;
+                        logger.push( 'keep the line #', result.index );
+                    }
+                }
+                else if (supposedLine.index === currentLineIndex + 1) { // maybe, we should stay on the curretn line?
+                    var avgOffset = 0;
+                    var count = 0;
+                    for (var li = 0; li < lines.length; ++li) {
+                        var line = lines[ li ];
+                        if (li === currentLineIndex || !line.fitEq) {
+                            continue;
+                        }
+
+                        avgOffset += line.fit( x, y ) - (currentLineIndex - li) * geomModel.lineSpacing;
+                        count++;
+                    }
+
+                    if (count) {
+                        avgOffset /= count;
+                        if (avgOffset < threshold) {
+                            acceptSupposedLine = false;
+                            result = currentLine;
+                            logger.push( 'averaged... stay on line #', result.index );
+                        }
+                    }
+                }
+
+                if (acceptSupposedLine) {
+                    result = supposedLine;
+                    logger.push( 'guessed jump to line #', result.index );
+                }
+            }
+            else {
+                result = null;
+            }
+        }
+        else {
+            result = null;
+        }
+
+        return result;
+    }
+
+    function checkAgainstCurrentLine( currentFixation, offset ) {
+        var minDist = Number.MAX_VALUE;
+        var dist;
+        var currentLine = null;
+        var previousLine = null;
+        var closestFixation = null;
+
+        var fixation = currentFixation.previous;
+        while (fixation) {
+
+            if (fixation.word) {
+                var line = fixation.word.line;
+                if (!currentLine) {
+                    currentLine = line;
+                }
+                if (line.index != currentLine.index) {
+                    if (currentLine.index - line.index === 1) {
+                        previousLine = line;
+                    }
+                    break;
+                }
+                dist = Math.abs( currentFixation.y + offset - currentLine.center.y );
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestFixation = fixation;
+                }
+            }
+
+            fixation = fixation.previous;
+        }
+
+        logger.push('dist :', minDist);
+
+        var result = closestFixation && (minDist < currentLineMaxDist) ? currentLine : null;
+        logger.push('follows the current line:', result ? 'yes' : 'no');
+
+        // If recognized as not following but still not too far and recently jumped from the previous line,
+        // then check whether it fits this previous line
+        if (!result && previousLine && minDist < geomModel.lineSpacing) {
+            var diff = Math.abs( previousLine.fit( currentFixation.x, currentFixation.y ) );
+            if (diff < currentLineMaxDist) {
+                result = previousLine;
+                logger.push('back to the prev line');
+            }
+            else {
+                result = currentLine;
+                logger.push('still better fit than to the previous line');
+            }
+        }
+
+        return result;
+    }
+
+    /*function guessNearestLineFromPreviousFixations( currentFixation, offset ) {
+        var minDist = Number.MAX_VALUE;
+        var dist, closestFixation = null;
+
+        var fixation = currentFixation.previous;
+        while (fixation) {
+
+            if (fixation.word) {
+                dist = Math.abs( currentFixation.y + offset - fixation.word.line.top );
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestFixation = fixation;
+                }
+            }
+
+            fixation = fixation.previous;
+        }
+
+        return closestFixation && (minDist < geomModel.lineSpacing / 2) ? closestFixation.word.line : null;
+    }*/
+
+    function getClosestLine( fixation, offset ) {
+
+        var result = null;
+        var minDist = Number.MAX_VALUE;
+        var line, dist;
+
+        var lines = geomModel.lines;
+        for (var i = 0; i < lines.length; ++i) {
+            line = lines[i];
+            dist = Math.abs( fixation.y + offset - line.center.y );
+            if (dist < minDist) {
+                minDist = dist;
+                result = line;
+            }
+        }
+
+        logger.push('just taking the closest line',  result.index);
+        return result;        
+    }
+
+    // Publication
+    if (!root.GazeTargets) {
+        root.GazeTargets = {};
+    }
+
+    if (!root.GazeTargets.Models) {
+        root.GazeTargets.Models = {};
+    }
+
+    if (!root.GazeTargets.Models.Reading) {
+        root.GazeTargets.Models.Reading = {};
+    }
+
+    root.GazeTargets.Models.Reading.LinePredictor = LinePredictor;
+
+})(window);
+
+// Reading model: mathes reading zone
+
+(function (root) {
+
+    'use strict';
+
+    var NewLineDetector = {
+
+        init: function (settings, geomModel) {
+            lineMaxWidth = geomModel.lineWidth;
+            minMarginY = (settings.minMarginY || 0.3) * geomModel.lineSpacing;
+            maxMarginY = (settings.maxMarginY || 1.3) * geomModel.lineSpacing;
+            slope = settings.slope || 0.1;
+
+            zones = root.GazeTargets.Models.Reading.Zone;
+            logger = root.GazeTargets.Logger;
+        },
+
+        search: function (currentFixation) {
+
+            if (!isInZone(currentFixation.saccade)) {
+                return null;
+            }
+
+            logger.log('new line? compare against the current line');
+            var result = compareAgainstCurrentLine( currentFixation );
+            logger.log('    line: ', result ? result.index : '-');
+
+            return result;
+        },
+
+        reset: function () {
+        }
+    };
+
+    // internal
+    var lineMaxWidth;
+    var minMarginY;
+    var maxMarginY;
+    var slope;
+
+    var zones;
+    var logger;
+
+    function isInZone(saccade) {
+        var heightDelta = -saccade.x * slope;
+        var left = -lineMaxWidth;
+        var top = minMarginY - heightDelta;
+        var bottom = maxMarginY + heightDelta;
+        return left < saccade.x && saccade.x < 0 && 
+               top < saccade.y && saccade.y < bottom;
+    }
+
+    // function isInZone(saccade) {
+    //     var left = -lineMaxWidth;
+    //     var top = minMarginY;
+    //     var bottom = maxMarginY;
+    //     return left < saccade.x && saccade.x < -20 && 
+    //            top < saccade.y && saccade.y < bottom;
+    // }
+
+    function compareAgainstCurrentLine(currentFixation) {
+        
+        var firstLineFixation = getFirstFixationOnItsLine( currentFixation );
+
+        if (!firstLineFixation) {
+            logger.log('    cannot do it');
+            return null;
+        }
+
+        var verticalJump = currentFixation.y - firstLineFixation.y;
+        if ( minMarginY < verticalJump) {
+            logger.log('    is below the current', verticalJump);
+            return firstLineFixation.word.line.next;
+        }
+
+        return null;
+    }
+
+    function getFirstFixationOnItsLine(currentFixation) {
+
+        var previousFixation = currentFixation.previous;
+        if (!previousFixation || !previousFixation.word) {  // previous fixation should be mapped onto a word
+            return null;
+        }
+
+        var currentLine = previousFixation.word.line;
+        var fixation = previousFixation;
+        var result = previousFixation;
+
+        while (fixation) {
+            if (fixation.word) {                // the fixation was mapped onto a word, lets test its line
+                if (fixation.word.line === currentLine) {   // same line, continue moving backward
+                    result = fixation;
+                    if (result.x < currentFixation.x) {     // no need to search further for more  
+                        break;
+                    }
+                }
+                else if (fixation.word.line) {  // the fixation mapped onto another line, break
+                    break;
+                }
+            }
+            else if (fixation.saccade.zone === zones.nonreading) {   // 
+                break;
+            }
+
+            fixation = fixation.previous;
+        }
+
+        return result;
+    }
+        
+    // Publication
+    if (!root.GazeTargets) {
+        root.GazeTargets = {};
+    }
+
+    if (!root.GazeTargets.Models) {
+        root.GazeTargets.Models = {};
+    }
+
+    if (!root.GazeTargets.Models.Reading) {
+        root.GazeTargets.Models.Reading = {};
+    }
+
+    root.GazeTargets.Models.Reading.NewLineDetector = NewLineDetector;
+
+})(window);
+// Model for eading
+// 
+// Require objects in GazeTargets:
+//        none
+
+(function (root) {
+
+    'use strict';
+
+    var Simplest = {
+
+        // Initializes the model
+        // Arguments:
         //  _settings:                 - settings:
-        //      fontSize:                   font size in pixels
-        //      maxSaccadeLength:           - max saccade threshold
-        //          progressive:
-        //              reading
-        //              skimming
-        //          regressive:
+        //      maxSaccadeLength            maximum progressive saccade length
         //      maxSaccadeAngleRatio        maximum progressive saccade |dy|/dx ration
         init: function (_settings, _commons) {
             settings = _settings;
             commons = _commons;
+
+            logger = root.GazeTargets.Logger;
         },
 
         feed: function (targets, x, y, fixationDuration) {
 
-            return;
             obtainGeometry(targets);
 
             var newFixation = false;
@@ -4694,7 +6072,7 @@
             var mapped = lastMapped;
 
             if (newFixation) {
-                console.log(x, y);
+                logger.log(x, y);
                 var dx = x - prevFixX;
                 var dy = y - prevFixY;
                 var saccade = Math.sqrt(dx * dx + dy * dy);
@@ -4702,14 +6080,14 @@
                 isReadingFixation = saccade <= settings.maxSaccadeLength && 
                     Math.abs(dy) / dx <= settings.maxSaccadeAngleRatio;
 
-                var saccadeIndicator = lastMapped ? (lastMapped.line.right - lastMapped.line.left) * 0.5 : 1000000;
+                var saccadeIndicator = lastMapped ? (lastMapped.line.right - lastMapped.line.left) * 0.5 : Number.MAX_VALUE;
                 if (!isReadingFixation || dx < -saccadeIndicator) {
                     yOffset = 0;
                 }
 
                 mapped = map(x, y + yOffset);
 
-                //console.log("new fix: " + dx + "," + dy + " = " + saccade + " : " + (isReadingFixation ? "reading" : "-"));
+                //logger.log("new fix: " + dx + "," + dy + " = " + saccade + " : " + (isReadingFixation ? "reading" : "-"));
             }
 
             lastMapped = mapped;
@@ -4724,7 +6102,7 @@
             lastY = -1000;
             prevFixX = -1000;
             prevFixY = -1000;
-            prevFixDuration = 1000000;
+            prevFixDuration = Number.MAX_VALUE;
             isReadingFixation = false;
             lastMapped = null;
             lineSpacing = 0;
@@ -4735,6 +6113,8 @@
     // internal
     var settings;
     var commons;
+
+    var logger;
 
     var lines = [];
     var lineSpacing;
@@ -4775,223 +6155,7 @@
                 currentLine.addWord(rect, target);
             }
 
-//                console.log('{ left: ' + Math.round(rect.left) + ', top: ' + Math.round(rect.top) + ', right: ' + Math.round(rect.right) + ', bottom: ' + Math.round(rect.bottom) + ' }');
-        }
-
-        if (lines.length > 1) {
-            lineSpacing /= lines.length - 1;
-        }
-        else if (lines.length > 0) {
-            var line = lines[0];
-            lineSpacing = 2 * (line.bottom - line.top);
-        }
-    }
-
-    function createLine(rect, target) {
-        var line = {
-            left: rect.left,
-            top: rect.top,
-            right: rect.right,
-            bottom: rect.bottom,
-            words: [{
-                rect: rect,
-                dom: target
-            }],
-
-            addWord: function (rect, target) {
-                this.right = rect.right;
-                if (this.bottom < rect.bottom) {
-                    this.bottom = rect.bottom;
-                }
-                this.words.push({
-                    rect: rect,
-                    dom: target,
-                    line: this
-                });
-            }
-        };
-
-        line.words[0].line = line;
-
-        return line;
-    }
-
-    function map(x, y) {
-
-        var result = null;
-        var minDist = Number.MAX_VALUE;
-
-        for (var i = 0; i < lines.length; ++i) {
-            var words = lines[i].words;
-            for (var j = 0; j < words.length; ++j) {
-                var word = words[j];
-                var rect = word.rect;
-                
-                var dx = x < rect.left ? rect.left - x : (x > rect.right ? x - rect.right : 0);
-                var dy = y < rect.top ? rect.top - y : (y > rect.bottom ? y - rect.bottom : 0);
-                var dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist < minDist) {
-                    result = word;
-                    minDist = dist;
-                    if (dist === 0) {
-                        i = lines.length;
-                        break;
-                    }
-                }
-            }
-        }
-
-        return minDist < lineSpacing ? result : null;
-    }
-
-    function select(word) {
-        if (word && isReadingFixation) {
-            var rect = word.dom.getBoundingClientRect();
-            yOffset = (rect.top + rect.height / 2) - lastY;
-        }
-        else {
-            yOffset = 0;
-        }
-    }
-
-    // Publication
-    if (!root.GazeTargets) {
-        root.GazeTargets = {};
-    }
-
-    if (!root.GazeTargets.Models) {
-        root.GazeTargets.Models = {};
-    }
-
-    if (!root.GazeTargets.Models.Reading) {
-        root.GazeTargets.Models.Reading = {};
-    }
-
-    root.GazeTargets.Models.Reading.Campbell = Campbell;
-
-})(window);
-// Model for eading
-// 
-// Require objects in GazeTargets:
-//        none
-
-(function (root) {
-
-    'use strict';
-
-    var Simplest = {
-
-        // Initializes the model
-        // Arguments:
-        //  _settings:                 - settings:
-        //      maxSaccadeLength            maximum progressive saccade length
-        //      maxSaccadeAngleRatio        maximum progressive saccade |dy|/dx ration
-        init: function (_settings, _commons) {
-            settings = _settings;
-            commons = _commons;
-        },
-
-        feed: function (targets, x, y, fixationDuration) {
-
-            obtainGeometry(targets);
-
-            var newFixation = false;
-            if (prevFixDuration > fixationDuration) {
-                prevFixX = lastX;
-                prevFixY = lastY;
-                newFixation = true;
-            }
-
-            prevFixDuration = fixationDuration;
-
-            lastX = x;
-            lastY = y;
-
-            var mapped = lastMapped;
-
-            if (newFixation) {
-                console.log(x, y);
-                var dx = x - prevFixX;
-                var dy = y - prevFixY;
-                var saccade = Math.sqrt(dx * dx + dy * dy);
-
-                isReadingFixation = saccade <= settings.maxSaccadeLength && 
-                    Math.abs(dy) / dx <= settings.maxSaccadeAngleRatio;
-
-                var saccadeIndicator = lastMapped ? (lastMapped.line.right - lastMapped.line.left) * 0.5 : 1000000;
-                if (!isReadingFixation || dx < -saccadeIndicator) {
-                    yOffset = 0;
-                }
-
-                mapped = map(x, y + yOffset);
-
-                //console.log("new fix: " + dx + "," + dy + " = " + saccade + " : " + (isReadingFixation ? "reading" : "-"));
-            }
-
-            lastMapped = mapped;
-            select(lastMapped);
-
-            return mapped ? mapped.dom : null;
-        },
-
-        reset: function () {
-            yOffset = 0;
-            lastX = -1000;
-            lastY = -1000;
-            prevFixX = -1000;
-            prevFixY = -1000;
-            prevFixDuration = 1000000;
-            isReadingFixation = false;
-            lastMapped = null;
-            lineSpacing = 0;
-            lines.length = 0;
-        }
-    };
-
-    // internal
-    var settings;
-    var commons;
-
-    var lines = [];
-    var lineSpacing;
-    var lastMapped;
-
-    var yOffset;
-    var lastX;
-    var lastY;
-    var prevFixX;
-    var prevFixY;
-    var prevFixDuration;
-    var isReadingFixation;
-
-    function obtainGeometry(targets) {
-
-        if (settings.fixedText && lines.length > 0) {
-            return;
-        }
-
-        lines.length = 0;
-        lineSpacing = 0;
-        
-        var lineY = 0;
-        var currentLine = null;
-
-        for (var i = 0; i < targets.length; ++i) {
-            var target = targets[i];
-            var rect = target.getBoundingClientRect();
-            if (lineY < rect.top || !currentLine) {
-                if (currentLine) {
-                    lineSpacing += rect.top - currentLine.top;
-                }
-                currentLine = createLine(rect, target);
-                lines.push(currentLine);
-                lineY = rect.top;
-            }
-            else {
-                currentLine.addWord(rect, target);
-            }
-
-//                console.log('{ left: ' + Math.round(rect.left) + ', top: ' + Math.round(rect.top) + ', right: ' + Math.round(rect.right) + ', bottom: ' + Math.round(rect.bottom) + ' }');
+//                logger.log('{ left: ' + Math.round(rect.left) + ', top: ' + Math.round(rect.top) + ', right: ' + Math.round(rect.right) + ', bottom: ' + Math.round(rect.bottom) + ' }');
         }
 
         if (lines.length > 1) {
@@ -5084,6 +6248,104 @@
     }
 
     root.GazeTargets.Models.Reading.Simplest = Simplest;
+
+})(window);
+// Reading model: mathes reading zone
+
+(function (root) {
+
+    'use strict';
+
+    var Zone = {
+
+        // types
+        nonreading: 0,
+        neutral: 1,
+        reading: 2,
+
+        init: function (settings, geomModel) {
+            lineHeight = geomModel.lineHeight;
+            progressiveLeft = Math.round((settings.progressiveLeft || -1.5) * lineHeight);
+            progressiveRight = Math.round((settings.progressiveRight || 10) * lineHeight);
+            regressiveLeft = -geomModel.lineWidth - 500;
+            regressiveRight = 0;
+            readingMarginY = Math.round((settings.readingMarginY || 1.5) * lineHeight);
+            neutralMarginY = Math.round((settings.neutralMarginY || 3) * lineHeight);
+            slope = settings.slope || 0.1;
+
+            logger = root.GazeTargets.Logger;
+        },
+
+        match: function (saccade) {
+            logger.closeBuffer();
+            logger.push('zone search', saccade.x, saccade.y);
+            var zone = this.nonreading;
+
+            if (isInsideBox( readingMarginY, saccade)) {
+                zone = this.reading;
+            }
+            else if (isInsideBox( neutralMarginY, saccade )) {
+                zone = this.neutral;
+            }
+
+            //var isNewLine = detectNewLine(saccade);
+
+            return zone;
+        },
+
+        reset: function () {
+        }
+    };
+
+    // internal
+    var lineHeight;
+    var progressiveLeft;
+    var progressiveRight;
+    var regressiveLeft;
+    var regressiveRight;
+    var readingMarginY;
+    var neutralMarginY;
+    var slope;
+
+    var logger;
+
+    function isInsideProgressive(marginY, saccade)
+    {
+        var heightDelta = saccade.x * slope;
+        var margin = Math.round( marginY + heightDelta );
+        logger.push('Progressive: [', progressiveLeft, progressiveRight, -margin, margin, ']');
+        return progressiveLeft < saccade.x && saccade.x < progressiveRight && 
+               -margin < saccade.y && saccade.y < margin;
+    }
+
+    function isInsideRegressive(marginY, saccade)
+    {
+        var heightDelta = -saccade.x * slope;
+        var margin = Math.round( marginY + heightDelta );
+        logger.push('Regressive: [', regressiveLeft, regressiveRight, -margin, margin, ']');
+        return regressiveLeft < saccade.x && saccade.x < 0 && 
+               -margin < saccade.y && saccade.y < margin;
+    }
+
+    function isInsideBox(marginY, saccade)
+    {
+        return isInsideProgressive(marginY, saccade) || isInsideRegressive(marginY, saccade);
+    }
+    
+    // Publication
+    if (!root.GazeTargets) {
+        root.GazeTargets = {};
+    }
+
+    if (!root.GazeTargets.Models) {
+        root.GazeTargets.Models = {};
+    }
+
+    if (!root.GazeTargets.Models.Reading) {
+        root.GazeTargets.Models.Reading = {};
+    }
+
+    root.GazeTargets.Models.Reading.Zone = Zone;
 
 })(window);
 // Gaze pointer
@@ -6183,7 +7445,7 @@
                         }
 
                         // Never move original objects, clone them
-                        target[ name ] = Utils.extend( deep, clone, copy );
+                        target[ name ] = Utils.extend( deep, onlyIfUndefined, clone, copy );
 
                     // Don't bring in undefined values
                     } else if ( copy !== undefined ) {
@@ -6224,3 +7486,270 @@
     root.GazeTargets.Utils = Utils;
 
 })(window);
+/**
+* @license
+*
+* Regression.JS - Regression functions for javascript
+* http://tom-alexander.github.com/regression-js/
+*
+* copyright(c) 2013 Tom Alexander
+* Licensed under the MIT license.
+*
+**/
+
+;(function() {
+    'use strict';
+
+    var gaussianElimination = function(a, o) {
+           var i = 0, j = 0, k = 0, maxrow = 0, tmp = 0, n = a.length - 1, x = new Array(o);
+           for (i = 0; i < n; i++) {
+              maxrow = i;
+              for (j = i + 1; j < n; j++) {
+                 if (Math.abs(a[i][j]) > Math.abs(a[i][maxrow]))
+                    maxrow = j;
+              }
+              for (k = i; k < n + 1; k++) {
+                 tmp = a[k][i];
+                 a[k][i] = a[k][maxrow];
+                 a[k][maxrow] = tmp;
+              }
+              for (j = i + 1; j < n; j++) {
+                 for (k = n; k >= i; k--) {
+                    a[k][j] -= a[k][i] * a[i][j] / a[i][i];
+                 }
+              }
+           }
+           for (j = n - 1; j >= 0; j--) {
+              tmp = 0;
+              for (k = j + 1; k < n; k++)
+                 tmp += a[k][j] * x[k];
+              x[j] = (a[n][j] - tmp) / a[j][j];
+           }
+           return (x);
+    };
+
+        var methods = {
+            linear: function(data) {
+                var sum = [0, 0, 0, 0, 0], n = 0, results = [];
+
+                for (; n < data.length; n++) {
+                  if (data[n][1] != null) {
+                    sum[0] += data[n][0];
+                    sum[1] += data[n][1];
+                    sum[2] += data[n][0] * data[n][0];
+                    sum[3] += data[n][0] * data[n][1];
+                    sum[4] += data[n][1] * data[n][1];
+                  }
+                }
+
+                var gradient = (n * sum[3] - sum[0] * sum[1]) / (n * sum[2] - sum[0] * sum[0]);
+                var intercept = (sum[1] / n) - (gradient * sum[0]) / n;
+              //  var correlation = (n * sum[3] - sum[0] * sum[1]) / Math.sqrt((n * sum[2] - sum[0] * sum[0]) * (n * sum[4] - sum[1] * sum[1]));
+
+                for (var i = 0, len = data.length; i < len; i++) {
+                    var coordinate = [data[i][0], data[i][0] * gradient + intercept];
+                    results.push(coordinate);
+                }
+
+                var string = 'y = ' + Math.round(gradient*100) / 100 + 'x + ' + Math.round(intercept*100) / 100;
+
+                return {equation: [intercept, gradient], points: results, string: string};
+            },
+
+            linearThroughOrigin: function(data) {
+                var sum = [0, 0], n = 0, results = [];
+
+                for (; n < data.length; n++) {
+                    if (data[n][1] != null) {
+                        sum[0] += data[n][0] * data[n][0]; //sumSqX
+                        sum[1] += data[n][0] * data[n][1]; //sumXY
+                    }
+                }
+
+                var gradient = sum[1] / sum[0];
+
+                for (var i = 0, len = data.length; i < len; i++) {
+                    var coordinate = [data[i][0], data[i][0] * gradient];
+                    results.push(coordinate);
+                }
+
+                var string = 'y = ' + Math.round(gradient*100) / 100 + 'x';
+
+                return {equation: [0, gradient], points: results, string: string};
+            },
+
+            exponential: function(data) {
+                var sum = [0, 0, 0, 0, 0, 0], n = 0, results = [];
+
+                for (len = data.length; n < len; n++) {
+                  if (data[n][1] != null) {
+                    sum[0] += data[n][0];
+                    sum[1] += data[n][1];
+                    sum[2] += data[n][0] * data[n][0] * data[n][1];
+                    sum[3] += data[n][1] * Math.log(data[n][1]);
+                    sum[4] += data[n][0] * data[n][1] * Math.log(data[n][1]);
+                    sum[5] += data[n][0] * data[n][1];
+                  }
+                }
+
+                var denominator = (sum[1] * sum[2] - sum[5] * sum[5]);
+                var A = Math.pow(Math.E, (sum[2] * sum[3] - sum[5] * sum[4]) / denominator);
+                var B = (sum[1] * sum[4] - sum[5] * sum[3]) / denominator;
+
+                for (var i = 0, len = data.length; i < len; i++) {
+                    var coordinate = [data[i][0], A * Math.pow(Math.E, B * data[i][0])];
+                    results.push(coordinate);
+                }
+
+                var string = 'y = ' + Math.round(A*100) / 100 + 'e^(' + Math.round(B*100) / 100 + 'x)';
+
+                return {equation: [A, B], points: results, string: string};
+            },
+
+            logarithmic: function(data) {
+                var sum = [0, 0, 0, 0], n = 0, results = [];
+
+                for (len = data.length; n < len; n++) {
+                  if (data[n][1] != null) {
+                    sum[0] += Math.log(data[n][0]);
+                    sum[1] += data[n][1] * Math.log(data[n][0]);
+                    sum[2] += data[n][1];
+                    sum[3] += Math.pow(Math.log(data[n][0]), 2);
+                  }
+                }
+
+                var B = (n * sum[1] - sum[2] * sum[0]) / (n * sum[3] - sum[0] * sum[0]);
+                var A = (sum[2] - B * sum[0]) / n;
+
+                for (var i = 0, len = data.length; i < len; i++) {
+                    var coordinate = [data[i][0], A + B * Math.log(data[i][0])];
+                    results.push(coordinate);
+                }
+
+                var string = 'y = ' + Math.round(A*100) / 100 + ' + ' + Math.round(B*100) / 100 + ' ln(x)';
+
+                return {equation: [A, B], points: results, string: string};
+            },
+
+            power: function(data) {
+                var sum = [0, 0, 0, 0], n = 0, results = [];
+
+                for (len = data.length; n < len; n++) {
+                  if (data[n][1] != null) {
+                    sum[0] += Math.log(data[n][0]);
+                    sum[1] += Math.log(data[n][1]) * Math.log(data[n][0]);
+                    sum[2] += Math.log(data[n][1]);
+                    sum[3] += Math.pow(Math.log(data[n][0]), 2);
+                  }
+                }
+
+                var B = (n * sum[1] - sum[2] * sum[0]) / (n * sum[3] - sum[0] * sum[0]);
+                var A = Math.pow(Math.E, (sum[2] - B * sum[0]) / n);
+
+                for (var i = 0, len = data.length; i < len; i++) {
+                    var coordinate = [data[i][0], A * Math.pow(data[i][0] , B)];
+                    results.push(coordinate);
+                }
+
+                 var string = 'y = ' + Math.round(A*100) / 100 + 'x^' + Math.round(B*100) / 100;
+
+                return {equation: [A, B], points: results, string: string};
+            },
+
+            polynomial: function(data, order) {
+                if(typeof order == 'undefined'){
+                    order = 2;
+                }
+                 var lhs = [], rhs = [], results = [], a = 0, b = 0, i = 0, k = order + 1;
+
+                        for (; i < k; i++) {
+                           for (var l = 0, len = data.length; l < len; l++) {
+                              if (data[l][1] != null) {
+                               a += Math.pow(data[l][0], i) * data[l][1];
+                              }
+                            }
+                            lhs.push(a), a = 0;
+                            var c = [];
+                            for (var j = 0; j < k; j++) {
+                               for (var l = 0, len = data.length; l < len; l++) {
+                                  if (data[l][1] != null) {
+                                   b += Math.pow(data[l][0], i + j);
+                                  }
+                                }
+                                c.push(b), b = 0;
+                            }
+                            rhs.push(c);
+                        }
+                rhs.push(lhs);
+
+               var equation = gaussianElimination(rhs, k);
+
+                    for (var i = 0, len = data.length; i < len; i++) {
+                        var answer = 0;
+                        for (var w = 0; w < equation.length; w++) {
+                            answer += equation[w] * Math.pow(data[i][0], w);
+                        }
+                        results.push([data[i][0], answer]);
+                    }
+
+                    var string = 'y = ';
+
+                    for(var i = equation.length-1; i >= 0; i--){
+                      if(i > 1) string += Math.round(equation[i] * Math.pow(10, i)) / Math.pow(10, i)  + 'x^' + i + ' + ';
+                      else if (i == 1) string += Math.round(equation[i]*100) / 100 + 'x' + ' + ';
+                      else string += Math.round(equation[i]*100) / 100;
+                    }
+
+                return {equation: equation, points: results, string: string};
+            },
+
+            lastvalue: function(data) {
+              var results = [];
+              var lastvalue = null;
+              for (var i = 0; i < data.length; i++) {
+                if (data[i][1]) {
+                  lastvalue = data[i][1];
+                  results.push([data[i][0], data[i][1]]);
+                }
+                else {
+                  results.push([data[i][0], lastvalue]);
+                }
+              }
+
+              return {equation: [lastvalue], points: results, string: "" + lastvalue};
+            }
+        };
+
+var regression = {
+
+  model: function(method, data, order) {
+
+    if (typeof method == 'string') {
+      return methods[method](data, order);
+    }
+  },
+
+  fit: function (equation, x) {
+    var result = 0;
+    var value = 1;
+
+    if (!equation) {
+      return Number.MAX_VALUE;
+    }
+
+    for (var i = 0; i < equation.length; ++i) {
+      result += equation[i] * value;
+      value *= x;
+    }
+
+    return result;
+  }
+};
+
+if (typeof exports !== 'undefined') {
+    module.exports = regression;
+} else {
+    window.regression = regression;
+}
+
+}());

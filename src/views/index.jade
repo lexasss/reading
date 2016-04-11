@@ -2,6 +2,7 @@
 - var textEditorID = 'textEditor';
 - var optionsID = 'options';
 - var statisticsID = 'statistics';
+- var pathID = 'path';
 
 doctype html
 html
@@ -10,8 +11,11 @@ html
         link(rel='stylesheet', href='app.css')
         script(src='libs/gazeTargets/gazeTargets.js')
         script(src='libs/jscolor/jscolor.js')
+        //- script(src='libs/Chart.min.js')
+        script(src='https://cdn.firebase.com/js/client/2.4.2/firebase.js')
     body
 
+        input.loadPath(type="button", value="Load path")
         div(id=textContainerID).readingText All men have stars, but they are not the same things for different people. For some, who are travelers, the stars are guides. For others they are no more than little lights in the sky. For others, who are scholars, they are problems... But all these stars are silent. You-You alone will have stars as no one else has them... In one of the stars I shall be living. In one of them I shall be laughing. And so it will be as if all the stars will be laughing when you look at the sky at night..You, only you, will have stars that can laugh! And when your sorrow is comforted (time soothes all sorrows) you will be content that you have known me... You will always be my friend. You will want to laugh with me. And you will sometimes open your window, so, for that pleasure... It will be as if, in place of the stars, I had given you a great number of little bells that knew how to laugh.
 
         include ./components/textEditor.jade
@@ -23,9 +27,16 @@ html
         include ./components/statistics.jade
         +statistics( statisticsID )
 
+        include ./components/path.jade
+        +path( pathID )
+
         script(src='app.js')
         script.
 
+            // DB
+            Reading.firebase = new Firebase("https://burning-torch-9217.firebaseio.com/");
+
+            // setup
             var textHighlighter = new Reading.TextHighlighter({
                 root: '##{textContainerID}'
             });
@@ -48,6 +59,10 @@ html
                 pageText: '##{textContainerID}'
             });
 
+            var path = new Reading.Path({
+                root: '##{pathID}'
+            });
+
             var gazeTargetsManager = new Reading.GazeTargetsManager({
                 trackingStarted: function () {
                     textHighlighter.init();
@@ -68,5 +83,6 @@ html
                 wordLeft: function (word) {
                     textHighlighter.setFocusedWord( null );
                     statistics.setFocusedWord( null );
-                }
+                },
+                fixation: statistics.logFixation
             });

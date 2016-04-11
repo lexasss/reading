@@ -42,8 +42,14 @@ module.exports = function(grunt) {
         },
 
         copy: {
-            libs: 
-            {
+            gazeTargets: {
+                expand: true,
+                cwd: '../../GazeTargets/build',
+                src: '**',
+                dest: 'libs/',
+                flatten: false
+            },
+            libs: {
                 expand: true,
                 cwd: 'libs/',
                 src: '**',
@@ -88,6 +94,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-postcss');
     grunt.loadNpmTasks('grunt-contrib-jshint');
 
-    grunt.registerTask('default', ['clean', 'jade', 'less', 'concat', 'copy', 'postcss']);
+    grunt.registerTask('default', ['clean', 'jade', 'less', 'concat', 'copy:libs', 'postcss']);
+    grunt.registerTask('updatelibs', ['copy:gazeTargets']);
     grunt.registerTask('compile', ['jshint']);
 };

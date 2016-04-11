@@ -33,6 +33,7 @@
             mapping: {
                 type: GazeTargets.mapping.types.reading,  
                 source: GazeTargets.mapping.sources.fixations,
+                readingModel: GazeTargets.mapping.readingModel.campbell,
                 expansion: 30,
                 reading: {
                     maxSaccadeLength: 250,
@@ -61,7 +62,9 @@
                     if (callbacks.wordLeft)
                         callbacks.wordLeft( target );
                 }
-            }
+            },
+
+            fixation: callbacks.fixation
         });
     }
 
