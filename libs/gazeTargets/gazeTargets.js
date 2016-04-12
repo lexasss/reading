@@ -1873,7 +1873,10 @@
             panel.setLabel(stateLabel.connecting);
             
             var wsURI = 'ws://localhost:' + settings.port + '/';
-            websocket = new WebSocket(wsURI);
+            websocket = new WebSocket(wsURI, {
+                protocolVersion: 8,
+                rejectUnauthorized: false
+            });
             websocket.onopen    = onWebSocketOpen;
             websocket.onclose   = onWebSocketClose;
             websocket.onmessage = onWebSocketMessage;
