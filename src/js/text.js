@@ -31,7 +31,7 @@
             ]
         ];
 
-        this.spacings = ['small', 'median', 'large'];
+        this.spacings = ['x-small', 'small', 'median', 'large', 'x-large'];
     }
 
     Text.prototype.switchText = function (index) {
@@ -45,7 +45,7 @@
         
         for (var i = 0; i < lines.length; i += 1) {
             var line = document.createElement('div');
-            //line.className = this.spacings[ _spacingIndex ];
+            line.className = 'line';
             line.textContent = lines[i];
 
             _textContainer.appendChild( line );

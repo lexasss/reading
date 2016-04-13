@@ -1,0 +1,57 @@
+@margin: 15;
+@lineCountXSmall: 4;
+@lineCountSmall: 5;
+@lineCountMedium: 6;
+@lineCountLarge: 7;
+@lineCountXLarge: 8;
+
+#text {
+    position: relative;
+    height: unit(100 - 2 * @margin, vh);
+    margin: unit(@margin, vh) unit(@margin, vw);
+
+    #textContainer {
+        color: #555555;
+        font-size: 24pt;
+        font-family: Calibri, Arial, sans-serif;
+        font-weight: bold;
+        text-align: center;
+
+        width: 100%;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+
+        &.x-small {
+            line-height: (100vh - 2 * unit(@margin, vh)) / @lineCountXSmall;
+        }
+        &.small {
+            line-height: (100vh - 2 * unit(@margin, vh)) / @lineCountSmall;
+        }
+        &.median {
+            line-height: (100vh - 2 * unit(@margin, vh)) / @lineCountMedium;
+        }
+        &.large {
+            line-height: (100vh - 2 * unit(@margin, vh)) / @lineCountLarge;
+        }
+        &.x-large {
+            line-height: (100vh - 2 * unit(@margin, vh)) / @lineCountXLarge;
+        }
+
+        .line {
+            display: block;
+        }
+
+        .currentWord {
+            color: #CC0000;
+        }
+
+        .word {
+            // nothing is needed, just the class declaration
+        }
+
+        &:hover .word {
+        //    outline: 2px solid #ccccff;
+        }
+    }
+}
