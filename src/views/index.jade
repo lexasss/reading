@@ -15,6 +15,7 @@ html
         script(src='libs/jscolor/jscolor.js')
         //- script(src='libs/Chart.min.js')
         script(src='libs/firebase.js')
+
     body
 
         div#text
@@ -43,10 +44,10 @@ html
 
             // setup
             var textSplitter = new Reading.TextSplitter({ root: '##{textContainerID}' });
-            var text = new Reading.Text({ root: '##{textContainerID}', textSplitter: textSplitter });
-            var controls = new Reading.Controls({ root: '##{controlsID}', text: text });
+            var text = new Reading.Text({ root: '##{textContainerID}' }, textSplitter);
+            var controls = new Reading.Controls({ root: '##{controlsID}'}, text );
             var options = new Reading.Options({ root: '##{optionsID}', textContainer: '##{textContainerID}' });
-            var statistics = new Reading.Statistics({ root: '##{statisticsID}' });
+            var statistics = new Reading.Statistics({ root: '##{statisticsID}' }, text);
             var path = new Reading.Path({ root: '##{pathID}' });
 
             var textEditor = new Reading.TextEditor({

@@ -3,13 +3,13 @@
     // Text controller
     // Constructor arguments:
     //      options: {
-    //          root: - ID of the element that stores the text
-    //          textSplitter: text splitter
+    //          root:       - ID of the element that stores the text
     //      }
-    function Text(options) {
+    //      textSplitter:   - text splitter
+    function Text(options, textSplitter) {
         
         _textContainer = document.querySelector( options.root || '#textContainer' );
-        _textSplitter = options.textSplitter;
+        _textSplitter = textSplitter;
 
         this.texts = [
             [
@@ -57,15 +57,22 @@
     Text.prototype.switchSpacing = function (index) {
         _spacingIndex = index;
         _textContainer.className = this.spacings[ _spacingIndex ];
-    }
+    };
 
     Text.prototype.getCurrentTextIndex = function () {
         return _textIndex;
-    }
+    };
 
     Text.prototype.getCurrentSpacingIndex = function () {
         return _spacingIndex;
-    }
+    };
+
+    Text.prototype.features = function () {
+        return {
+            text: _textIndex,
+            lineSize: _spacingIndex
+        };
+    };
 
     var _textContainer;
     var _textSplitter;

@@ -5,9 +5,12 @@
     //      options: {
     //          root:         - selector for the element that contains statistics view
     //      }
-    function Statistics(options) {
+    //      text:       - text controller
+    function Statistics(options, text) {
 
         this.root = options.root || document.documentElement;
+
+        _text = text;
 
         _view = document.querySelector( this.root );
         _view.style.display = 'none';
@@ -34,7 +37,7 @@
     Statistics.prototype.print = function () {
         
         if (_currentWord) {
-            var record = _map.get(_currentWord);
+            var record = text.get(_currentWord);
             if (record) {
                 record.stop();
             }
@@ -42,7 +45,7 @@
 
         var text = Record.getHeader() + '\n';
 
-        _map.forEach(function (record) {
+        _words.forEach(function (record) {
             text += record.toString() + '\n';
         });
 
@@ -74,7 +77,7 @@
     Statistics.prototype.init = function () {
         
         _currentWord = null;
-        _map.clear();
+        _words.clear();
         _fixations = [];
         
         _view.style.display = 'none';
@@ -88,16 +91,16 @@
         var record;
         if (_currentWord != word) {
             if (_currentWord) {
-                record = _map.get(_currentWord);
+                record = _words.get(_currentWord);
                 if (record) {
                     record.stop();
                 }
             }
             if (word) {
-                record = _map.get(word);
+                record = _words.get(word);
                 if (!record) {
                     record = new Record(word);
-                    _map.set(word, record);
+                    _words.set(word, record);
                 }
 
                 record.start();
@@ -137,15 +140,18 @@
         if (name) {
             var record = app.firebase.child( name );
             record.set({
-                fixations: _fixationsFiltered
+                fixations: _fixationsFiltered,
+                words: getWordsList(),
+                features: _text.features()
             });
         }
     }
 
     // private
     var _view;
+    var _text;
     var _currentWord = null;
-    var _map = new Map();
+    var _words = new Map();
     var _fixations = [];
     var _fixationsFiltered = [];
 
@@ -156,16 +162,16 @@
         this.text = elem.textContent;
         this.duration = 0;
         this.focusCount = 0;
-        this._startTime = 0;
+        this.timestamp = 0;
     }
 
     Record.prototype.start = function () {
-        this._startTime = performance.now();
+        this.timestamp = performance.now();
         this.focusCount++;
     };
 
     Record.prototype.stop = function () {
-        this.duration += performance.now() - this._startTime;
+        this.duration += performance.now() - this.timestamp;
     };
 
     Record.prototype.toString = function () {
@@ -193,10 +199,28 @@
         return 'ts\tx\ty\tdur';
     };
 
+    // private functions
+
     function GUID() {
         return Math.random().toString(36).substring(2, 15) +
             Math.random().toString(36).substring(2, 15);
     }
+
+    function getWordsList() {
+        var list = [];
+        _words.forEach(function (record) {
+            var item = {
+                text: record.text,
+                x: record.rect.left,
+                y: record.rect.top,
+                width: record.rect.width,
+                height: record.rect.height
+            };
+            list.push(item);
+        });
+        return list;
+    }
+
     // export
 
     app.Statistics = Statistics;

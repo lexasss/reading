@@ -3,13 +3,11 @@
     // Initializes and sets callbacks for the app controls
     // Constructor arguments:
     //      options: {
-    //          root: - controls container element ID
-    //          text: - text controller
+    //          root:   - controls container element ID
     //      }
-    function Controls(options) {
+    //      text:       - text controller
+    function Controls(options, text) {
         this.root = options.root || document.documentElement;
-
-        var text = options.text;
 
         var container = document.querySelector( this.root );
 
