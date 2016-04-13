@@ -55,6 +55,13 @@ module.exports = function(grunt) {
                 src: '**',
                 dest: 'build/libs/',
                 flatten: false
+            },
+            img: {
+                expand: true,
+                cwd: 'img/',
+                src: '**',
+                dest: 'build/img/',
+                flatten: false
             }
         },
 
@@ -94,7 +101,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-postcss');
     grunt.loadNpmTasks('grunt-contrib-jshint');
 
-    grunt.registerTask('default', ['clean', 'jade', 'less', 'concat', 'copy:libs', 'postcss']);
+    grunt.registerTask('default', ['clean', 'jade', 'less', 'concat', 'copy:libs', 'copy:img', 'postcss']);
     grunt.registerTask('updatelibs', ['copy:gazeTargets']);
     grunt.registerTask('compile', ['jshint']);
 };

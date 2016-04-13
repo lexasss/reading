@@ -2,22 +2,21 @@
 
     // Controller for the text options side-slider
     // Constructor arguments:
-    //        options: {
-    //            root:         - slideout element ID
-    //            text:         - ID of the element that stores the text to edit
-    //        }
+    //      options: {
+    //          root:         - slideout element ID
+    //          textContainer: text container ID
+    //      }
     function Options(options) {
 
         this.root = options.root || '#options';
-        this.text = options.text || '#textContainer';
         
         this._slideout = document.querySelector( this.root );
 
         var cssRules = [
-            { name: 'color', type: 'color', cssrule: '.readingText', id: 'text', prefix: '#', suffix: '' },
-            { name: 'color', type: 'color', cssrule: '.readingText .currentWord', id: 'currentWord', prefix: '#', suffix: '' },
-            { name: 'font-size', type: 'string', cssrule: '.readingText', id: 'fontSize', prefix: '', suffix: '' },
-            { name: 'line-height', type: 'string', cssrule: '.readingText', id: 'lineHeight', prefix: '', suffix: '' },
+            { name: 'color', type: 'color', cssrule: options.textContainer, id: 'text', prefix: '#', suffix: '' },
+            { name: 'color', type: 'color', cssrule: options.textContainer + ' .currentWord', id: 'currentWord', prefix: '#', suffix: '' },
+            { name: 'font-size', type: 'string', cssrule: options.textContainer, id: 'fontSize', prefix: '', suffix: '' },
+            { name: 'line-height', type: 'string', cssrule: options.textContainer, id: 'lineHeight', prefix: '', suffix: '' },
         ];
 
         this._style = document.createElement( 'style' );
@@ -122,7 +121,7 @@
             rule.editor = document.querySelector( idBase + rule.id );
 
             if (rule.type === 'color') {
-                rule.editor.color.fromString( rule.initial );
+                rule.editor.value = rule.initial;  //color.fromString( rule.initial );
             }
             else if (rule.type === 'string') {
                 rule.editor.value = rule.initial;
@@ -137,7 +136,7 @@
         for (var i = 0; i < rules.length; i++) {
             var rule = rules[ i ];
             if (rule.type === 'color') {
-                rule.value = '#' + rule.editor.color;
+                rule.value = rule.editor.value; //'#' + rule.editor.color;
             }
             else if (rule.type === 'string') {
                 rule.value = rule.editor.value;
@@ -152,7 +151,7 @@
         for (var i = 0; i < rules.length; i++) {
             var rule = rules[ i ];
             if (rule.type === 'color') {
-                rule.editor.color.fromString( rules.value );
+                rule.editor.value = rule.value;//color.fromString( rules.value );
             }
             else if (rule.type === 'string') {
                 rule.editor.value = rule.value;

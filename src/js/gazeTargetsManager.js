@@ -13,8 +13,8 @@
     function GazeTargetsManager(callbacks) {
 
         GazeTargets.init({
-            panel: {
-               show: true
+            etudPanel: {
+               show: false
             },
             pointer: {
                 show: true
@@ -50,6 +50,10 @@
                 else if (state.isStopped) {
                     if (callbacks.trackingStopped)
                         callbacks.trackingStopped();
+                }
+
+                if (callbacks.updateControls) {
+                    callbacks.updateControls( state );
                 }
             },
 

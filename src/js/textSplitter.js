@@ -6,14 +6,14 @@
     //          root:         - selector for the element that contains text for reading
     //          minReadingDuration  - minimum fixation duration to consider the word has been read (ms)
     //      }
-    function TextHighlighter(options) {
+    function TextSplitter(options) {
 
         this.root = options.root || document.documentElement;
-        this.split();
+        //this.split();
     }
 
     // Splits the text nodes into words, each in its own span.word element
-    TextHighlighter.prototype.split = function () {
+    TextSplitter.prototype.split = function () {
 
         var re = /[^\s]+/gi;
 
@@ -65,7 +65,7 @@
     };
 
     // Resets the highlighting 
-    TextHighlighter.prototype.reset = function () {
+    TextSplitter.prototype.reset = function () {
 
         var currentWord = document.querySelector( '.currentWord' );
         if (currentWord) {
@@ -74,7 +74,7 @@
     };
 
     // Sets the first word highlighted 
-    TextHighlighter.prototype.init = function () {
+    TextSplitter.prototype.init = function () {
 
         this.reset();
     };
@@ -82,7 +82,7 @@
     // Propagates the highlighing if the focused word is the next after the current
     // Arguments:
     //        word:         - the focused word 
-    TextHighlighter.prototype.setFocusedWord = function (word) {
+    TextSplitter.prototype.setFocusedWord = function (word) {
 
         var currentWord = document.querySelector( '.currentWord' );
         if (currentWord != word) {
@@ -99,6 +99,6 @@
 
     // export
 
-    app.TextHighlighter = TextHighlighter;
+    app.TextSplitter = TextSplitter;
     
 })( Reading || window );

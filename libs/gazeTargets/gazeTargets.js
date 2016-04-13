@@ -1873,10 +1873,7 @@
             panel.setLabel(stateLabel.connecting);
             
             var wsURI = 'ws://localhost:' + settings.port + '/';
-            websocket = new WebSocket(wsURI, {
-                protocolVersion: 8,
-                rejectUnauthorized: false
-            });
+            websocket = new WebSocket(wsURI);
             websocket.onopen    = onWebSocketOpen;
             websocket.onclose   = onWebSocketClose;
             websocket.onmessage = onWebSocketMessage;
@@ -2045,7 +2042,7 @@
     };
 
     var onWebSocketError = function (evt) {
-        utils.debug('onWebSocketError', evt);
+        utils.debug('onWebSocketError', evt.toString());
         panel.showMessage('Problems in the connection to WebSocket server', 5000);
     };
 

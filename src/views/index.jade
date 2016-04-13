@@ -1,3 +1,4 @@
+- var controlsID = 'controls';
 - var textContainerID = 'textContainer';
 - var textEditorID = 'textEditor';
 - var optionsID = 'options';
@@ -8,6 +9,7 @@ doctype html
 html
     head
         title Reading
+        meta(charset="utf-8")
         link(rel='stylesheet', href='app.css')
         script(src='libs/gazeTargets/gazeTargets.js')
         script(src='libs/jscolor/jscolor.js')
@@ -15,8 +17,10 @@ html
         script(src='libs/firebase.js')
     body
 
-        input.loadPath(type="button", value="Load path")
         div(id=textContainerID).readingText All men have stars, but they are not the same things for different people. For some, who are travelers, the stars are guides. For others they are no more than little lights in the sky. For others, who are scholars, they are problems... But all these stars are silent. You-You alone will have stars as no one else has them... In one of the stars I shall be living. In one of them I shall be laughing. And so it will be as if all the stars will be laughing when you look at the sky at night..You, only you, will have stars that can laugh! And when your sorrow is comforted (time soothes all sorrows) you will be content that you have known me... You will always be my friend. You will want to laugh with me. And you will sometimes open your window, so, for that pleasure... It will be as if, in place of the stars, I had given you a great number of little bells that knew how to laugh.
+
+        include ./components/controls.jade
+        +controls( controlsID )
 
         include ./components/textEditor.jade
         +textEditor( textEditorID )
@@ -37,52 +41,43 @@ html
             Reading.firebase = new Firebase("https://burning-torch-9217.firebaseio.com/");
 
             // setup
-            var textHighlighter = new Reading.TextHighlighter({
-                root: '##{textContainerID}'
-            });
-
-            var statistics = new Reading.Statistics({
-                root: '##{statisticsID}'
-            });
+            var textSplitter = new Reading.TextSplitter({ root: '##{textContainerID}' });
+            var text = new Reading.Text({ root: '##{textContainerID}', textSplitter: textSplitter });
+            var controls = new Reading.Controls({ root: '##{controlsID}', text: text });
+            var options = new Reading.Options({ root: '##{optionsID}', textContainer: '##{textContainerID}' });
+            var statistics = new Reading.Statistics({ root: '##{statisticsID}' });
+            var path = new Reading.Path({ root: '##{pathID}' });
 
             var textEditor = new Reading.TextEditor({
                 root: '##{textEditorID}',
                 pageText: '##{textContainerID}'
             }, {
                 splitText: function () {
-                    textHighlighter.split();
+                    textSplitter.split();
                 }
-            });
-
-            var options = new Reading.Options({
-                root: '##{optionsID}',
-                pageText: '##{textContainerID}'
-            });
-
-            var path = new Reading.Path({
-                root: '##{pathID}'
             });
 
             var gazeTargetsManager = new Reading.GazeTargetsManager({
                 trackingStarted: function () {
-                    textHighlighter.init();
+                    textSplitter.init();
                     statistics.init();
                     textEditor.lock();
                     options.lock();
                 },
                 trackingStopped: function () {
-                    textHighlighter.reset();
+                    textSplitter.reset();
                     statistics.print();
                     textEditor.unlock();
                     options.unlock();
                 },
                 wordFocused: function (word) {
-                    textHighlighter.setFocusedWord( word );
+                    textSplitter.setFocusedWord( word );
                     statistics.setFocusedWord( word );
                 },
                 wordLeft: function (word) {
-                    textHighlighter.setFocusedWord( null );
+                    textSplitter.setFocusedWord( null );
                     statistics.setFocusedWord( null );
                 },
+                updateControls: controls.onStateUpdated,
                 fixation: statistics.logFixation
             });
