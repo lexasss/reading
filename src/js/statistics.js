@@ -9,6 +9,7 @@
     function Statistics(options, text) {
 
         this.root = options.root || document.documentElement;
+        this.wordSelector = '.' + options.wordClass || '.word';
 
         _text = text;
 
@@ -138,14 +139,33 @@
     Statistics.prototype._saveRemote = function () {
         var name = prompt( 'Please enter the name', GUID() );
         if (name) {
-            var record = app.firebase.child( name );
+            var setup = _text.getSetup();
+            var record = app.firebase.child( name + '_' + setup.textID + '_' + setup.lineSize);
             record.set({
                 fixations: _fixationsFiltered,
-                words: getWordsList(),
-                features: _text.features()
+                words: this._getWordsList(),
+                setup: setup
             });
         }
     }
+
+    Statistics.prototype._getWordsList = function () {
+        var list = [];
+        var words = document.querySelectorAll( this.wordSelector );
+        for (var i = 0; i < words.length; i += 1) {
+            var word = words.item(i);
+            var rect = word.getBoundingClientRect();
+            var item = {
+                text: word.textContent,
+                x: rect.left,
+                y: rect.top,
+                width: rect.width,
+                height: rect.height
+            };
+            list.push(item);
+        }
+        return list;
+    };
 
     // private
     var _view;
@@ -204,21 +224,6 @@
     function GUID() {
         return Math.random().toString(36).substring(2, 15) +
             Math.random().toString(36).substring(2, 15);
-    }
-
-    function getWordsList() {
-        var list = [];
-        _words.forEach(function (record) {
-            var item = {
-                text: record.text,
-                x: record.rect.left,
-                y: record.rect.top,
-                width: record.rect.width,
-                height: record.rect.height
-            };
-            list.push(item);
-        });
-        return list;
     }
 
     // export

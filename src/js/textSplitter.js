@@ -9,6 +9,8 @@
     function TextSplitter(options) {
 
         this.root = options.root || document.documentElement;
+
+        this.wordClass = 'word';
         //this.split();
     }
 
@@ -46,7 +48,7 @@
                 }
 
                 var span = document.createElement( 'span' );
-                span.classList.add( 'word' );
+                span.classList.add( this.wordClass );
                 span.textContent = word[ 0 ];
                 docFrag.appendChild( span );
 

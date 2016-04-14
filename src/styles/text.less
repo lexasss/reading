@@ -22,20 +22,28 @@
         top: 50%;
         transform: translateY(-50%);
 
-        &.x-small {
+        &.x-large {
             line-height: (100vh - 2 * unit(@margin, vh)) / @lineCountXSmall;
         }
-        &.small {
+        &.large {
             line-height: (100vh - 2 * unit(@margin, vh)) / @lineCountSmall;
         }
         &.median {
             line-height: (100vh - 2 * unit(@margin, vh)) / @lineCountMedium;
         }
-        &.large {
+        &.small {
             line-height: (100vh - 2 * unit(@margin, vh)) / @lineCountLarge;
         }
-        &.x-large {
+        &.x-small {
             line-height: (100vh - 2 * unit(@margin, vh)) / @lineCountXLarge;
+        }
+
+        &.invisible {
+            visibility: hidden;
+        }
+
+        &:hover .word {
+        //    outline: 2px solid #ccccff;
         }
 
         .line {
@@ -48,10 +56,6 @@
 
         .word {
             // nothing is needed, just the class declaration
-        }
-
-        &:hover .word {
-        //    outline: 2px solid #ccccff;
         }
     }
 }

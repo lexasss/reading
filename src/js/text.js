@@ -27,7 +27,8 @@
             [
                 'Minä ymmärsin heti, että nyt piti lähteä.',
                 'Seuraavaksi joulupukin luo meni',
-                'Kaksi japanilaista tyttöä'
+                'Kaksi japanilaista tyttöä',
+                'Joulupukki osasi puhua heille japania.'
             ]
         ];
 
@@ -67,9 +68,17 @@
         return _spacingIndex;
     };
 
-    Text.prototype.features = function () {
+    Text.prototype.show = function(first_argument) {
+        _textContainer.classList.remove( 'invisible' );
+    };
+
+    Text.prototype.hide = function(first_argument) {
+        _textContainer.classList.add( 'invisible' );
+    };
+
+    Text.prototype.getSetup = function () {
         return {
-            text: _textIndex,
+            textID: _textIndex,
             lineSize: _spacingIndex
         };
     };
