@@ -122,15 +122,15 @@
 
     // private
     Statistics.prototype._saveLocal = function () {
-        var textToWrite = document.querySelector( this.root + ' textarea' ).value;
-        var textFileAsBlob = new Blob([textToWrite], {type: 'text/plain'});
+        var data = document.querySelector( this.root + ' textarea' ).value;
+        var blob = new Blob([data], {type: 'text/plain'});
         
         var downloadLink = document.createElement("a");
         downloadLink.download = 'results.txt';
         downloadLink.innerHTML = 'Download File';
 
         var URL = window.URL || window.webkitURL;
-        downloadLink.href = URL.createObjectURL( textFileAsBlob );
+        downloadLink.href = URL.createObjectURL( blob );
         downloadLink.onclick = function(event) { // self-destrly
             document.body.removeChild(event.target);
         };
@@ -156,19 +156,44 @@
     Statistics.prototype._getWordsList = function () {
         var list = [];
         var words = document.querySelectorAll( this.wordSelector );
+        var emptyMapping = new Record();
+
         for (var i = 0; i < words.length; i += 1) {
             var word = words.item(i);
             var rect = word.getBoundingClientRect();
-            var item = {
+            var mapping = _words.get( word ) || emptyMapping;  // this._getMapping( rect );
+            list.push({
                 text: word.textContent,
                 x: rect.left,
                 y: rect.top,
                 width: rect.width,
-                height: rect.height
-            };
-            list.push(item);
+                height: rect.height,
+                timestamp: mapping.timestamp || 0,
+                duration: mapping.duration || 0,
+                focusCount: mapping.focusCount || 0
+            });
         }
         return list;
+    };
+
+    Statistics.prototype._getMapping = function (rect) {
+        var result = {
+            duration: 0,
+            focusCount: 0,
+            timestamp: 0
+        };
+
+        for (var word of _words.values()) {
+            var r = word.rect;
+            if (Math.abs(r.left - rect.left) < 1 && Math.abs(r.top - rect.top) < 1) {
+                result.duration = word.duration;
+                result.focusCount = word.focusCount;
+                result.timestamp = word.timestamp;
+                break;
+            }
+        }
+
+        return result;
     };
 
     // private
@@ -182,8 +207,8 @@
     // definitions
 
     function Record(elem) {
-        this.rect = elem.getBoundingClientRect();
-        this.text = elem.textContent;
+        this.rect = elem ? elem.getBoundingClientRect() : null;
+        this.text = elem ? elem.textContent : '';
         this.duration = 0;
         this.focusCount = 0;
         this.timestamp = 0;
