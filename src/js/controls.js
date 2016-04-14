@@ -3,11 +3,25 @@
     // Initializes and sets callbacks for the app controls
     // Constructor arguments:
     //      options: {
-    //          root:   - controls container element ID
+    //          root:               - controls container element ID
     //      }
-    //      text:       - text controller
-    function Controls(options, text) {
+    //      services: {
+    //          getTexts ()         - retrieve the list of texts
+    //          getSpacings ()      - retrieve the list of spacings
+    //          switchText (id)     - switch the text to "id"
+    //          switchSpacing (id)  - switch the spacing to "id"
+    //          selectSession ()    - show a DB session selection dialog
+    //      }
+    function Controls(options, services) {
         this.root = options.root || document.documentElement;
+
+        _services = services;
+
+        _services.getTexts = _services.getTexts || console.error( 'No "getTexts" service for Controls' );
+        _services.getSpacings = _services.getSpacings || console.error( 'No "getSpacings" service for Controls' );
+        _services.switchText = _services.switchText || console.error( 'No "switchText" service for Controls' );
+        _services.switchSpacing = _services.switchSpacing || console.error( 'No "switchSpacing" service for Controls' );
+        _services.selectSession = _services.selectSession || console.error( 'No "selectSession" service for Controls' );
 
         var container = document.querySelector( this.root );
 
@@ -29,11 +43,12 @@
         });
 
         _textSwitchers = document.querySelector( this.root + ' .text' );
-        for (var i = 0; i < text.texts.length; i += 1) {
+        var texts = _services.getTexts();
+        for (var i = 0; i < texts.length; i += 1) {
             var swither = document.createElement('div');
             swither.className = 'button';
             swither.textContent = 'Text ' + (i + 1);
-            swither.addEventListener('click', getTextSwitcherHandler( text, i ));
+            swither.addEventListener('click', getTextSwitcherHandler( i ));
             if (i === 0) {
                 swither.classList.add('selected');
             }
@@ -41,23 +56,29 @@
         }
 
         _spacingSwitchers = document.querySelector( this.root + ' .spacing' );
-        for (var i = 0; i < text.spacings.length; i += 1) {
+        var spacings = _services.getSpacings();
+        for (var i = 0; i < spacings.length; i += 1) {
             var swither = document.createElement('div');
             swither.className = 'button';
-            swither.textContent = text.spacings[ i ];
-            swither.addEventListener('click', getSpacingSwitcherHandler( text, i ));
+            swither.textContent = spacings[ i ];
+            swither.addEventListener('click', getSpacingSwitcherHandler( i ));
             if (i === 0) {
                 swither.classList.add('selected');
             }
             _spacingSwitchers.appendChild( swither );
         }
 
+        var loadSession = document.querySelector( '.loadSession' );
+        loadSession.addEventListener('click', function () {
+            _services.selectSession();
+        });
+
         _connectionTimeout = setTimeout(function () {
             _device.textContent = 'Disconnected';
         }, 3000);
         
-        text.switchText(0);
-        text.switchSpacing(0);
+        _services.switchText(0);
+        _services.switchSpacing(0);
     }
 
     Controls.prototype.onStateUpdated = function (state) {
@@ -86,16 +107,16 @@
         }
     };
 
-    function getTextSwitcherHandler(text, index) {
+    function getTextSwitcherHandler(index) {
         return function () { 
-            text.switchText( index );
+            _services.switchText( index );
             select(this, _textSwitchers);
         }
     };
 
-    function getSpacingSwitcherHandler(text, index) {
+    function getSpacingSwitcherHandler(index) {
         return function () { 
-            text.switchSpacing( index );
+            _services.switchSpacing( index );
             select(this, _spacingSwitchers);
         }
     };
@@ -108,6 +129,7 @@
         button.classList.add('selected');
     }
 
+    var _services;
     var _device;
     var _options;
     var _calibrate;

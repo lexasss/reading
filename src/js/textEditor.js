@@ -2,17 +2,19 @@
 
     // Controller for the text editing side-slider
     // Constructor arguments:
-    //        options: {
-    //            root:         - slideout element ID
-    //            text:         - ID of the element that stores the text to edit
-    //        }
-    //        callbacks: {
-    //            splitText ()        - request to split the updated text
-    //        }
-    function TextEditor(options, callbacks) {
+    //      options: {
+    //          root:         - slideout element ID
+    //          text:         - ID of the element that stores the text to edit
+    //      }
+    //      services: {
+    //          splitText ()        - service to split the updated text
+    //      }
+    function TextEditor(options, services) {
 
         this.root = options.root || '#textEditor';
         this.text = options.text || '#textContainer';
+
+        services.splitText = services.splitText || console.error( 'No "splitText" service for TextEditor' );
         
         this._slideout = document.querySelector( this.root );
 
@@ -23,8 +25,7 @@
         var apply = document.querySelector( this.root + ' .apply' );
         apply.addEventListener( 'click', function () {
             pageText.textContent = editorText.value;
-            if (callbacks.splitText)
-                callbacks.splitText();
+            services.splitText();
         });
     }
 

@@ -43,20 +43,50 @@ html
             Reading.firebase = new Firebase("https://burning-torch-9217.firebaseio.com/");
 
             // setup
-            var textSplitter = new Reading.TextSplitter({ root: '##{textContainerID}' });
-            var text = new Reading.Text({ root: '##{textContainerID}' }, textSplitter);
-            var controls = new Reading.Controls({ root: '##{controlsID}'}, text );
-            var options = new Reading.Options({ root: '##{optionsID}', textContainer: '##{textContainerID}' });
-            var statistics = new Reading.Statistics({ root: '##{statisticsID}', wordClass: textSplitter.wordClass }, text);
-            var path = new Reading.Path({ root: '##{pathID}' }, { shown: text.hide, hidden: text.show });
+            var textSplitter = new Reading.TextSplitter({
+                root: '##{textContainerID}'
+            });
+
+            var text = new Reading.Text({
+                root: '##{textContainerID}'
+            }, {
+                splitText: textSplitter.split.bind( textSplitter )
+            });
+
+            var path = new Reading.Path({ 
+                root: '##{pathID}'
+            }, {
+                shown: text.hide,
+                hidden: text.show
+            });
+
+            var controls = new Reading.Controls({
+                root: '##{controlsID}'
+            }, {
+                getTexts: function () { return text.texts; },
+                getSpacings: function () { return text.spacings; },
+                switchText: text.switchText.bind( text ),
+                switchSpacing: text.switchSpacing.bind( text ),
+                selectSession: path.select.bind( path )
+            });
+            
+            var options = new Reading.Options({
+                root: '##{optionsID}', 
+                textContainer: '##{textContainerID}'
+            });
+            
+            var statistics = new Reading.Statistics({
+                root: '##{statisticsID}', 
+                wordClass: textSplitter.wordClass
+            }, {
+                getTextSetup: text.getSetup.bind( text )
+            });
 
             var textEditor = new Reading.TextEditor({
                 root: '##{textEditorID}',
                 pageText: '##{textContainerID}'
             }, {
-                splitText: function () {
-                    textSplitter.split();
-                }
+                splitText: textSplitter.split.bind( textSplitter )
             });
 
             var gazeTargetsManager = new Reading.GazeTargetsManager({

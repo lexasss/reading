@@ -3,15 +3,19 @@
     // Text highlighting propagation routine
     // Constructor arguments:
     //      options: {
-    //          root:         - selector for the element that contains statistics view
+    //          root:               - selector for the element that contains statistics view
     //      }
-    //      text:       - text controller
-    function Statistics(options, text) {
+    //      services: {
+    //          getTextSetup ()     - get an object woth text setup parameters
+    //      }
+    function Statistics(options, services) {
 
         this.root = options.root || document.documentElement;
         this.wordSelector = '.' + options.wordClass || '.word';
 
-        _text = text;
+        _services = services;
+
+        _services.getTextSetup = _services.getTextSetup || console.error( 'No "getTextSetup" service for Statistics' );
 
         _view = document.querySelector( this.root );
         _view.style.display = 'none';
@@ -139,7 +143,7 @@
     Statistics.prototype._saveRemote = function () {
         var name = prompt( 'Please enter the name', GUID() );
         if (name) {
-            var setup = _text.getSetup();
+            var setup = _services.getTextSetup();
             var record = app.firebase.child( name + '_' + setup.textID + '_' + setup.lineSize);
             record.set({
                 fixations: _fixationsFiltered,
@@ -168,8 +172,8 @@
     };
 
     // private
+    var _services;
     var _view;
-    var _text;
     var _currentWord = null;
     var _words = new Map();
     var _fixations = [];

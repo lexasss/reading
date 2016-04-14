@@ -6,12 +6,14 @@
     //          root:         - selector for the element that contains statistics view
     //      }
     //      callbacks: {
-    //          shown:       - the path overlay was displayed
-    //          hidden:       - the path overlay was hidden
+    //          shown ()      - the path overlay was displayed
+    //          hidden ()     - the path overlay was hidden
     //      }
     function Path(options, callbacks) {
 
         this.root = options.root || document.documentElement;
+
+        _callbacks = callbacks;
 
         _view = document.querySelector( this.root );
         _canvas = document.querySelector( this.root + ' canvas');
@@ -22,17 +24,13 @@
 
         var self = this;
 
-        var load = document.querySelector('.loadPath' );
-        load.addEventListener('click', function () {
-            self._select();
-            if (callbacks.shown) {
-                callbacks.shown();
-            }
-        });
-
         var close = document.querySelector( this.root + ' .close' );
         close.addEventListener('click', function () {
             _view.classList.add( 'invisible' );
+
+            var ctx = _canvas.getContext('2d');
+            ctx.clearRect(0, 0, _width, _height);
+
             if (callbacks.hidden) {
                 callbacks.hidden();
             }
@@ -45,9 +43,13 @@
         });
     }
 
-    Path.prototype._select = function () {
+    Path.prototype.select = function () {
         app.firebase.once('value', function (snapshot) {
             if (snapshot.exists()) {
+
+                if (_callbacks.shown) {
+                    _callbacks.shown();
+                }
 
                 _snapshot = snapshot;
                 _view.classList.remove( 'invisible' );
@@ -120,20 +122,25 @@
         ctx.strokeRect( word.x, word.y, word.width, word.height);
     };
 
+    var _callbacks;
     var _view;
     var _canvas;
     var _sessionPrompt;
     var _snapshot;
+    var _height;
+    var _width;
 
     function getCanvas2D() {
-        var canvasWidth = parseInt( window.getComputedStyle( _canvas ).width );
-        var canvasHeight = parseInt( window.getComputedStyle( _canvas ).height );
-        _canvas.setAttribute( 'width',  canvasWidth );
-        _canvas.setAttribute( 'height', canvasHeight );
+        if (!_width || !_height) {
+            _width = parseInt( window.getComputedStyle( _canvas ).width );
+            _height = parseInt( window.getComputedStyle( _canvas ).height );
+            _canvas.setAttribute( 'width',  _width );
+            _canvas.setAttribute( 'height', _height );
+        }
 
         var ctx = _canvas.getContext('2d');
 
-        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        ctx.clearRect(0, 0, _width, _height);
 
         ctx.fillStyle = '#0000FF';
         ctx.strokeStyle = '#FF0000';

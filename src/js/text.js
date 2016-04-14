@@ -5,12 +5,18 @@
     //      options: {
     //          root:       - ID of the element that stores the text
     //      }
-    //      textSplitter:   - text splitter
-    function Text(options, textSplitter) {
-        
-        _textContainer = document.querySelector( options.root || '#textContainer' );
-        _textSplitter = textSplitter;
+    //      services: {
+    //          splitText ()        - service to split the updated text
+    //      }
+    function Text(options, services) {
 
+        this.root = options.root || '#textContainer';
+        _services = services;
+
+        _services.splitText = _services.splitText || console.error( 'No "splitText" service for Text' );
+
+        _textContainer = document.querySelector( this.root );
+        
         this.texts = [
             [
                 'Matka on ollut pitkä, mutta ihana',
@@ -52,7 +58,7 @@
             _textContainer.appendChild( line );
         }
 
-        _textSplitter.split();
+        _services.splitText();
     };
 
     Text.prototype.switchSpacing = function (index) {
@@ -84,7 +90,7 @@
     };
 
     var _textContainer;
-    var _textSplitter;
+    var _services;
     var _textIndex = 0;
     var _spacingIndex = 0;
 

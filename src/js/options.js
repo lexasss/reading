@@ -3,8 +3,8 @@
     // Controller for the text options side-slider
     // Constructor arguments:
     //      options: {
-    //          root:         - slideout element ID
-    //          textContainer: text container ID
+    //          root:           - slideout element ID
+    //          textContainer:  - text container ID
     //      }
     function Options(options) {
 
