@@ -12,19 +12,19 @@
     function TextEditor(options, services) {
 
         this.root = options.root || '#textEditor';
-        this.text = options.text || '#textContainer';
+        this.text = options.text || '#text';
 
         services.splitText = services.splitText || console.error( 'No "splitText" service for TextEditor' );
         
         this._slideout = document.querySelector( this.root );
 
-        var pageText = document.querySelector( this.text );
+        var text = document.querySelector( this.text );
         var editorText = document.querySelector( this.root + ' .text' );
-        editorText.value = pageText.textContent;
+        editorText.value = text.textContent;
 
         var apply = document.querySelector( this.root + ' .apply' );
         apply.addEventListener( 'click', function () {
-            pageText.textContent = editorText.value;
+            text.textContent = editorText.value;
             services.splitText();
         });
     }

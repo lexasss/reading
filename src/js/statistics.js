@@ -1,3 +1,6 @@
+// Requires:
+//      firebase
+
 (function (app) { 'use strict';
 
     // Text highlighting propagation routine
@@ -42,7 +45,7 @@
     Statistics.prototype.print = function () {
         
         if (_currentWord) {
-            var record = text.get(_currentWord);
+            var record = _words.get(_currentWord);
             if (record) {
                 record.stop();
             }

@@ -1,9 +1,16 @@
+// Requires:
+//      Colors
+//      firebase
+
 (function (app) { 'use strict';
 
     // Path display routine
     // Constructor arguments:
     //      options: {
-    //          root:         - selector for the element that contains statistics view
+    //          root            - selector for the element that contains statistics view
+    //          fixationColor   - fixation color
+    //          wordColor       - mapped word rectangle color
+    //          wordStrokeColor - word rectable border color
     //      }
     //      callbacks: {
     //          shown ()      - the path overlay was displayed

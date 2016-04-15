@@ -3,12 +3,13 @@
 mixin controls(id)
     div(id=id).controls
         span.device Connecting
-        .button.disabled.options Options
-        .button.disabled.calibrate Calibrate
-        .button.disabled.toggle Start
+        .buttonBlock.etud
+            .button.disabled.options Options
+            .button.disabled.calibrate Calibrate
+            .button.disabled.toggle Start
         .separator
-        .switchers.text
+        .buttonBlock.text
         .separator
-        .switchers.spacing
+        .buttonBlock.spacing
         .separator
         .button.loadSession Load session

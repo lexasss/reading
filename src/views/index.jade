@@ -1,9 +1,12 @@
-- var controlsID = 'controls';
-- var textContainerID = 'textContainer';
-- var textEditorID = 'textEditor';
-- var optionsID = 'options';
-- var statisticsID = 'statistics';
-- var pathID = 'path';
+-
+    var ids = {
+        controls: 'controls',
+        text: 'text',
+        textEditor: 'textEditor',
+        options: 'options',
+        statistics: 'statistics',
+        path: 'path'
+    };
 
 doctype html
 html
@@ -13,103 +16,34 @@ html
         link(rel='stylesheet', href='app.css')
         script(src='libs/gazeTargets/gazeTargets.js')
         script(src='libs/jscolor/jscolor.js')
-        //- script(src='libs/Chart.min.js')
         script(src='libs/firebase.js')
 
     body
-
-        div#text
-            div(id=textContainerID)
+        include ./components/text.jade
+        +controls( ids.text )
 
         include ./components/controls.jade
-        +controls( controlsID )
+        +controls( ids.controls )
 
         include ./components/textEditor.jade
-        +textEditor( textEditorID )
+        +textEditor( ids.textEditor )
 
         include ./components/options.jade
-        +options( optionsID )
+        +options( ids.options )
 
         include ./components/statistics.jade
-        +statistics( statisticsID )
+        +statistics( ids.statistics )
 
         include ./components/path.jade
-        +path( pathID )
+        +path( ids.path )
 
         script(src='app.js')
         script.
-
-            // DB
-            Reading.firebase = new Firebase("https://burning-torch-9217.firebaseio.com/");
-
-            // setup
-            var textSplitter = new Reading.TextSplitter({
-                root: '##{textContainerID}'
-            });
-
-            var text = new Reading.Text({
-                root: '##{textContainerID}'
-            }, {
-                splitText: textSplitter.split.bind( textSplitter )
-            });
-
-            var path = new Reading.Path({ 
-                root: '##{pathID}'
-            }, {
-                shown: text.hide,
-                hidden: text.show
-            });
-
-            var controls = new Reading.Controls({
-                root: '##{controlsID}'
-            }, {
-                getTexts: function () { return text.texts; },
-                getSpacings: function () { return text.spacings; },
-                switchText: text.switchText.bind( text ),
-                switchSpacing: text.switchSpacing.bind( text ),
-                selectSession: path.select.bind( path )
-            });
-            
-            var options = new Reading.Options({
-                root: '##{optionsID}', 
-                textContainer: '##{textContainerID}'
-            });
-            
-            var statistics = new Reading.Statistics({
-                root: '##{statisticsID}', 
-                wordClass: textSplitter.wordClass
-            }, {
-                getTextSetup: text.getSetup.bind( text )
-            });
-
-            var textEditor = new Reading.TextEditor({
-                root: '##{textEditorID}',
-                pageText: '##{textContainerID}'
-            }, {
-                splitText: textSplitter.split.bind( textSplitter )
-            });
-
-            var gazeTargetsManager = new Reading.GazeTargetsManager({
-                trackingStarted: function () {
-                    textSplitter.init();
-                    statistics.init();
-                    textEditor.lock();
-                    options.lock();
-                },
-                trackingStopped: function () {
-                    textSplitter.reset();
-                    statistics.print();
-                    textEditor.unlock();
-                    options.unlock();
-                },
-                wordFocused: function (word) {
-                    textSplitter.setFocusedWord( word );
-                    statistics.setFocusedWord( word );
-                },
-                wordLeft: function (word) {
-                    textSplitter.setFocusedWord( null );
-                    statistics.setFocusedWord( null );
-                },
-                updateControls: controls.onStateUpdated,
-                fixation: statistics.logFixation
+            Reading.init({
+                text: '##{ids.text}',
+                path: '##{ids.path}',
+                controls: '##{ids.controls}',
+                options: '##{ids.options}',
+                statistics: '##{ids.statistics}',
+                textEditor: '##{ids.textEditor}',
             });

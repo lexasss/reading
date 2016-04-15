@@ -3,8 +3,8 @@
     // Controller for the text options side-slider
     // Constructor arguments:
     //      options: {
-    //          root:           - slideout element ID
-    //          textContainer:  - text container ID
+    //          root:   - slideout element ID
+    //          text:   - text element ID
     //      }
     function Options(options) {
 
@@ -13,10 +13,10 @@
         this._slideout = document.querySelector( this.root );
 
         var cssRules = [
-            { name: 'color', type: 'color', cssrule: options.textContainer, id: 'text', prefix: '#', suffix: '' },
-            { name: 'color', type: 'color', cssrule: options.textContainer + ' .currentWord', id: 'currentWord', prefix: '#', suffix: '' },
-            { name: 'font-size', type: 'string', cssrule: options.textContainer, id: 'fontSize', prefix: '', suffix: '' },
-            { name: 'line-height', type: 'string', cssrule: options.textContainer, id: 'lineHeight', prefix: '', suffix: '' },
+            { name: 'color', type: 'color', cssrule: options.text, id: 'text', prefix: '#', suffix: '' },
+            { name: 'color', type: 'color', cssrule: options.text + ' .currentWord', id: 'currentWord', prefix: '#', suffix: '' },
+            { name: 'font-size', type: 'string', cssrule: options.text, id: 'fontSize', prefix: '', suffix: '' },
+            { name: 'line-height', type: 'string', cssrule: options.text, id: 'lineHeight', prefix: '', suffix: '' },
         ];
 
         this._style = document.createElement( 'style' );

@@ -68,8 +68,8 @@
             _spacingSwitchers.appendChild( swither );
         }
 
-        var loadSession = document.querySelector( '.loadSession' );
-        loadSession.addEventListener('click', function () {
+        _loadSession = document.querySelector( '.loadSession' );
+        _loadSession.addEventListener('click', function () {
             _services.selectSession();
         });
 
@@ -81,6 +81,18 @@
         _services.switchSpacing(0);
     }
 
+    Controls.prototype.lock = function () {
+        setButtonBlockDisabled( _textSwitchers, true );
+        setButtonBlockDisabled( _spacingSwitchers, true );
+        _loadSession.classList.add( 'disabled' );
+    };
+
+    Controls.prototype.unlock = function () {
+        setButtonBlockDisabled( _textSwitchers, false );
+        setButtonBlockDisabled( _spacingSwitchers, false );
+        _loadSession.classList.remove( 'disabled' );
+    };
+    
     Controls.prototype.onStateUpdated = function (state) {
         if (state.device) {
             _device.textContent = state.device;
@@ -90,22 +102,29 @@
             _device.textContent = 'Disconnected';
         }
 
-        setDisabled( _options, !state.isServiceRunning || state.isTracking || state.isBusy);
-        setDisabled( _calibrate, !state.isConnected || state.isTracking || state.isBusy);
-        setDisabled( _toggle, !state.isCalibrated || state.isBusy);
+        setButtonDisabled( _options, !state.isServiceRunning || state.isTracking || state.isBusy);
+        setButtonDisabled( _calibrate, !state.isConnected || state.isTracking || state.isBusy);
+        setButtonDisabled( _toggle, !state.isCalibrated || state.isBusy);
 
         _toggle.textContent = state.isTracking ? 'Stop' : 'Start';
     };
 
     // private
 
-    function setDisabled(button, disabled) {
-        if (disabled) {
+    function setButtonDisabled(button, isDisabled) {
+        if (isDisabled) {
             button.classList.add('disabled');
         } else {
             button.classList.remove('disabled');
         }
     };
+
+    function setButtonBlockDisabled(container, isDisabled) {
+        var switches = container.childNodes;
+        for (var i = 0; i < switches.length; i += 1) {
+            setButtonDisabled( switches.item(i), isDisabled);
+        }
+    }
 
     function getTextSwitcherHandler(index) {
         return function () { 
@@ -137,6 +156,7 @@
 
     var _textSwitchers;
     var _spacingSwitchers;
+    var _loadSession;
     
     var _connectionTimeout;
 
