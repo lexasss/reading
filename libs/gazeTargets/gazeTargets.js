@@ -2042,7 +2042,7 @@
     };
 
     var onWebSocketError = function (evt) {
-        utils.debug('onWebSocketError', evt.toString());
+        utils.debug('onWebSocketError', evt);
         panel.showMessage('Problems in the connection to WebSocket server', 5000);
     };
 
@@ -4034,6 +4034,31 @@
             storage.etudriver);
     };
 
+    // updates settings, although has no effect on those that are used during initialization
+    GazeTargets.updateSettings = function (customSettings) {
+        utils.extend(true, settings, customSettings);
+    };
+
+    // Gets settings
+    // 'path' is path/to/setting
+    GazeTargets.getSettings = function (path) {
+        var parts = path.split( '/' );
+
+        if (!parts.length) {
+            return null;
+        }
+
+        var value = settings[ parts[0] ];
+        
+        var i = 1;
+        while (value && i < parts.length) {
+            value = value[ parts[i] ];
+            i += 1;
+        }
+
+        return value;
+    };
+
     // Updates the list of targets
     // Must be called when a target was added, removed, or relocated
     // Adds an object "gaze" to the target DOM element with the following properties:
@@ -4854,7 +4879,6 @@
         },
 
         feed: function (targets, data1, data2) {
-
             createGeometry(targets);
 
             var mapped = lastMapped;
@@ -5289,6 +5313,8 @@
         }
         else {
             currentFixation.duration = f.duration;
+            currentFixation.x = f.x;
+            currentFixation.y = f.y;
         }
 
         return result;

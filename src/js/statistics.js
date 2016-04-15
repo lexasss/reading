@@ -1,5 +1,5 @@
 // Requires:
-//      firebase
+//      app.firebase
 
 (function (app) { 'use strict';
 

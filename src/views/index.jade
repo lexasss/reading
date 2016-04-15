@@ -1,8 +1,9 @@
 -
     var ids = {
-        controls: 'controls',
         text: 'text',
+        textContainer: 'textContainer',
         textEditor: 'textEditor',
+        controls: 'controls',
         options: 'options',
         statistics: 'statistics',
         path: 'path'
@@ -15,12 +16,12 @@ html
         meta(charset="utf-8")
         link(rel='stylesheet', href='app.css')
         script(src='libs/gazeTargets/gazeTargets.js')
-        script(src='libs/jscolor/jscolor.js')
         script(src='libs/firebase.js')
+        script(src='libs/shortcut.js')
 
     body
         include ./components/text.jade
-        +controls( ids.text )
+        +controls( ids.textContainer, ids.text )
 
         include ./components/controls.jade
         +controls( ids.controls )
@@ -41,6 +42,7 @@ html
         script.
             Reading.init({
                 text: '##{ids.text}',
+                textContainer: '##{ids.textContainer}',
                 path: '##{ids.path}',
                 controls: '##{ids.controls}',
                 options: '##{ids.options}',

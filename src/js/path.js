@@ -1,6 +1,6 @@
 // Requires:
-//      Colors
-//      firebase
+//      app,Colors
+//      app.firebase
 
 (function (app) { 'use strict';
 

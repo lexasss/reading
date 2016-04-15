@@ -1,3 +1,6 @@
+// Requires:
+//      GazeTargets
+
 (function (app) { 'use strict';
 
     // Initializes and sets callbacks for the GazeTargets global object

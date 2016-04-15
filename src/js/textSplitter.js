@@ -9,6 +9,7 @@
     function TextSplitter(options) {
 
         this.root = options.root || document.documentElement;
+        this.highlightCurrentWord = options.highlightCurrentWord || true;
 
         this.wordClass = 'word';
         //this.split();
@@ -85,6 +86,10 @@
     // Arguments:
     //        word:         - the focused word 
     TextSplitter.prototype.setFocusedWord = function (word) {
+
+        if (!this.highlightCurrentWord) {
+            return;
+        }
 
         var currentWord = document.querySelector( '.currentWord' );
         if (currentWord != word) {

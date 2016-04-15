@@ -16,9 +16,16 @@ mixin options(id)
                 .row
                     .label Size
                     input.value#fontSize
+                //.row
+                //    .label Line spacing
+                //    input.value#lineHeight
+            .group Gaze
                 .row
-                    .label Line spacing
-                    input.value#lineHeight
+                    .label Show pointer
+                    input.value#showPointer(type="checkbox")
+                .row
+                    .label Highlight focused word
+                    input.value#hiliteWord(type="checkbox")
             br
             input.save(type="button", value="Save")
             input.close(type="button", value="Close")

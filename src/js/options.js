@@ -4,19 +4,33 @@
     // Constructor arguments:
     //      options: {
     //          root:   - slideout element ID
-    //          text:   - text element ID
+    //          text:   - full text selector
     //      }
-    function Options(options) {
+    //      services: {
+    //          isShowingPointer ()     - provides gaze pointer visibility info
+    //          isHighlighingWords ()   - provides word highlighting info
+    //      }
+    //      callbacks: {
+    //          showPointer (bool)      - gaze point visibility must be changed
+    //          highlightWord (bool)    - word highlighting must be changed
+    //      }
+    function Options(options, services, callbacks) {
 
         this.root = options.root || '#options';
         
         this._slideout = document.querySelector( this.root );
 
+        _services = services;
+        _services.isShowingPointer = _services.isShowingPointer || console.error( 'No "isShowingPointer" service for Options' );
+        _services.isHighlighingWords = _services.isHighlighingWords || console.error( 'No "isHighlighingWords" service for Options' );
+
+        _callbacks = callbacks;
+        
         var cssRules = [
             { name: 'color', type: 'color', cssrule: options.text, id: 'text', prefix: '#', suffix: '' },
             { name: 'color', type: 'color', cssrule: options.text + ' .currentWord', id: 'currentWord', prefix: '#', suffix: '' },
             { name: 'font-size', type: 'string', cssrule: options.text, id: 'fontSize', prefix: '', suffix: '' },
-            { name: 'line-height', type: 'string', cssrule: options.text, id: 'lineHeight', prefix: '', suffix: '' },
+            //{ name: 'line-height', type: 'string', cssrule: options.text, id: 'lineHeight', prefix: '', suffix: '' },
         ];
 
         this._style = document.createElement( 'style' );
@@ -41,6 +55,8 @@
             setRulesToEditors( cssRules );
         });
 
+        bindSettingsToEditors( this.root );
+
         window.addEventListener( 'load', function () {
             obtainInitialRules( cssRules );
             bindRulesToEditors( cssRules, self.root + ' #' );
@@ -49,17 +65,18 @@
 
     // Disables editing
     Options.prototype.lock = function () {
-
         this._slideout.classList.add( 'locked' );
     };
 
     // Enables editing
     Options.prototype.unlock = function () {
-        
         this._slideout.classList.remove( 'locked' );
     };
 
     // private
+
+    var _services;
+    var _callbacks;
 
     function componentToHex( c ) {
         var hex = c.toString(16);
@@ -157,6 +174,25 @@
                 rule.editor.value = rule.value;
             }
         }
+    }
+
+    function bindSettingsToEditors(root) {
+        var showPointer = document.querySelector( root + ' #showPointer' );
+        showPointer.checked = _services.isShowingPointer();
+        showPointer.addEventListener( 'click', function (e) {
+            if (_callbacks.showPointer) {
+                _callbacks.showPointer( this.checked );
+            }
+        });
+        
+        var hiliteWord = document.querySelector( root + ' #hiliteWord' );
+        hiliteWord.checked = _services.isHighlighingWords();
+        hiliteWord.addEventListener( 'click', function (e) {
+            if (_callbacks.highlightWord) {
+                _callbacks.highlightWord( this.checked );
+            }
+        });
+
     }
 
     app.Options = Options;

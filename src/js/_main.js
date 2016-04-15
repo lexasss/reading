@@ -1,4 +1,5 @@
-// Project namespace
+// Requires:
+//      Firebase
 
 var Reading = Reading || {};
 
@@ -37,7 +38,13 @@ Reading.init = function (components) {
 
 	var options = new Reading.Options({
 	    root: components.options,
-	    text: components.text
+	    text: components.textContainer + ' ' + components.text
+	}, {
+		isShowingPointer: function () { return GazeTargets.getSettings( 'pointer/show' ); },
+		isHighlighingWords: function () { return textSplitter.highlightCurrentWord; }
+	}, {
+		showPointer: function (value) { GazeTargets.updateSettings( { pointer: { show: value } } ); },
+		highlightWord: function (value) { textSplitter.highlightCurrentWord = value; }
 	});
 
 	var statistics = new Reading.Statistics({

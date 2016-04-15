@@ -1,3 +1,7 @@
+// Requires:
+//      shortcut
+//      GazeTargets
+
 (function (app) { 'use strict';
 
     // Initializes and sets callbacks for the app controls
@@ -23,7 +27,7 @@
         _services.switchSpacing = _services.switchSpacing || console.error( 'No "switchSpacing" service for Controls' );
         _services.selectSession = _services.selectSession || console.error( 'No "selectSession" service for Controls' );
 
-        var container = document.querySelector( this.root );
+        //var container = document.querySelector( this.root );
 
         _device = document.querySelector( this.root + ' .device' );
         
@@ -39,6 +43,7 @@
 
         _toggle = document.querySelector( this.root + ' .toggle' );
         _toggle.addEventListener('click', function () {
+            setButtonDisabled( _toggle, true );
             GazeTargets.ETUDriver.toggleTracking();
         });
 
@@ -71,6 +76,10 @@
         _loadSession = document.querySelector( '.loadSession' );
         _loadSession.addEventListener('click', function () {
             _services.selectSession();
+        });
+
+        shortcut.add( 'Space', function() {
+            _toggle.click();
         });
 
         _connectionTimeout = setTimeout(function () {
