@@ -34,7 +34,10 @@
                 'Minä ymmärsin heti, että nyt piti lähteä.',
                 'Seuraavaksi joulupukin luo meni',
                 'Kaksi japanilaista tyttöä',
-                'Joulupukki osasi puhua heille japania.'
+                'Joulupukki osasi puhua heille japania,',
+				'Japanilaiset ottivat minusta monta valokuvaa,',
+				'Ehkä minä olen nyt kuuluisa kissa Japanissa.'
+
             ]
         ];
 
