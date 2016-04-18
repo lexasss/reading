@@ -1,8 +1,15 @@
+@rowMode: 2280px;
+
 #controls {
     position: fixed;
-    left: 0;
+    right: 0;
     top: 0;
-    width: 100vw;
+    width: 5em;
+    font: bold 13px Arial, Helvetica, sans-serif;
+
+    @media (min-width: @rowMode) {
+        width: 100vw;
+    }
 
     .button {
         background-color: #666;
@@ -11,11 +18,31 @@
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
         color: #e7e5e5;
         cursor: pointer;
-        display: inline-block;
-        font: bold 13px Arial, Helvetica, sans-serif;
-        padding: 10px 20px;
-        margin: 10 px;
         text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+        
+        display: inline-block;
+        width: 100%;
+        padding: 10px 8px;
+
+        @media (min-width: @rowMode) {
+            width: auto;
+        }
+
+        @media (max-width: 1280px) {
+            font-size: 90%;
+        }
+
+        @media (max-width: 1024px) {
+            font-size: 80%;
+        }
+
+        @media (max-width: 800px) {
+            font-size: 70%;
+        }
+
+        @media (max-width: 640px) {
+            font-size: 60%;
+        }
 
         &.disabled {
             background-color: #BBB;
@@ -32,7 +59,9 @@
     }
 
     .buttonBlock {
-        display: inline-block;
+        @media (min-width: @rowMode) {
+            display: inline-block;
+        }
     }
 
     .separator {
@@ -45,8 +74,11 @@
         display: inline-block;
         font: bold 18px Arial, Helvetica, sans-serif;
         padding: 0 10px;
-        min-width: 100px;
         margin: auto;
         text-align: center;
+        
+        @media (min-width: @rowMode) {
+            min-width: 100px;
+        }
     }
 }
