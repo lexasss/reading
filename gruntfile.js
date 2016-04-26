@@ -101,7 +101,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-postcss');
     grunt.loadNpmTasks('grunt-contrib-jshint');
 
-    grunt.registerTask('rebuild', ['clear', 'jade', 'less', 'concat', 'copy', 'postcss']);
+    grunt.registerTask('rebuild', ['clean', 'jade', 'less', 'concat', 'copy', 'postcss']);
     grunt.registerTask('default', ['jade', 'less', 'concat', 'copy:img', 'postcss']);
     grunt.registerTask('updatelibs', ['copy:gazeTargets' ]);
     grunt.registerTask('copylibs', ['copy:libs' ]);
