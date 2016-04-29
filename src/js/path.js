@@ -7,10 +7,13 @@
     // Path display routine
     // Constructor arguments:
     //      options: {
-    //          root            - selector for the element that contains statistics view
-    //          fixationColor   - fixation color
-    //          wordColor       - mapped word rectangle color
-    //          wordStrokeColor - word rectable border color
+    //          root                - selector for the element that contains statistics view
+    //          fixationColor       - fixation color
+    //          saccadeColor        - saccade color
+    //          connectionColor     - connection color
+    //          wordColor           - word color
+    //          wordHighlightColor  - mapped word rectangle color
+    //          wordStrokeColor     - word rectable border color
     //      }
     //      callbacks: {
     //          shown ()      - the path overlay was displayed
@@ -20,8 +23,13 @@
 
         this.root = options.root || document.documentElement;
         this.fixationColor = options.fixationColor || '#00F';
-        this.wordColor = options.wordColor || '#F00';
+        this.saccadeColor = options.saccadeColor || '#006';
+        this.connectionColor = options.connectionColor || '#FF0';
+        this.wordColor = options.wordColor || '#FF0';
+        this.wordHighlightColor = options.wordHighlightColor || '#F00';
         this.wordStrokeColor = options.wordStrokeColor || '#F00';
+        this.durationTransp = options.durationTransp || 100;
+        this.durationOpaque = options.durationOpaque || 1000;
 
         _callbacks = callbacks;
 
@@ -93,7 +101,15 @@
         
         var session = _snapshot.child( name );
         if (session && session.exists()) {
-            this._show( session.val() );
+            var sessionVal = session.val();
+            if (sessionVal) {
+                var ctx = getCanvas2D();
+                var fixations = this._remap( sessionVal );
+                this._showHighlights( ctx, fixations );
+                this._showWords( ctx, sessionVal.words );
+                this._showFixations( ctx, fixations );
+                //this._show( ctx, sessionVal );
+            }
         } else {
             alert('record ' + name + ' does not exist');
         }
@@ -101,16 +117,10 @@
         _snapshot = null;
     };
 
-    Path.prototype._show = function (session) {
-        if (!session) {
-            return;
-        }
-
-        var ctx = getCanvas2D();
-
+    Path.prototype._show = function (ctx, session) {
         if (session.words) {
             ctx.strokeStyle = this.wordStrokeColor;
-            ctx.fillStyle = this.wordColor;
+            ctx.fillStyle = this.wordHighlightColor;
             var words = session.words;
             for (var i = 0; i < words.length; i += 1) {
                 this._drawWord( ctx, words[i] );
@@ -119,30 +129,145 @@
 
         if (session.fixations) {
             ctx.fillStyle = this.fixationColor;
+            ctx.strokeStyle = this.fixationColor;
             var fixations = session.fixations;
+            var prevFix, fix;
             for (var i = 0; i < fixations.length; i += 1) {
-                this._drawFixation( ctx, fixations[i] );
+                fix = fixations[i];
+                if (i > 0) {
+                    this._drawSaccade( ctx, prevFix, fix );
+                }
+                this._drawFixation( ctx, fix );
+                prevFix = fix;
             }
+        }
+    };
+
+    Path.prototype._showHighlights = function (ctx, fixations) {
+        var words = new Map();
+        for (var i = 0; i < fixations.length; i += 1) {
+            var fix = fixations[i];
+            if (fix.word) {
+                var wordDuration = words.get( fix.word ) || 0;
+                words.set( fix.word, wordDuration + fix.duration );
+            }
+        }
+
+        for (var [word, duration] of words) {
+            this._highlightWord( ctx, word.rect, duration );
+        }
+    };
+
+    Path.prototype._showWords = function (ctx, words) {
+        ctx.strokeStyle = this.wordStrokeColor;
+        ctx.fillStyle = this.wordHighlightColor;
+        
+        for (var i = 0; i < words.length; i += 1) {
+            this._drawWord( ctx, words[i], true );
+        }
+    };
+
+    Path.prototype._showFixations = function (ctx, fixations) {
+        ctx.fillStyle = this.fixationColor;
+        ctx.strokeStyle = this.saccadeColor;
+
+        var prevFix, fix;
+        for (var i = 0; i < fixations.length; i += 1) {
+            fix = fixations[i];
+            if (i > 0) {
+                this._drawSaccade( ctx, prevFix, fix );
+            }
+            this._drawFixation( ctx, fix );
+
+            if (fix.word) {
+                ctx.strokeStyle = this.connectionColor;
+                this._drawConnection( ctx, fix, {x: fix.word.rect.left, y: fix.word.rect.top} );
+                ctx.strokeStyle = this.saccadeColor;
+            }
+
+            prevFix = fix;
         }
     };
 
     Path.prototype._drawFixation = function (ctx, fixation) {
         ctx.beginPath();
-        ctx.arc( fixation.x, fixation.y, fixation.duration / 30, 0, 2*Math.PI);
+        ctx.arc( fixation.x, fixation.y, Math.round( Math.sqrt( fixation.duration ) ) / 2, 0, 2*Math.PI);
         ctx.fill();
     };
 
-    Path.prototype._drawWord = function (ctx, word) {
+    Path.prototype._drawSaccade = function (ctx, from, to) {
+        ctx.beginPath();
+        ctx.moveTo( from.x, from.y );
+        ctx.lineTo( to.x, to.y );
+        ctx.stroke();
+    };
 
-        if (word.duration) {
-            ctx.fillStyle = app.Colors.rgb2rgba( this.wordColor, Math.min( 1, word.duration / 500) );
+    Path.prototype._drawConnection = function (ctx, from, to) {
+        ctx.beginPath();
+        ctx.moveTo( from.x, from.y );
+        ctx.lineTo( to.x, to.y );
+        ctx.stroke();
+    };
+
+    Path.prototype._drawWord = function (ctx, word, ignoreDuration) {
+
+        if (word.duration && !ignoreDuration) {
+            ctx.fillStyle = app.Colors.rgb2rgba( this.wordHighlightColor, 
+                    Math.max( 0, Math.min( 1, (word.duration - this.durationTransp) / (this.durationOpaque - this.durationTransp) ) ) );
             ctx.fillRect( word.x, word.y, word.width, word.height);
         }
 
-        ctx.fillStyle = '#FFFF00';
+        ctx.fillStyle = this.wordColor;
         ctx.fillText( word.text, word.x, word.y + 0.8 * word.height);
 
         ctx.strokeRect( word.x, word.y, word.width, word.height);
+    };
+
+    Path.prototype._highlightWord = function (ctx, word, duration) {
+        ctx.fillStyle = app.Colors.rgb2rgba( this.wordHighlightColor, 
+                    Math.max( 0, Math.min( 1, (duration - this.durationTransp) / (this.durationOpaque - this.durationTransp) ) ) );
+        ctx.fillRect( Math.round( word.left ), Math.round( word.top ), 
+                    Math.round( word.right - word.left ), Math.round( word.bottom - word.top ) );
+    };
+
+    Path.prototype._remap = function (session) {
+        var fixations = GazeTargets.Models.Reading.Fixations;
+        var model = GazeTargets.Models.Reading.Campbell;
+        var logger = GazeTargets.Logger;
+
+        fixations.init( 80, 50 );
+        model.init({
+            linePredictor: {
+                factors: {
+                    currentLineDefDist: 0.4,
+                    currentLineMaxDist: 0.4,
+                    newLineSaccadeLengthFraction: 0.1
+                }
+            }
+        });
+
+        var layout = session.words.map(function (word) {
+            return new Word({ left: word.x, top: word.y, right: word.x + word.width, bottom: word.y + word.height });
+        });
+
+        logger.level( logger.Level.debug );
+        
+        fixations.reset();
+        model.reset( layout );
+        //model.callbacks( { onMapped: function (fixation) {} } );
+        
+        var result = []
+        session.fixations.forEach(function (fix) {
+            var fixation = fixations.add( fix.x, fix.y, fix.duration );
+            if (fixation) {
+                model.feedFixation( fixation );
+                result.push( fixation );
+            }
+        });
+
+        logger.level( logger.Level.silent );
+        
+        return result;
     };
 
     var _callbacks;
@@ -168,6 +293,17 @@
 
         return ctx;
     }
+
+    function Word(rect) {
+        this.left = rect.left;
+        this.top = rect.top;
+        this.right = rect.right;
+        this.bottom = rect.bottom;
+    }
+
+    Word.prototype.getBoundingClientRect = function () {
+        return this;
+    };
 
     app.Path = Path;
     
