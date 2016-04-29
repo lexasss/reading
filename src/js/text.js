@@ -19,24 +19,26 @@
         
         this.texts = [
             [
-                'Matka on ollut pitkä, mutta ihana',
-                'Tapasin Lapissa myös joulupukin',
+                'Matka on ollut pitkä, mutta ihana.',
+                'Tapasin Lapissa myös joulupukin.',
                 'Minä luulin, että Lapissa on aina lunta',
-                'Mutta ei siellä ollut yhtään lunta'
+                'mutta ei siellä ollut yhtään lunta.'
             ],
             [
                 'Pelkäsin, että joulupukki kysyy minulta,',
-                'Olenko ollut kiltti.',
+                'olenko ollut kiltti.',
                 'Mutta ei hän kysynyt.',
-                'Joulupukki kysyi, mistä me tulemme.'
+                'Joulupukki kysyi, mistä me tulemme.',
+				'Minä sanoin, että tulemme Kaislarannasta.',
+				'Sitten joulupukki sanoi, että oli hauska tavata ja good bye!'
             ],
             [
                 'Minä ymmärsin heti, että nyt piti lähteä.',
                 'Seuraavaksi joulupukin luo meni',
-                'Kaksi japanilaista tyttöä',
-                'Joulupukki osasi puhua heille japania.',
-                'Japanilaiset ottivat minusta monta valokuvaa.',
-                'Ehkä minä olen nyt kuuluisa kissa Japanissa.'
+                'kaksi japanilaista tyttöä.',
+                'Joulupukki osasi puhua heille japania,',
+				'Japanilaiset ottivat minusta monta valokuvaa.',
+				'Ehkä minä olen nyt kuuluisa kissa Japanissa.'
             ]
         ];
 
