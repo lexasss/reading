@@ -82,8 +82,9 @@
     };
 
     Text.prototype.switchSpacing = function (index) {
+        _textContainer.classList.remove( this.spacings[ _spacingIndex ] );
         _spacingIndex = index;
-        _textContainer.className = this.spacings[ _spacingIndex ];
+        _textContainer.classList.add( this.spacings[ _spacingIndex ] );
     };
 
     Text.prototype.getCurrentTextIndex = function () {

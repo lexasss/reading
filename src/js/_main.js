@@ -40,13 +40,27 @@ Reading.init = function (components) {
 	    root: components.options,
 	    text: components.textContainer + ' ' + components.text
 	}, {
-		isShowingPointer: function () { return GazeTargets.getSettings( 'pointer/show' ); },
-		isHighlighingWords: function () { return textSplitter.highlightCurrentWord; },
-		isTextHidden: function () { return !text.initialVisibility(); }
-	}, {
-		showPointer: function (value) { GazeTargets.updateSettings( { pointer: { show: value } } ); },
-		highlightWord: function (value) { textSplitter.highlightCurrentWord = value; },
-		hideText: function (value) { text.initialVisibility( !value ); }
+		showPointer: function (value) { 
+			if (value !== undefined) {
+				GazeTargets.updateSettings( { pointer: { show: value } } );
+			} else {
+				return GazeTargets.getSettings( 'pointer/show' );
+			}
+		},
+		highlightWord: function (value) {
+			if (value !== undefined) {
+				textSplitter.highlightCurrentWord = value; 
+			} else {
+				return textSplitter.highlightCurrentWord;
+			}
+		},
+		hideText: function (value) {
+			if (value !== undefined) {
+				text.initialVisibility( !value ); 
+			} else {
+				return !text.initialVisibility();
+			}
+		}
 	});
 
 	var statistics = new Reading.Statistics({

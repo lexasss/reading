@@ -6,29 +6,22 @@
     //          root:   - slideout element ID
     //          text:   - full text selector
     //      }
-    //      services: {
-    //          isShowingPointer ()     - provides gaze pointer visibility info
-    //          isHighlighingWords ()   - provides word highlighting info
-    //          isTextHidden ()         - provides text initial visibility info
+    //      services: {             - get/set services
+    //          showPointer (bool)      - gaze point visibility
+    //          highlightWord (bool)    - word highlighting
+    //          hideText (bool)         - text initial visibility
     //      }
-    //      callbacks: {
-    //          showPointer (bool)      - gaze point visibility must be changed
-    //          highlightWord (bool)    - word highlighting must be changed
-    //          hideText (bool)         - text initial visibility must be changed
-    //      }
-    function Options(options, services, callbacks) {
+    function Options(options, services) {
 
         this.root = options.root || '#options';
         
         this._slideout = document.querySelector( this.root );
 
         _services = services;
-        _services.isShowingPointer = _services.isShowingPointer || console.error( 'No "isShowingPointer" service for Options' );
-        _services.isHighlighingWords = _services.isHighlighingWords || console.error( 'No "isHighlighingWords" service for Options' );
-        _services.isTextHidden = _services.isTextHidden || console.error( 'No "isTextHidden" service for Options' );
+        _services.showPointer = _services.showPointer || console.error( 'No "showPointer" service for Options' );
+        _services.highlightWord = _services.highlightWord || console.error( 'No "highlightWord" service for Options' );
+        _services.hideText = _services.hideText || console.error( 'No "hideText" service for Options' );
 
-        _callbacks = callbacks;
-        
         var cssRules = [
             { name: 'color', type: 'color', cssrule: options.text, id: 'text', prefix: '#', suffix: '' },
             { name: 'color', type: 'color', cssrule: options.text + ' .currentWord', id: 'currentWord', prefix: '#', suffix: '' },
@@ -45,6 +38,8 @@
         apply.addEventListener( 'click', function () {
             getRulesFromEditors( self._style, cssRules );
             self._slideout.classList.remove( 'expanded' );
+
+            saveSettings();
         });
 
         var close = document.querySelector( this.root + ' .close' );
@@ -58,9 +53,10 @@
             setRulesToEditors( cssRules );
         });
 
-        bindSettingsToEditors( this.root );
-
         window.addEventListener( 'load', function () {
+            loadSettings();
+            bindSettingsToEditors( self.root );
+
             obtainInitialRules( cssRules );
             bindRulesToEditors( cssRules, self.root + ' #' );
         });
@@ -79,7 +75,22 @@
     // private
 
     var _services;
-    var _callbacks;
+
+    function loadSettings() {
+        var options = JSON.parse( localStorage.getItem('options') );
+        for (var name in options) {
+            _services[ name ]( options[name] );
+            console.log(options[name]);
+        }
+    }
+
+    function saveSettings() {
+        var options = {};
+        for (var name in _services) {
+            options[ name] = _services[name]();
+        }
+        localStorage.setItem( 'options', JSON.stringify( options) );
+    }
 
     function componentToHex( c ) {
         var hex = c.toString(16);
@@ -181,26 +192,26 @@
 
     function bindSettingsToEditors(root) {
         var showPointer = document.querySelector( root + ' #showPointer' );
-        showPointer.checked = _services.isShowingPointer();
+        showPointer.checked = _services.showPointer();
         showPointer.addEventListener( 'click', function (e) {
-            if (_callbacks.showPointer) {
-                _callbacks.showPointer( this.checked );
+            if (_services.showPointer) {
+                _services.showPointer( this.checked );
             }
         });
         
         var highlightWord = document.querySelector( root + ' #highlightWord' );
-        highlightWord.checked = _services.isHighlighingWords();
+        highlightWord.checked = _services.highlightWord();
         highlightWord.addEventListener( 'click', function (e) {
-            if (_callbacks.highlightWord) {
-                _callbacks.highlightWord( this.checked );
+            if (_services.highlightWord) {
+                _services.highlightWord( this.checked );
             }
         });
 
         var hiddenText = document.querySelector( root + ' #hiddenText' );
-        hiddenText.checked = _services.isTextHidden();
+        hiddenText.checked = _services.hideText();
         hiddenText.addEventListener( 'click', function (e) {
-            if (_callbacks.hideText) {
-                _callbacks.hideText( this.checked );
+            if (_services.hideText) {
+                _services.hideText( this.checked );
             }
         });
     }
