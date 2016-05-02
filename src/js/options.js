@@ -80,7 +80,6 @@
         var options = JSON.parse( localStorage.getItem('options') );
         for (var name in options) {
             _services[ name ]( options[name] );
-            console.log(options[name]);
         }
     }
 

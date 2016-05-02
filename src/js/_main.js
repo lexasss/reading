@@ -6,7 +6,7 @@ var Reading = Reading || {};
 // "components" contains selectors for each component 
 Reading.init = function (components) {
 	// DB
-	Reading.firebase = new Firebase("https://burning-torch-9217.firebaseio.com/");
+	Reading.firebase = new Firebase("https://burning-torch-9217.firebaseio.com/school/");
 
 	// setup
 	var textSplitter = new Reading.TextSplitter({
