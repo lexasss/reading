@@ -26,8 +26,7 @@
             ],
             [
                 'Pelkäsin, että joulupukki kysyy minulta,',
-                'olenko ollut kiltti.',
-                'Mutta ei hän kysynyt.',
+                'olenko ollut kiltti. Mutta ei hän kysynyt.',
                 'Joulupukki kysyi, mistä me tulemme.',
 				'Minä sanoin, että tulemme Kaislarannasta.',
 				'Sitten joulupukki sanoi, että oli hauska tavata ja good bye!'
@@ -37,12 +36,29 @@
                 'Seuraavaksi joulupukin luo meni',
                 'kaksi japanilaista tyttöä.',
                 'Joulupukki osasi puhua heille japania,',
-				'Japanilaiset ottivat minusta monta valokuvaa.',
+				'japanilaiset ottivat minusta monta valokuvaa.',
 				'Ehkä minä olen nyt kuuluisa kissa Japanissa.'
             ]
         ];
 
         this.spacings = ['x-small', 'small', 'median', 'large', 'x-large'];
+
+        this._initialVisibility = true;
+    }
+
+    Text.prototype.initialVisibility = function (value) {
+        if (value !== undefined) {
+            this._initialVisibility = value;
+            if (this._initialVisibility) {
+                this.show();
+            }
+            else {
+                this.hide();
+            }
+        }
+        else {
+            return this._initialVisibility;
+        }
     }
 
     Text.prototype.switchText = function (index) {
@@ -78,11 +94,11 @@
         return _spacingIndex;
     };
 
-    Text.prototype.show = function(first_argument) {
+    Text.prototype.show = function() {
         _textContainer.classList.remove( 'invisible' );
     };
 
-    Text.prototype.hide = function(first_argument) {
+    Text.prototype.hide = function() {
         _textContainer.classList.add( 'invisible' );
     };
 

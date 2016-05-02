@@ -25,7 +25,11 @@ mixin options(id)
                     input.value#showPointer(type="checkbox")
                 .row
                     .label Highlight focused word
-                    input.value#hiliteWord(type="checkbox")
+                    input.value#highlightWord(type="checkbox")
+            .group Other
+                .row
+                    .label Hidden initial text
+                    input.value#hiddenText(type="checkbox")
             br
             input.save(type="button", value="Save")
             input.close(type="button", value="Close")

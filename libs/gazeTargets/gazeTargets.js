@@ -5088,7 +5088,9 @@
 
         currentLine = linePredictor.get( isSwitchedToReading, fixation, currentLine, offset );
 
-        updateOffset( fixation, currentLine );
+        if (isReadingMode && (isSwitchedToReading || fixation.saccade.zone === zone.reading)) {
+            updateOffset( fixation, currentLine );
+        }
 
         var mapped = mapToWord( fixation, currentLine ); // , isSwitchedToReading ?
 
@@ -5117,7 +5119,7 @@
             return null;
         }
 
-        if (isReadingMode && !skipFix && fixation.saccade.zone === zone.reading) {
+        if (isReadingMode && !skipFix) { // && fixation.saccade.zone === zone.reading ?
             line.addFixation( fixation );
         }
         
@@ -5881,7 +5883,7 @@
             }
         }
         else if (currentLine) {     // maybe, this is a quick jump to some other line?
-            logger.push( 'checking possible jump...' );
+            logger.push( '\nchecking possible jump...' );
             var lineIndex = -1;
             if (minDiff != Number.MAX_VALUE) { 
                 lineIndex = currentLineIndex + Math.round( minDiff / geomModel.lineSpacing );
@@ -5939,6 +5941,7 @@
                     }
                 }
                 else {
+                    logger.push( 'just accept it' );
                     // what can we do here?
                     // just accepting the supposed line
                 }
@@ -5950,6 +5953,7 @@
             }
             else {
                 result = null;
+                logger.push( 'nothing to suggest' );
             }
         }
         else {
@@ -6039,17 +6043,19 @@
         var minDist = Number.MAX_VALUE;
         var line, dist;
 
+        logger.push('\nsearching the closest line given the offset',  offset);
         var lines = geomModel.lines;
         for (var i = 0; i < lines.length; ++i) {
             line = lines[i];
             dist = Math.abs( fixation.y + offset - line.center.y );
+            logger.push('#' + i + '=' + dist);
             if (dist < minDist) {
                 minDist = dist;
                 result = line;
             }
         }
 
-        logger.push('just taking the closest line',  result.index);
+        logger.push('closest:',  result.index);
         return result;        
     }
 

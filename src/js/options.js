@@ -9,10 +9,12 @@
     //      services: {
     //          isShowingPointer ()     - provides gaze pointer visibility info
     //          isHighlighingWords ()   - provides word highlighting info
+    //          isTextHidden ()         - provides text initial visibility info
     //      }
     //      callbacks: {
     //          showPointer (bool)      - gaze point visibility must be changed
     //          highlightWord (bool)    - word highlighting must be changed
+    //          hideText (bool)         - text initial visibility must be changed
     //      }
     function Options(options, services, callbacks) {
 
@@ -23,6 +25,7 @@
         _services = services;
         _services.isShowingPointer = _services.isShowingPointer || console.error( 'No "isShowingPointer" service for Options' );
         _services.isHighlighingWords = _services.isHighlighingWords || console.error( 'No "isHighlighingWords" service for Options' );
+        _services.isTextHidden = _services.isTextHidden || console.error( 'No "isTextHidden" service for Options' );
 
         _callbacks = callbacks;
         
@@ -185,14 +188,21 @@
             }
         });
         
-        var hiliteWord = document.querySelector( root + ' #hiliteWord' );
-        hiliteWord.checked = _services.isHighlighingWords();
-        hiliteWord.addEventListener( 'click', function (e) {
+        var highlightWord = document.querySelector( root + ' #highlightWord' );
+        highlightWord.checked = _services.isHighlighingWords();
+        highlightWord.addEventListener( 'click', function (e) {
             if (_callbacks.highlightWord) {
                 _callbacks.highlightWord( this.checked );
             }
         });
 
+        var hiddenText = document.querySelector( root + ' #hiddenText' );
+        hiddenText.checked = _services.isTextHidden();
+        hiddenText.addEventListener( 'click', function (e) {
+            if (_callbacks.hideText) {
+                _callbacks.hideText( this.checked );
+            }
+        });
     }
 
     app.Options = Options;

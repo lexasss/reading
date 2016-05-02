@@ -41,10 +41,12 @@ Reading.init = function (components) {
 	    text: components.textContainer + ' ' + components.text
 	}, {
 		isShowingPointer: function () { return GazeTargets.getSettings( 'pointer/show' ); },
-		isHighlighingWords: function () { return textSplitter.highlightCurrentWord; }
+		isHighlighingWords: function () { return textSplitter.highlightCurrentWord; },
+		isTextHidden: function () { return !text.initialVisibility(); }
 	}, {
 		showPointer: function (value) { GazeTargets.updateSettings( { pointer: { show: value } } ); },
-		highlightWord: function (value) { textSplitter.highlightCurrentWord = value; }
+		highlightWord: function (value) { textSplitter.highlightCurrentWord = value; },
+		hideText: function (value) { text.initialVisibility( !value ); }
 	});
 
 	var statistics = new Reading.Statistics({
@@ -68,6 +70,9 @@ Reading.init = function (components) {
 	        textEditor.lock();
 	        options.lock();
 	        controls.lock();
+	        if (!text.initialVisibility()) {
+	        	text.show();
+	        }
 	    },
 	    trackingStopped: function () {
 	        textSplitter.reset();
@@ -75,6 +80,9 @@ Reading.init = function (components) {
 	        textEditor.unlock();
 	        options.unlock();
 	        controls.unlock();
+	        if (!text.initialVisibility()) {
+	        	text.hide();
+	        }
 	    },
 	    wordFocused: function (word) {
 	        textSplitter.setFocusedWord( word );

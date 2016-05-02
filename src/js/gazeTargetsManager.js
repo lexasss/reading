@@ -20,7 +20,7 @@
                show: false
             },
             pointer: {
-                show: true
+                show: false
             },
             targets: [
                 {
