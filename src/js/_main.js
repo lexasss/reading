@@ -23,7 +23,11 @@ Reading.init = function (components) {
 	    root: components.path
 	}, {
 	    shown: text.hide,
-	    hidden: text.show
+	    hidden: function () {
+	    	if (text.initialVisibility()) {
+	    		text.show();
+	    	}
+	    }
 	});
 
 	var controls = new Reading.Controls({
