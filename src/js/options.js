@@ -23,10 +23,21 @@
         _services.hideText = _services.hideText || console.error( 'No "hideText" service for Options' );
 
         var cssRules = [
-            { name: 'color', type: 'color', cssrule: options.text, id: 'text', prefix: '#', suffix: '' },
-            { name: 'color', type: 'color', cssrule: options.text + ' .currentWord', id: 'currentWord', prefix: '#', suffix: '' },
-            { name: 'font-size', type: 'string', cssrule: options.text, id: 'fontSize', prefix: '', suffix: '' },
-            //{ name: 'line-height', type: 'string', cssrule: options.text, id: 'lineHeight', prefix: '', suffix: '' },
+            /*{
+                name:        rule CSS name
+                type:        the type of control to represent the rule
+                selector:    rule selector
+                id:          control ID
+                prefix:      the rule value prefix not to be shown in the control
+                suffix:      the rule value suffix not to be shown in the control
+                value:     [auto-filled] rule value
+                initial:   [auto-filled] initial rule value
+                editor:    [auto-filled] rule control
+            }*/
+            { name: 'color', type: 'color', selector: options.text, id: 'text', prefix: '#', suffix: '' },
+            { name: 'color', type: 'color', selector: options.text + ' .currentWord', id: 'currentWord', prefix: '#', suffix: '' },
+            { name: 'font-size', type: 'string', selector: options.text, id: 'fontSize', prefix: '', suffix: '' },
+            //{ name: 'line-height', type: 'string', selector: options.text, id: 'lineHeight', prefix: '', suffix: '' },
         ];
 
         this._style = document.createElement( 'style' );
@@ -39,7 +50,7 @@
             getRulesFromEditors( self._style, cssRules );
             self._slideout.classList.remove( 'expanded' );
 
-            saveSettings();
+            saveSettings( cssRules );
         });
 
         var close = document.querySelector( this.root + ' .close' );
@@ -54,10 +65,14 @@
         });
 
         window.addEventListener( 'load', function () {
-            loadSettings();
-            bindSettingsToEditors( self.root );
-
+            loadSettings( cssRules );
+            self._style.innerHTML = cssRules.reduce( function (css, rule) {
+                return css + rule.selector + ' { ' + rule.name + ': ' + rule.initial + rule.suffix + ' !important; } ';
+            }, '');
+            
             obtainInitialRules( cssRules );
+            
+            bindSettingsToEditors( self.root );
             bindRulesToEditors( cssRules, self.root + ' #' );
         });
     }
@@ -76,18 +91,41 @@
 
     var _services;
 
-    function loadSettings() {
+    function loadSettings(cssRules) {
         var options = JSON.parse( localStorage.getItem('options') );
+        if (!options) {
+            return;
+        }
+
         for (var name in options) {
-            _services[ name ]( options[name] );
+            if (_services[ name ]) {
+                _services[ name ]( options[name] );
+            }
+        }
+
+        if (options.css) {
+            for (var savedRule in options.css) {
+                var parts = savedRule.split( '____' );
+                cssRules.forEach( function (rule) {
+                    if (rule.selector === parts[0] && rule.name === parts[1]) {
+                        rule.initial = options.css[ savedRule ];
+                    } 
+                });
+            };
         }
     }
 
-    function saveSettings() {
+    function saveSettings(cssRules) {
         var options = {};
         for (var name in _services) {
-            options[ name] = _services[name]();
+            options[ name ] = _services[name]();
         }
+
+        options.css = {};
+        cssRules.forEach( function (rule) {
+            options.css[ rule.selector + '____' + rule.name ] = rule.value; 
+        });
+
         localStorage.setItem( 'options', JSON.stringify( options) );
     }
 
@@ -130,12 +168,14 @@
                 var rule = sheet.cssRules[ r ];
                 for (var c = 0; c < rules.length; c++) {
                     var customRule = rules[ c ];
-                    if (rule.selectorText === customRule.cssrule) {
-                        if (customRule.type === 'color') {
-                            customRule.initial = cssColorToHex( rule.style.color );
-                        }
-                        else if (customRule.type === 'string') {
-                            customRule.initial = rule.style[ cssToJS( customRule.name ) ];
+                    if (rule.selectorText === customRule.selector) {
+                        if (customRule.initial === undefined) {
+                            if (customRule.type === 'color') {
+                                customRule.initial = cssColorToHex( rule.style.color );
+                            }
+                            else if (customRule.type === 'string') {
+                                customRule.initial = rule.style[ cssToJS( customRule.name ) ];
+                            }
                         }
                         customRule.value = customRule.initial;
                     }
@@ -159,7 +199,6 @@
         }
     }
 
-
     function getRulesFromEditors( style, rules ) {
 
         var styleText = '';
@@ -171,7 +210,7 @@
             else if (rule.type === 'string') {
                 rule.value = rule.editor.value;
             }
-            styleText += rule.cssrule + ' { ' + rule.name + ': ' + rule.value + rule.suffix + ' !important; } ';
+            styleText += rule.selector + ' { ' + rule.name + ': ' + rule.value + rule.suffix + ' !important; } ';
         }
         style.innerHTML = styleText;
     }
