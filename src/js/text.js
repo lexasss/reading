@@ -19,6 +19,32 @@
         
         this.texts = [
             [
+                'Steroidivyöhykkeen pienimpiä kivikappaleita sanotaan',
+                'meteoroideiksi. Joskus sellainen voi pudota maanpinnalle.',
+                'Tällöin sitä kutsutaan meteoriitiksi.'
+            ],
+            [
+                'Asteroidit eli pikkuplaneetat ovat pääosin kivisiä,',
+                'metallisia ja jäisiä kappaleita, jotka kiertävät Aurinkoa',
+                'omilla radoillaan. Suurin osa asteroideista sijaitsee',
+                'Marsin ja Jupiterin välissä olevalla asteroidivyöhykkeellä.'
+            ],
+            [
+                'Komeetat eli pyrstötähdet ovat pieniä kappaleita,',
+                'jotka koostuvat jäästä ja pölystä. Ne kiertävät Aurinkoa',
+                'omilla radoillaan. Kun komeetta liikkuu lähelle Aurinkoa,',
+                'sille syntyy kaasusta ja pölystä pyrstö. Pyrstö voi olla miljoonien',
+                'kilometrien pituinen. Pyrstö heijastaa Auringon valoa.'
+            ],
+            [
+                'Aurinko on Maata lähinnä oleva tähti. Se on',
+                'erittäin kuuma kaasupallo. Lämpötila Auringon pinnassa on',
+                'noin 6 000 °C. Auringosta säteilee valoa ja lämpöä.',
+                'Maa sijaitsee sopivalla etäisyydellä Auringosta.',
+                'Aurinko on kooltaan 109 kertaa suurempi kuin maapallo.',
+                'Aurinko ja kahdeksan planeettaa muodostavat aurinkokunnan.'
+            ]
+            /*[
                 'Matka on ollut pitkä, mutta ihana.',
                 'Tapasin Lapissa myös joulupukin.',
                 'Minä luulin, että Lapissa on aina lunta',
@@ -38,7 +64,7 @@
                 'Joulupukki osasi puhua heille japania,',
 				'japanilaiset ottivat minusta monta valokuvaa.',
 				'Ehkä minä olen nyt kuuluisa kissa Japanissa.'
-            ]
+            ]*/
         ];
 
         this.spacings = ['x-small', 'small', 'median', 'large', 'x-large'];
