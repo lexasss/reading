@@ -18,11 +18,11 @@
         _textContainer = document.querySelector( this.root );
         
         this.texts = [
-            [
+            /*[
                 'Steroidivyöhykkeen pienimpiä kivikappaleita sanotaan',
                 'meteoroideiksi. Joskus sellainen voi pudota maanpinnalle.',
                 'Tällöin sitä kutsutaan meteoriitiksi.'
-            ],
+            ],*/
             [
                 'Asteroidit eli pikkuplaneetat ovat pääosin kivisiä,',
                 'metallisia ja jäisiä kappaleita, jotka kiertävät Aurinkoa',
