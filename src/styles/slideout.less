@@ -1,6 +1,7 @@
 @text: white;
 @back: #518FAE;
-@padding: 25px;
+@paddingX: 1em;
+@paddingY: 0.7em;
 
 .slideout {
     position: fixed;
@@ -22,10 +23,10 @@
 
     .slideout_inner {
         position: fixed;
-        padding: @padding/2 @padding;
+        padding: @paddingY @paddingX;
         transition-duration: 0.3s;
         text-align: left;
-        border-radius: 0 5px 0 0;
+        //border-radius: 5px 5px 0 0;
         background: @back;
     }
 
@@ -48,9 +49,13 @@
         font-size: 14pt;
         font-family: Arial, sans-serif;
         font-weight: bold;
-        padding: 2px @padding;
+        padding: 0.2em @paddingX;
         text-transform: uppercase;
         cursor: pointer;
+    }
+
+    &.expanded .title {
+        background: darken( @back, 20% );
     }
 
     &.auto-expand .title {

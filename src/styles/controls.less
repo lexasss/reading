@@ -1,6 +1,7 @@
 @rowMode: 2280px;
 
 #controls {
+    background-color: rgba(255, 255, 255, 0.6);
     position: fixed;
     right: 0;
     top: 0;
@@ -9,6 +10,11 @@
 
     @media (min-width: @rowMode) {
         width: 100vw;
+        padding-bottom: 0.5em;
+    }
+    @media (max-width: @rowMode) {
+        height: 100vh;
+        padding-left: 0.5em;
     }
 
     .button {
