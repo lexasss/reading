@@ -15,6 +15,7 @@
     //          switchText (id)     - switch the text to "id"
     //          switchSpacing (id)  - switch the spacing to "id"
     //          selectSession ()    - show a DB session selection dialog
+    //          selectCondition ()  - show a condition selection dialog
     //      }
     function Controls(options, services) {
         this.root = options.root || document.documentElement;
@@ -26,6 +27,7 @@
         _services.switchText = _services.switchText || console.error( 'No "switchText" service for Controls' );
         _services.switchSpacing = _services.switchSpacing || console.error( 'No "switchSpacing" service for Controls' );
         _services.selectSession = _services.selectSession || console.error( 'No "selectSession" service for Controls' );
+        _services.selectCondition = _services.selectCondition || console.error( 'No "selectCondition" service for Controls' );
 
         //var container = document.querySelector( this.root );
 
@@ -78,6 +80,11 @@
             _services.selectSession();
         });
 
+        _loadCondition = document.querySelector( '.loadCondition' );
+        _loadCondition.addEventListener('click', function () {
+            _services.selectCondition();
+        });
+
         shortcut.add( 'Space', function() {
             _toggle.click();
         });
@@ -94,12 +101,14 @@
         setButtonBlockDisabled( _textSwitchers, true );
         setButtonBlockDisabled( _spacingSwitchers, true );
         _loadSession.classList.add( 'disabled' );
+        _loadCondition.classList.add( 'disabled' );
     };
 
     Controls.prototype.unlock = function () {
         setButtonBlockDisabled( _textSwitchers, false );
         setButtonBlockDisabled( _spacingSwitchers, false );
         _loadSession.classList.remove( 'disabled' );
+        _loadCondition.classList.remove( 'disabled' );
     };
     
     Controls.prototype.onStateUpdated = function (state) {
@@ -166,6 +175,7 @@
     var _textSwitchers;
     var _spacingSwitchers;
     var _loadSession;
+    var _loadCondition;
     
     var _connectionTimeout;
 

@@ -22,14 +22,26 @@
     function Path(options, callbacks) {
 
         this.root = options.root || document.documentElement;
-        this.fixationColor = options.fixationColor || '#00F';
-        this.saccadeColor = options.saccadeColor || '#006';
+        this.fixationColor = options.fixationColor || '#000';
+        this.saccadeColor = options.saccadeColor || '#08F';
         this.connectionColor = options.connectionColor || '#FF0';
-        this.wordColor = options.wordColor || '#FF0';
-        this.wordHighlightColor = options.wordHighlightColor || '#F00';
-        this.wordStrokeColor = options.wordStrokeColor || '#F00';
+        this.wordColor = options.wordColor || '#CCC';
+        this.wordHighlightColor = options.wordHighlightColor || '#606';
+        this.wordStrokeColor = options.wordStrokeColor || '#800';
         this.durationTransp = options.durationTransp || 100;
         this.durationOpaque = options.durationOpaque || 1000;
+        this.textColor = options.textColor || '#CCC';
+        this.textFont = options.textFont || '32px Arial';
+
+        var lineColorA = 0.5;
+        this.lineColors = [
+            'rgba(255,0,0,' + lineColorA +')',
+            'rgba(255,255,0,' + lineColorA +')',
+            'rgba(0,255,0,' + lineColorA +')',
+            'rgba(0,255,224,' + lineColorA +')',
+            'rgba(0,128,255,' + lineColorA +')',
+            'rgba(255,0,255,' + lineColorA +')',
+        ];
 
         _callbacks = callbacks;
 
@@ -104,11 +116,12 @@
             var sessionVal = session.val();
             if (sessionVal) {
                 var ctx = getCanvas2D();
-                var fixations = this._remap( sessionVal );
+                var fixations = this._remapStatic( sessionVal );
                 this._showHighlights( ctx, fixations );
                 this._showWords( ctx, sessionVal.words );
                 this._showFixations( ctx, fixations );
                 //this._show( ctx, sessionVal );
+                this._showSessionName( ctx, name );
             }
         } else {
             alert('record ' + name + ' does not exist');
@@ -154,7 +167,7 @@
         }
 
         for (var [word, duration] of words) {
-            this._highlightWord( ctx, word.rect, duration );
+            this._highlightWord( ctx, word, duration );
         }
     };
 
@@ -174,14 +187,18 @@
         var prevFix, fix;
         for (var i = 0; i < fixations.length; i += 1) {
             fix = fixations[i];
-            if (i > 0) {
+            if (fix.x <= 0 && fix.y <= 0) {
+                continue;
+            }
+
+            if (prevFix) {
                 this._drawSaccade( ctx, prevFix, fix );
             }
             this._drawFixation( ctx, fix );
 
             if (fix.word) {
                 ctx.strokeStyle = this.connectionColor;
-                this._drawConnection( ctx, fix, {x: fix.word.rect.left, y: fix.word.rect.top} );
+                this._drawConnection( ctx, fix, {x: fix.word.left, y: fix.word.top} );
                 ctx.strokeStyle = this.saccadeColor;
             }
 
@@ -189,10 +206,32 @@
         }
     };
 
+    Path.prototype._showSessionName = function (ctx, name) {
+        ctx.fillStyle = this.textColor;
+        ctx.font = this.textFont;
+
+        var textWidth = ctx.measureText( name ).width;
+        ctx.fillText( name, (_canvas.width - textWidth) / 2, 32);
+    }
+
     Path.prototype._drawFixation = function (ctx, fixation) {
+        if (fixation.line != undefined) {
+            ctx.fillStyle = this.lineColors[ fixation.line % 6 ];
+        }
+        else {
+            ctx.fillStyle = this.fixationColor;
+        }
+
         ctx.beginPath();
         ctx.arc( fixation.x, fixation.y, Math.round( Math.sqrt( fixation.duration ) ) / 2, 0, 2*Math.PI);
         ctx.fill();
+
+        if (fixation._x) {
+            ctx.fillStyle = "rgba(255,255,255,0.15)";
+            ctx.beginPath();
+            ctx.arc( fixation._x, fixation.y, Math.round( Math.sqrt( fixation.duration ) ) / 2, 0, 2*Math.PI);
+            ctx.fill();
+        }
     };
 
     Path.prototype._drawSaccade = function (ctx, from, to) {
@@ -269,6 +308,13 @@
         
         return result;
     };
+
+    Path.prototype._remapStatic = function (session) {
+        localStorage.setItem('data', JSON.stringify(session));
+
+        app.StaticFit.map(session);
+        return session.fixations;
+    }
 
     var _callbacks;
     var _view;

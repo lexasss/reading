@@ -19,16 +19,18 @@ Reading.init = function (components) {
 	    splitText: textSplitter.split.bind( textSplitter )
 	});
 
-	var path = new Reading.Path({ 
-	    root: components.path
-	}, {
+	var visualizationRoot = { root: components.path	};
+	var visualizationCallbacks = {
 	    shown: text.hide,
 	    hidden: function () {
 	    	if (text.initialVisibility()) {
 	    		text.show();
 	    	}
 	    }
-	});
+	};
+
+	var path = new Reading.Path( visualizationRoot, visualizationCallbacks );
+	var wordGazing = new Reading.WordGazing( visualizationRoot, visualizationCallbacks );
 
 	var controls = new Reading.Controls({
 	    root: components.controls
@@ -37,7 +39,8 @@ Reading.init = function (components) {
 	    getSpacings: function () { return text.spacings; },
 	    switchText: text.switchText.bind( text ),
 	    switchSpacing: text.switchSpacing.bind( text ),
-	    selectSession: path.select.bind( path )
+	    selectSession: path.select.bind( path ),
+	    selectCondition: wordGazing.select.bind( wordGazing ),
 	});
 
 	var options = new Reading.Options({
