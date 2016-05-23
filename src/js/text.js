@@ -43,28 +43,15 @@
                 'Maa sijaitsee sopivalla etäisyydellä Auringosta.',
                 'Aurinko on kooltaan 109 kertaa suurempi kuin maapallo.',
                 'Aurinko ja kahdeksan planeettaa muodostavat aurinkokunnan.'
+            ],
+            [
+                'Matka on ollut pitkä, mutta ihana. Tapasin Lapissa myös joulupukin.',
+                'Minä luulin, että Lapissa on aina lunta mutta ei siellä ollut yhtään',
+                'lunta. Pelkäsin, että joulupukki kysyy minulta, olenko ollut kiltti.',
+                'Mutta ei hän kysynyt. Joulupukki kysyi, mistä me tulemme. Minä sanoin,',
+                'että tulemme Kaislarannasta. Sitten joulupukki sanoi, että oli hauska',
+                'tavata ja good bye! Minä ymmärsin heti, että nyt piti lähteä.'
             ]
-            /*[
-                'Matka on ollut pitkä, mutta ihana.',
-                'Tapasin Lapissa myös joulupukin.',
-                'Minä luulin, että Lapissa on aina lunta',
-                'mutta ei siellä ollut yhtään lunta.'
-            ],
-            [
-                'Pelkäsin, että joulupukki kysyy minulta,',
-                'olenko ollut kiltti. Mutta ei hän kysynyt.',
-                'Joulupukki kysyi, mistä me tulemme.',
-				'Minä sanoin, että tulemme Kaislarannasta.',
-				'Sitten joulupukki sanoi, että oli hauska tavata ja good bye!'
-            ],
-            [
-                'Minä ymmärsin heti, että nyt piti lähteä.',
-                'Seuraavaksi joulupukin luo meni',
-                'kaksi japanilaista tyttöä.',
-                'Joulupukki osasi puhua heille japania,',
-				'japanilaiset ottivat minusta monta valokuvaa.',
-				'Ehkä minä olen nyt kuuluisa kissa Japanissa.'
-            ]*/
         ];
 
         this.spacings = ['x-small', 'small', 'median', 'large', 'x-large'];
