@@ -73,36 +73,44 @@
         });
     }
 
-    Path.prototype.select = function () {
-        app.firebase.once('value', function (snapshot) {
+    Path.prototype.queryData = function () {
+        if (_snapshot) {
+            this.showSessionSelectionDialog();
+            return;
+        }
+
+        app.firebase.once('value', snapshot => {
             if (!snapshot.exists()) {
                 alert('no records in DB');
                 return;
             }
 
-            if (_callbacks.shown) {
-                _callbacks.shown();
-            }
-
             _snapshot = snapshot;
-            _view.classList.remove( 'invisible' );
-
-            var list = document.querySelector( 'select', _sessionPrompt );
-            list.innerHTML = '';
-            snapshot.forEach( function (childSnapshot) {
-                var option = document.createElement('option');
-                option.value = childSnapshot.key();
-                option.textContent = childSnapshot.key();
-                list.appendChild( option );
-                //var childData = childSnapshot.val();
-            });
-
-            _sessionPrompt.classList.remove( 'invisible' );
+            this.showSessionSelectionDialog();
 
         }, function (err) {
             alert(err);
         });
     };
+
+    Path.prototype.showSessionSelectionDialog = function () {
+        if (_callbacks.shown) {
+            _callbacks.shown();
+        }
+
+        _view.classList.remove( 'invisible' );
+
+        var list = document.querySelector( 'select', _sessionPrompt );
+        list.innerHTML = '';
+        _snapshot.forEach( childSnapshot => {
+            var option = document.createElement('option');
+            option.value = childSnapshot.key();
+            option.textContent = childSnapshot.key();
+            list.appendChild( option );
+        });
+
+        _sessionPrompt.classList.remove( 'invisible' );
+    }
 
     Path.prototype._load = function( name ) {
         if (!_snapshot) {
@@ -126,8 +134,6 @@
         } else {
             alert('record ' + name + ' does not exist');
         }
-
-        _snapshot = null;
     };
 
     Path.prototype._show = function (ctx, session) {

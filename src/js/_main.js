@@ -29,8 +29,11 @@ Reading.init = function (components) {
 	    }
 	};
 
-	var path = new Reading.Path( visualizationRoot, visualizationCallbacks );
-	var wordGazing = new Reading.WordGazing( visualizationRoot, visualizationCallbacks );
+	var path = new Reading.Path( { root: components.path }, visualizationCallbacks );
+	var wordGazing = new Reading.WordGazing( {
+		root: components.path,
+		spacingNames: text.spacings
+	}, visualizationCallbacks );
 
 	var controls = new Reading.Controls({
 	    root: components.controls
@@ -39,8 +42,8 @@ Reading.init = function (components) {
 	    getSpacings: function () { return text.spacings; },
 	    switchText: text.switchText.bind( text ),
 	    switchSpacing: text.switchSpacing.bind( text ),
-	    selectSession: path.select.bind( path ),
-	    selectCondition: wordGazing.select.bind( wordGazing ),
+	    selectSession: path.queryData.bind( path ),
+	    selectCondition: wordGazing.queryData.bind( wordGazing ),
 	});
 
 	var options = new Reading.Options({

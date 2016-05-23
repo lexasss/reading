@@ -8,10 +8,15 @@
     // Constructor arguments:
     //      options: {
     //          root                - selector for the element that contains statistics view
+    //          spacingNames        - spacing names
     //          fixationColor       - fixation color
     //          wordColor           - word color
     //          wordHighlightColor  - mapped word rectangle color
     //          wordStrokeColor     - word rectable border color
+    //          durationTransp      - transparency is 100% for this and lower durations 
+    //          durationOpaque      - transparency is 0% for this and longer durations 
+    //          textColor           - info text color
+    //          textFont            - info text font
     //      }
     //      callbacks: {
     //          shown ()      - the path overlay was displayed
@@ -20,6 +25,7 @@
     function WordGazing (options, callbacks) {
 
         this.root = options.root || document.documentElement;
+        this.spacingNames = options.spacingNames;
         this.fixationColor = options.fixationColor || '#FFF';
         this.wordColor = options.wordColor || '#CCC';
         this.wordHighlightColor = options.wordHighlightColor || '#606';
@@ -39,7 +45,7 @@
         _sessionPrompt.classList.add( 'invisible' );
 
         var close = document.querySelector( this.root + ' .close' );
-        close.addEventListener('click', function () {
+        close.addEventListener('click', () => {
             _view.classList.add( 'invisible' );
 
             var ctx = _canvas.getContext('2d');
@@ -58,47 +64,57 @@
         });
     }
 
-    WordGazing.prototype.select = function () {
-        app.firebase.once('value', function (snapshot) {
+    WordGazing.prototype.queryData = function () {
+        if (_snapshot) {
+            this.showConditionSelectionDialog();
+            return;
+        }
+
+        app.firebase.once('value', snapshot => {
             if (!snapshot.exists()) {
                 alert('no records in DB');
                 return;
             }
 
-            if (_callbacks.shown) {
-                _callbacks.shown();
-            }
-
             _snapshot = snapshot;
-            _view.classList.remove( 'invisible' );
-
-            var list = document.querySelector( 'select', _sessionPrompt );
-            list.innerHTML = '';
-
-            var conditions = new Map();
-            snapshot.forEach( function (childSnapshot) {
-                var sessionName = childSnapshot.key();
-                var key = getConditionNameFromSessionName( sessionName );
-                if (key) {
-                    var sessions = conditions.get( key ) || [];
-                    sessions.push( sessionName );
-                    conditions.set( key, sessions );
-                }
-            });
-
-            for (var [key, condition] of conditions) {
-                var option = document.createElement('option');
-                var nameParts = key.split( '_' );
-                option.value = key;
-                option.textContent = `Text ${nameParts[0]}, spacing ${nameParts[1]}`;
-                list.appendChild( option );
-            }
-
-            _sessionPrompt.classList.remove( 'invisible' );
+            this.showConditionSelectionDialog();
 
         }, function (err) {
             alert(err);
         });
+    };
+
+    WordGazing.prototype.showConditionSelectionDialog = function () {
+        if (_callbacks.shown) {
+            _callbacks.shown();
+        }
+
+        _view.classList.remove( 'invisible' );
+
+        var list = document.querySelector( 'select', _sessionPrompt );
+        list.innerHTML = '';
+
+        var conditions = new Map();
+        _snapshot.forEach( childSnapshot => {
+            var sessionName = childSnapshot.key();
+            var key = getConditionNameFromSessionName( sessionName );
+            if (key) {
+                var sessions = conditions.get( key ) || [];
+                sessions.push( sessionName );
+                conditions.set( key, sessions );
+            }
+        });
+
+        for (var [key, condition] of conditions) {
+            var option = document.createElement('option');
+            var nameParts = key.split( '_' );
+            var spacingName = this.spacingNames ? this.spacingNames[ +nameParts[1] ] : nameParts[1];
+            option.value = key;
+            option.textContent = `Text #${+nameParts[0] + 1}, spacing "${spacingName}"`;
+            list.appendChild( option );
+        }
+
+        _sessionPrompt.classList.remove( 'invisible' );
     };
 
     WordGazing.prototype._load = function( conditionName, conditionTitle ) {
@@ -115,22 +131,20 @@
             var sessionName = childSnapshot.key();
             var key = getConditionNameFromSessionName( sessionName );
             if (key === conditionName) {
-                sessionNames.push( sessionName.split( '_' )[0] );
                 [words, fixes] = this._loadSession( words, sessionName );
                 if (fixes) {
+                    sessionNames.push( sessionName.split( '_' )[0] );
                     fixations.push( ...fixes );
                 }
             }
         });
 
         if (words) {
-            var maxDuration = this._computeWordDurations( _ctx, words );
+            var maxDuration = this._computeWordGazingParams( _ctx, words );
             this._drawWords( _ctx, words, maxDuration );
             this._drawTitle( _ctx, conditionTitle, sessionNames );
             this._drawFixations( _ctx, fixations );
         }
-        
-        _snapshot = null;
     };
 
     WordGazing.prototype._loadSession = function (words, sessionName) {
@@ -138,7 +152,7 @@
         var session = _snapshot.child( sessionName );
         if (session && session.exists()) {
             var sessionVal = session.val();
-            if (sessionVal) {
+            if (sessionVal && sessionVal.fixations && sessionVal.words) {
                 if (!words) {   // this is the first session to load
                     _ctx = getCanvas2D();
                     words = sessionVal.words;
@@ -172,19 +186,25 @@
         ctx.fillText( text, (_canvas.width - textWidth) / 2, 32 );
     }
 
-    WordGazing.prototype._computeWordDurations = function (ctx, words) {
-        var result = 0;
+    WordGazing.prototype._computeWordGazingParams = function (ctx, words) {
+        var maxDuration = 0;
         words.forEach( word => {
             if (word.fixations) {
-                word.duration = word.fixations.reduce( (sum, fix) => {
-                    return sum + fix.duration;
-                }, 0);
-                if (result < word.duration) {
-                    result = word.duration;
+                var params = word.fixations.reduce( (sum, fix) => {
+                    sum.duration += fix.duration;
+                    sum.regressionCount += fix.isRegression ? 1 : 0;
+                    return sum; 
+                }, {duration: 0, regressionCount: 0} );
+                
+                word.duration = params.duration;
+                word.regressionCount = params.regressionCount;
+
+                if (maxDuration < word.duration) {
+                    maxDuration = word.duration;
                 }
             }
         });
-        return result;
+        return maxDuration;
     }
 
     WordGazing.prototype._drawWords = function (ctx, words, maxDuration) {
@@ -199,11 +219,9 @@
 
     WordGazing.prototype._highlightWordBox = function (ctx, word, maxDuration) {
         var duration = word.duration;
-        console.log(duration);
         if (duration > this.durationTransp) {
             var alpha = (duration - this.durationTransp) / (maxDuration - this.durationTransp);
             alpha = Math.sin( alpha * Math.PI / 2);
-            console.log('   ', alpha);
             ctx.fillStyle = app.Colors.rgb2rgba( this.wordHighlightColor, alpha);
             ctx.fillRect( Math.round( word.x ), Math.round( word.y ), Math.round( word.width ), Math.round( word.height ) );
         }
@@ -212,6 +230,8 @@
     WordGazing.prototype._drawWord = function (ctx, word) {
         ctx.fillStyle = this.wordColor;
         ctx.fillText( word.text, word.x, word.y + 0.8 * word.height);
+
+        ctx.lineWidth = word.regressionCount ? word.regressionCount + 1 : 1;
         ctx.strokeRect( word.x, word.y, word.width, word.height);
     };
 
@@ -224,9 +244,7 @@
             }
 
             ctx.beginPath();
-            ctx.arc( fixation.x, fixation.y, 2,
-                //Math.round( Math.sqrt( fixation.duration ) ) / 2, 
-                0, 2*Math.PI );
+            ctx.arc( fixation.x, fixation.y, 2, 0, 2*Math.PI );
             ctx.fill();
 
             // if (fix.word) {

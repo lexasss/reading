@@ -22,6 +22,10 @@ if (!this['Reading']) {
 	};
 
 	function map (data) {
+		if (!data.fixations || !data.words) {
+			return;
+		}
+
 		var text = getText( data.words );
 		var fixations = filterFixations( data.fixations, text.box );
 		var progressions = splitToProgressions( fixations );
@@ -36,6 +40,7 @@ if (!this['Reading']) {
 		log('Fixation labelled', data.fixations);
 
 		mapToWords( sets, text.lines );
+		computeRegressions( data.fixations );
 	}
 
 	function getText (words) {
@@ -417,7 +422,8 @@ if (!this['Reading']) {
 		        left: closestWord.x,
 		        top: closestWord.y,
 		        right: closestWord.x + closestWord.width,
-		        bottom: closestWord.y + closestWord.height
+		        bottom: closestWord.y + closestWord.height,
+		        index: minDistWordID
 			};
 
 			if (closestWord.fixations) {
@@ -425,6 +431,63 @@ if (!this['Reading']) {
 			}
 			else {
 				closestWord.fixations = [ fix ];
+			}
+		}
+	}
+
+	function computeRegressions (fixations) {
+		var getPrevMappedFix = function (index, step) {
+			var result;
+			var passed = 0;
+			for (var i = index - 1; i >= 0; i -= 1) {
+				var fix = fixations[i];
+				if (fix.line !== undefined) {
+					passed += 1;
+					if (passed === step) {
+						result = fix;
+						break;
+					}
+				}
+			}
+
+			return result;
+		};
+
+		var getNextMappedFix = function (index, step) {
+			var result;
+			var passed = 0;
+			for (var i = index + 1; i < fixations.length; i += 1) {
+				var fix = fixations[i];
+				if (fix.line !== undefined) {
+					passed += 1;
+					if (passed === step) {
+						result = fix;
+						break;
+					}
+				}
+			}
+
+			return result;
+		};
+
+		for (var i = 0; i < fixations.length; i += 1) {
+			var fix = fixations[i];
+			if (fix.line !== undefined && fix.word !== undefined) {
+				var prevFix = getPrevMappedFix( i, 1 );
+				fix.isRegression = prevFix && fix.line == prevFix.line && fix.word.index < prevFix.word.index ? true : false;
+				if (fix.isRegression) {	// requires correction in ceratin conditions
+					var nextFix = getNextMappedFix( i, 1 );
+					if (nextFix !== undefined && nextFix.line != fix.line) {
+						fix.isRegression = false;
+					}
+					else {
+						var prevFix = getPrevMappedFix( i, 1 );
+						var prev2Fix = getPrevMappedFix( i, 2 );
+						if (prevFix !== undefined && prev2Fix !== undefined && prevFix.line != prev2Fix.line) {
+							fix.isRegression = false;
+						}
+					}
+				}
 			}
 		}
 	}
