@@ -1,7 +1,7 @@
 //- requires:
 //-     slideout.less
 
-mixin options(id)
+mixin options(id, lists)
     div(id=id).slideout.right
         .title Options
         .slideout_inner
@@ -12,6 +12,7 @@ mixin options(id)
                 .row
                     .label Current word
                     input.value#currentWord(type="color")
+
             .group Font
                 .row
                     .label Size
@@ -19,6 +20,7 @@ mixin options(id)
                 //.row
                 //    .label Line spacing
                 //    input.value#lineHeight
+
             .group Gaze
                 .row
                     .label Show pointer
@@ -26,10 +28,46 @@ mixin options(id)
                 .row
                     .label Highlight focused word
                     input.value#highlightWord(type="checkbox")
+
             .group Other
                 .row
                     .label Hidden initial text
                     input.value#hiddenText(type="checkbox")
+
+            .group Session visualization
+                .row
+                    .label Color metric
+                    select.value#path_colorMetric
+                        each metric in lists.colorMetrics
+                            option(value="#{metric}") #{metric}
+                .row
+                    .label Show word-fixation connections
+                    input.value#path_showConnections(type="checkbox")
+                .row
+                    .label Show saccades
+                    input.value#path_showSaccades(type="checkbox")
+                .row
+                    .label Show fixations
+                    input.value#path_showFixations(type="checkbox")
+                .row
+                    .label Show orig. fixation location
+                    input.value#path_showOriginalFixLocation(type="checkbox")
+
+            .group Summary visualization
+                .row
+                    .label Color metric
+                    select.value#wordGazing_colorMetric
+                        each metric in lists.colorMetrics
+                            option(value="#{metric}") #{metric}
+                .row
+                    .label Show fixations
+                    input.value#wordGazing_showFixations(type="checkbox")
+                .row
+                    .label Unite spacings
+                    input.value#wordGazing_uniteSpacings(type="checkbox")
+                .row
+                    .label Show regressions
+                    input.value#wordGazing_showRegressions(type="checkbox")
             br
             input.save(type="button", value="Save")
             input.close(type="button", value="Close")

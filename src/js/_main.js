@@ -57,18 +57,52 @@ Reading.init = function (components) {
 				return GazeTargets.getSettings( 'pointer/show' );
 			}
 		},
-		highlightWord: function (value) {
-			if (value !== undefined) {
-				textSplitter.highlightCurrentWord = value; 
-			} else {
-				return textSplitter.highlightCurrentWord;
+		highlightWord: function (value) { return value === undefined ? 
+			textSplitter.highlightCurrentWord :
+			(textSplitter.highlightCurrentWord = value);
+		},
+		hideText: function (value) { return value === undefined ?
+			!text.initialVisibility() :
+			text.initialVisibility( !value );
+		},
+		path: {
+			colorMetric: function (value) { return value === undefined ?
+				path.colorMetric :
+				(path.colorMetric = value);
+			},
+			showConnections: function (value) { return value === undefined ?
+				path.showConnections :
+				(path.showConnections = value);
+			},
+			showSaccades: function (value) { return value === undefined ?
+				path.showSaccades :
+				(path.showSaccades = value);
+			},
+			showFixations: function (value) { return value === undefined ?
+				path.showFixations :
+				(path.showFixations = value);
+			},
+			showOriginalFixLocation: function (value) { return value === undefined ?
+				path.showOriginalFixLocation :
+				(path.showOriginalFixLocation = value);
 			}
 		},
-		hideText: function (value) {
-			if (value !== undefined) {
-				text.initialVisibility( !value ); 
-			} else {
-				return !text.initialVisibility();
+		wordGazing: {
+			colorMetric: function (value) { return value === undefined ?
+				wordGazing.colorMetric :
+				(wordGazing.colorMetric = value);
+			},
+			showFixations: function (value) { return value === undefined ?
+				wordGazing.showFixations :
+				(wordGazing.showFixations = value);
+			},
+			uniteSpacings: function (value) { return value === undefined ?
+				wordGazing.uniteSpacings :
+				(wordGazing.uniteSpacings = value);
+			},
+			showRegressions: function (value) { return value === undefined ?
+				wordGazing.showRegressions :
+				(wordGazing.showRegressions = value);
 			}
 		}
 	});

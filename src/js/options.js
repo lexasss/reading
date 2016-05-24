@@ -7,9 +7,22 @@
     //          text:   - full text selector
     //      }
     //      services: {             - get/set services
-    //          showPointer (bool)      - gaze point visibility
-    //          highlightWord (bool)    - word highlighting
-    //          hideText (bool)         - text initial visibility
+    //          showPointer (bool)
+    //          highlightWord (bool)
+    //          hideText (bool)
+    //          path {
+    //              colorMetric (index)
+    //              showConnections (bool)
+    //              showSaccades (bool)
+    //              showFixations (bool)
+    //              showOriginalFixLocation (bool)
+    //          }
+    //          wordGazing {
+    //              colorMetric (index)
+    //              showFixations (bool)
+    //              uniteSpacings (bool)
+    //              showRegressions (bool)
+    //          }
     //      }
     function Options(options, services) {
 
@@ -21,6 +34,19 @@
         _services.showPointer = _services.showPointer || console.error( 'No "showPointer" service for Options' );
         _services.highlightWord = _services.highlightWord || console.error( 'No "highlightWord" service for Options' );
         _services.hideText = _services.hideText || console.error( 'No "hideText" service for Options' );
+
+        _services.path = _services.path || {};
+        _services.path.colorMetric = _services.path.colorMetric || console.error( 'No "path.colorMetric" service for Options' );
+        _services.path.showConnections = _services.path.showConnections || console.error( 'No "path.showConnections" service for Options' );
+        _services.path.showSaccades = _services.path.showSaccades || console.error( 'No "path.showSaccades" service for Options' );
+        _services.path.showFixations = _services.path.showFixations || console.error( 'No "path.showFixations" service for Options' );
+        _services.path.showOriginalFixLocation = _services.path.showOriginalFixLocation || console.error( 'No "path.showOriginalFixLocation" service for Options' );
+
+        _services.wordGazing = _services.wordGazing || {};
+        _services.wordGazing.colorMetric = _services.wordGazing.colorMetric || console.error( 'No "wordGazing.colorMetric" service for Options' );
+        _services.wordGazing.showFixations = _services.wordGazing.showFixations || console.error( 'No "wordGazing.showFixations" service for Options' );
+        _services.wordGazing.uniteSpacings = _services.wordGazing.uniteSpacings || console.error( 'No "wordGazing.uniteSpacings" service for Options' );
+        _services.wordGazing.showRegressions = _services.wordGazing.showRegressions || console.error( 'No "wordGazing.showRegressions" service for Options' );
 
         var cssRules = [
             /*{
@@ -97,11 +123,29 @@
             return;
         }
 
-        for (var name in options) {
-            if (_services[ name ]) {
-                _services[ name ]( options[name] );
+        var services = _services;
+
+        var pop = function (storage, srv) {
+            for (var name in storage) {
+                if (name === 'css') {
+                    continue;
+                }
+                else if (typeof storage[ name ] === 'object') {
+                    pop( storage[ name ], srv[ name ] );
+                }
+                else if (srv[ name ]) {
+                    srv[ name ]( storage[ name ] );
+                }
             }
-        }
+        };
+
+        pop( options, services );
+
+        // for (var name in options) {
+        //     if (_services[ name ]) {
+        //         _services[ name ]( options[name] );
+        //     }
+        // }
 
         if (options.css) {
             for (var savedRule in options.css) {
@@ -117,9 +161,21 @@
 
     function saveSettings(cssRules) {
         var options = {};
-        for (var name in _services) {
-            options[ name ] = _services[name]();
-        }
+        var services = _services;
+
+        var push = function (storage, srv) {
+            for (var name in srv) {
+                if (typeof srv[ name ] === 'function') {
+                    storage[ name ] = srv[ name ]();
+                }
+                else if (typeof srv[ name ] === 'object') {
+                    storage[ name ] = { };
+                    push( storage[ name ], srv[ name ] );
+                }
+            }
+        };
+
+        push( options, services );
 
         options.css = {};
         cssRules.forEach( function (rule) {
@@ -229,29 +285,36 @@
     }
 
     function bindSettingsToEditors(root) {
-        var showPointer = document.querySelector( root + ' #showPointer' );
-        showPointer.checked = _services.showPointer();
-        showPointer.addEventListener( 'click', function (e) {
-            if (_services.showPointer) {
-                _services.showPointer( this.checked );
-            }
-        });
-        
-        var highlightWord = document.querySelector( root + ' #highlightWord' );
-        highlightWord.checked = _services.highlightWord();
-        highlightWord.addEventListener( 'click', function (e) {
-            if (_services.highlightWord) {
-                _services.highlightWord( this.checked );
-            }
-        });
+        var bindCheckbox = (id, service) => {
+            var flag = document.querySelector( root + ' #' + id );
+            flag.checked = service();
+            flag.addEventListener( 'click', function (e) {
+                service( this.checked );
+            });
+        }
 
-        var hiddenText = document.querySelector( root + ' #hiddenText' );
-        hiddenText.checked = _services.hideText();
-        hiddenText.addEventListener( 'click', function (e) {
-            if (_services.hideText) {
-                _services.hideText( this.checked );
-            }
-        });
+        var bindSelect = (id, service) => {
+            var select = document.querySelector( root + ' #' + id );
+            select.selectedIndex = service();
+            select.addEventListener( 'change', function (e) {
+                service( this.selectedIndex );
+            });
+        }
+
+        bindCheckbox( 'showPointer', _services.showPointer );
+        bindCheckbox( 'highlightWord', _services.highlightWord );
+        bindCheckbox( 'hiddenText', _services.hideText );
+        
+        bindSelect( 'path_colorMetric', _services.path.colorMetric );
+        bindCheckbox( 'path_showConnections', _services.path.showConnections );
+        bindCheckbox( 'path_showSaccades', _services.path.showSaccades );
+        bindCheckbox( 'path_showFixations', _services.path.showFixations );
+        bindCheckbox( 'path_showOriginalFixLocation', _services.path.showOriginalFixLocation );
+
+        bindSelect( 'wordGazing_colorMetric', _services.wordGazing.colorMetric );
+        bindCheckbox( 'wordGazing_showFixations', _services.wordGazing.showFixations );
+        bindCheckbox( 'wordGazing_uniteSpacings', _services.wordGazing.uniteSpacings );
+        bindCheckbox( 'wordGazing_showRegressions', _services.wordGazing.showRegressions );
     }
 
     app.Options = Options;

@@ -9,6 +9,11 @@
         path: 'path'
     };
 
+    // the order must match the utils/colorMetric order
+    var optionLists = {
+        colorMetrics: [ 'none', 'duration', 'char speed', 'syllable speed' ]
+    };
+
 doctype html
 html
     head
@@ -31,7 +36,7 @@ html
         +textEditor( ids.textEditor )
 
         include ./components/options.jade
-        +options( ids.options )
+        +options( ids.options, optionLists )
 
         include ./components/statistics.jade
         +statistics( ids.statistics )

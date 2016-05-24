@@ -1,6 +1,13 @@
 // Requires:
 //      app,Colors
 //      app.firebase
+//      utils/wordSplit
+//      utils/colorMetric
+//      utils/metric
+
+if (!this['Reading']) {
+    var wordSplit = require('./utils/wordSplit.js');
+}
 
 (function (app) { 'use strict';
 
@@ -17,8 +24,12 @@
     //          durationOpaque      - transparency is 0% for this and longer durations 
     //          textColor           - info text color
     //          textFont            - info text font
+    //          colorMetric         - the metric to map onto the word background color
+    //          showFixations       - fixation display flag
+    //          uniteSpacings       - if true, then the sessions with different spacing will be united
+    //          showRegressions     - regression display flag
     //      }
-    //      callbacks: {
+    //      callbacks: {x
     //          shown ()      - the path overlay was displayed
     //          hidden ()     - the path overlay was hidden
     //      }
@@ -34,6 +45,11 @@
         this.durationOpaque = options.durationOpaque || 1000;
         this.textColor = options.textColor || '#CCC';
         this.textFont = options.textFont || '32px Arial';
+        
+        this.colorMetric = options.colorMetric || app.Metric.Type.DURATION;
+        this.showFixations = options.showFixations !== undefined ? options.showFixations : false;
+        this.uniteSpacings = options.uniteSpacings !== undefined ? options.uniteSpacings : true;
+        this.showRegressions = options.showRegressions !== undefined ? options.showRegressions : false;
 
         _callbacks = callbacks;
 
@@ -58,7 +74,7 @@
 
         var select = document.querySelector( this.root + ' .select' );
         select.addEventListener('click', () => {
-            var list = document.querySelector( 'select', _sessionPrompt );
+            var list = _sessionPrompt.querySelector( 'select' );
             var selectedOption = list.options[ list.selectedIndex ];
             this._load( selectedOption.value, selectedOption.textContent );
         });
@@ -91,13 +107,13 @@
 
         _view.classList.remove( 'invisible' );
 
-        var list = document.querySelector( 'select', _sessionPrompt );
+        var list = _sessionPrompt.querySelector( 'select' );
         list.innerHTML = '';
 
         var conditions = new Map();
         _snapshot.forEach( childSnapshot => {
             var sessionName = childSnapshot.key();
-            var key = getConditionNameFromSessionName( sessionName );
+            var key = getConditionNameFromSessionName( sessionName, !this.uniteSpacings );
             if (key) {
                 var sessions = conditions.get( key ) || [];
                 sessions.push( sessionName );
@@ -110,7 +126,10 @@
             var nameParts = key.split( '_' );
             var spacingName = this.spacingNames ? this.spacingNames[ +nameParts[1] ] : nameParts[1];
             option.value = key;
-            option.textContent = `Text #${+nameParts[0] + 1}, spacing "${spacingName}"`;
+            option.textContent = `Text #${+nameParts[0] + 1}`;
+            if (!this.uniteSpacings) {
+                option.textContent += `, spacing "${spacingName}"`;
+            }
             list.appendChild( option );
         }
 
@@ -129,7 +148,7 @@
         var sessionNames = [];
         _snapshot.forEach( childSnapshot => {
             var sessionName = childSnapshot.key();
-            var key = getConditionNameFromSessionName( sessionName );
+            var key = getConditionNameFromSessionName( sessionName, !this.uniteSpacings );
             if (key === conditionName) {
                 [words, fixes] = this._loadSession( words, sessionName );
                 if (fixes) {
@@ -140,10 +159,12 @@
         });
 
         if (words) {
-            var maxDuration = this._computeWordGazingParams( _ctx, words );
-            this._drawWords( _ctx, words, maxDuration );
+            var metricRange = app.Metric.compute( words, this.colorMetric );
+            this._drawWords( _ctx, words, metricRange );
+            if (this.showFixations) {
+                this._drawFixations( _ctx, fixations );
+            }
             this._drawTitle( _ctx, conditionTitle, sessionNames );
-            this._drawFixations( _ctx, fixations );
         }
     };
 
@@ -181,57 +202,63 @@
         ctx.fillStyle = this.textColor;
         ctx.font = this.textFont;
 
-        var text = condition + ' for ' + names.join( ', ' );
+        var text = `${condition} for ${names.length} sessions`;
         var textWidth = ctx.measureText( text ).width;
         ctx.fillText( text, (_canvas.width - textWidth) / 2, 32 );
     }
 
-    WordGazing.prototype._computeWordGazingParams = function (ctx, words) {
-        var maxDuration = 0;
-        words.forEach( word => {
-            if (word.fixations) {
-                var params = word.fixations.reduce( (sum, fix) => {
-                    sum.duration += fix.duration;
-                    sum.regressionCount += fix.isRegression ? 1 : 0;
-                    return sum; 
-                }, {duration: 0, regressionCount: 0} );
-                
-                word.duration = params.duration;
-                word.regressionCount = params.regressionCount;
-
-                if (maxDuration < word.duration) {
-                    maxDuration = word.duration;
-                }
-            }
-        });
-        return maxDuration;
-    }
-
-    WordGazing.prototype._drawWords = function (ctx, words, maxDuration) {
+    WordGazing.prototype._drawWords = function (ctx, words, metricRange) {
+        var colorMetric = app.Metric.Type;
+        var converter = [
+            function () { return 0; },
+            this._mapDurationToColor.bind( this ),
+            this._mapCharSpeedToColor.bind( this ),
+            this._mapSyllableSpeedToColor.bind( this ),
+        ];
+        
         ctx.strokeStyle = this.wordStrokeColor;
-        ctx.fillStyle = this.wordHighlightColor;
         
         words.forEach( word => {
-            this._highlightWordBox( ctx, word, maxDuration );
-            this._drawWord( ctx, word );
+            var alpha = converter[ this.colorMetric ]( ctx, word, metricRange );
+            this._drawWord( ctx, word, alpha );
         });
     };
 
-    WordGazing.prototype._highlightWordBox = function (ctx, word, maxDuration) {
-        var duration = word.duration;
-        if (duration > this.durationTransp) {
-            var alpha = (duration - this.durationTransp) / (maxDuration - this.durationTransp);
-            alpha = Math.sin( alpha * Math.PI / 2);
-            ctx.fillStyle = app.Colors.rgb2rgba( this.wordHighlightColor, alpha);
-            ctx.fillRect( Math.round( word.x ), Math.round( word.y ), Math.round( word.width ), Math.round( word.height ) );
+    WordGazing.prototype._mapDurationToColor = function (ctx, word, maxDuration) {
+        var result = 0;
+        if (word.duration > this.durationTransp) {
+            result = (word.duration - this.durationTransp) / (maxDuration - this.durationTransp);
         }
+        return result;
     };
 
-    WordGazing.prototype._drawWord = function (ctx, word) {
+    WordGazing.prototype._mapCharSpeedToColor = function (ctx, word, maxCharSpeed) {
+        var result = 0;
+        if (word.charSpeed > 0) {
+            result = 1 - word.charSpeed / maxCharSpeed;
+        }
+        return result;
+    };
+
+    WordGazing.prototype._mapSyllableSpeedToColor = function (ctx, word, maxSyllableSpeed) {
+        var result = 0;
+        if (word.syllableSpeed > 0) {
+            result = 1 - word.syllableSpeed / maxSyllableSpeed;
+        }
+        return result;
+    };
+
+    WordGazing.prototype._drawWord = function (ctx, word, backgroundAlpha) {
+        if (backgroundAlpha > 0) {
+            //backgroundAlpha = Math.sin( backgroundAlpha * Math.PI / 2);
+            ctx.fillStyle = app.Colors.rgb2rgba( this.wordHighlightColor, backgroundAlpha);
+            ctx.fillRect( Math.round( word.x ), Math.round( word.y ), Math.round( word.width ), Math.round( word.height ) );
+        }
+
         ctx.fillStyle = this.wordColor;
         ctx.fillText( word.text, word.x, word.y + 0.8 * word.height);
 
-        ctx.lineWidth = word.regressionCount ? word.regressionCount + 1 : 1;
+        ctx.lineWidth = this.showRegression && word.regressionCount ? word.regressionCount + 1 : 1;
         ctx.strokeRect( word.x, word.y, word.width, word.height);
     };
 
@@ -289,15 +316,18 @@
         return ctx;
     }
 
-    function getConditionNameFromSessionName (sessionName) {
+    function getConditionNameFromSessionName (sessionName, considerSpacings) {
         var result;
         var nameParts = sessionName.split( '_' );
         if (nameParts.length === 3) {
-            result = nameParts[1] + '_' + nameParts[2];
+            result = nameParts[1];
+            if (considerSpacings) {
+                result += '_' + nameParts[2];
+            }
         }
         return result;
     }
 
     app.WordGazing = WordGazing;
     
-})( Reading || window );
+})( this['Reading'] || module.exports );

@@ -521,4 +521,4 @@ if (!this['Reading']) {
 		map: map
 	};
 
-})(this['Reading'] || module.exports);
+})( this['Reading'] || module.exports );

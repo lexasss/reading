@@ -1,6 +1,7 @@
 // Requires:
 //      app,Colors
 //      app.firebase
+//      utils.metric
 
 (function (app) { 'use strict';
 
@@ -14,6 +15,10 @@
     //          wordColor           - word color
     //          wordHighlightColor  - mapped word rectangle color
     //          wordStrokeColor     - word rectable border color
+    //          showConnections     - flat to display fixation-word connections
+    //          showSaccades        - flag to display saccades
+    //          showFixations       - flag to display fixations
+    //          showOriginalFixLocation - flag to display original fixation location
     //      }
     //      callbacks: {
     //          shown ()      - the path overlay was displayed
@@ -32,6 +37,12 @@
         this.durationOpaque = options.durationOpaque || 1000;
         this.textColor = options.textColor || '#CCC';
         this.textFont = options.textFont || '32px Arial';
+
+        this.colorMetric = options.colorMetric || app.Metric.Type.DURATION;
+        this.showConnections = options.showConnections !== undefined ? options.showConnections : false;
+        this.showSaccades = options.showSaccades !== undefined ? options.showSaccades : false;
+        this.showFixations = options.showFixations !== undefined ? options.showFixations : false;
+        this.showOriginalFixLocation = options.showOriginalFixLocation !== undefined ? options.showOriginalFixLocation : false;
 
         var lineColorA = 0.5;
         this.lineColors = [
@@ -68,7 +79,7 @@
 
         var select = document.querySelector( this.root + ' .select' );
         select.addEventListener('click', function () {
-            var list = document.querySelector( 'select', _sessionPrompt );
+            var list = _sessionPrompt.querySelector( 'select' );
             self._load( list.options[ list.selectedIndex ].value );
         });
     }
@@ -100,7 +111,7 @@
 
         _view.classList.remove( 'invisible' );
 
-        var list = document.querySelector( 'select', _sessionPrompt );
+        var list = _sessionPrompt.querySelector( 'select' );
         list.innerHTML = '';
         _snapshot.forEach( childSnapshot => {
             var option = document.createElement('option');
@@ -125,17 +136,20 @@
             if (sessionVal) {
                 var ctx = getCanvas2D();
                 var fixations = this._remapStatic( sessionVal );
-                this._showHighlights( ctx, fixations );
-                this._showWords( ctx, sessionVal.words );
-                this._showFixations( ctx, fixations );
-                //this._show( ctx, sessionVal );
-                this._showSessionName( ctx, name );
+                var metricRange = app.Metric.compute( sessionVal.words, this.colorMetric );
+                //this._showHighlights( ctx, fixations );
+                this._drawWords( ctx, sessionVal.words, metricRange );
+                if (this.showFixations) {
+                    this._showFixations( ctx, fixations );
+                }
+                this._drawTitle( ctx, name );
             }
         } else {
             alert('record ' + name + ' does not exist');
         }
     };
 
+    /*
     Path.prototype._show = function (ctx, session) {
         if (session.words) {
             ctx.strokeStyle = this.wordStrokeColor;
@@ -160,7 +174,7 @@
                 prevFix = fix;
             }
         }
-    };
+    };*/
 
     Path.prototype._showHighlights = function (ctx, fixations) {
         var words = new Map();
@@ -177,13 +191,45 @@
         }
     };
 
-    Path.prototype._showWords = function (ctx, words) {
+    Path.prototype._drawWords = function (ctx, words, metricRange) {
+        var converter = [
+            function () { return 0; },
+            this._mapDurationToColor.bind( this ),
+            this._mapCharSpeedToColor.bind( this ),
+            this._mapSyllableSpeedToColor.bind( this ),
+        ];
+
         ctx.strokeStyle = this.wordStrokeColor;
-        ctx.fillStyle = this.wordHighlightColor;
+        //ctx.fillStyle = this.wordHighlightColor;
         
-        for (var i = 0; i < words.length; i += 1) {
-            this._drawWord( ctx, words[i], true );
+        words.forEach( word => {
+            var alpha = converter[ this.colorMetric ]( ctx, word, metricRange );
+            this._drawWord( ctx, word, alpha );
+        });
+    };
+
+    Path.prototype._mapDurationToColor = function (ctx, word, maxDuration) {
+        var result = 0;
+        if (word.duration > this.durationTransp) {
+            result = (word.duration - this.durationTransp) / (maxDuration - this.durationTransp);
         }
+        return result;
+    };
+
+    Path.prototype._mapCharSpeedToColor = function (ctx, word, maxCharSpeed) {
+        var result = 0;
+        if (word.charSpeed > 0) {
+            result = 1 - word.charSpeed / maxCharSpeed;
+        }
+        return result;
+    };
+
+    Path.prototype._mapSyllableSpeedToColor = function (ctx, word, maxSyllableSpeed) {
+        var result = 0;
+        if (word.syllableSpeed > 0) {
+            result = 1 - word.syllableSpeed / maxSyllableSpeed;
+        }
+        return result;
     };
 
     Path.prototype._showFixations = function (ctx, fixations) {
@@ -197,12 +243,13 @@
                 continue;
             }
 
-            if (prevFix) {
+            if (this.showSaccades && prevFix) {
                 this._drawSaccade( ctx, prevFix, fix );
             }
+
             this._drawFixation( ctx, fix );
 
-            if (fix.word) {
+            if (this.showConnections && fix.word) {
                 ctx.strokeStyle = this.connectionColor;
                 this._drawConnection( ctx, fix, {x: fix.word.left, y: fix.word.top} );
                 ctx.strokeStyle = this.saccadeColor;
@@ -212,12 +259,12 @@
         }
     };
 
-    Path.prototype._showSessionName = function (ctx, name) {
+    Path.prototype._drawTitle = function (ctx, title) {
         ctx.fillStyle = this.textColor;
         ctx.font = this.textFont;
 
-        var textWidth = ctx.measureText( name ).width;
-        ctx.fillText( name, (_canvas.width - textWidth) / 2, 32);
+        var textWidth = ctx.measureText( title ).width;
+        ctx.fillText( title, (_canvas.width - textWidth) / 2, 32);
     }
 
     Path.prototype._drawFixation = function (ctx, fixation) {
@@ -232,7 +279,7 @@
         ctx.arc( fixation.x, fixation.y, Math.round( Math.sqrt( fixation.duration ) ) / 2, 0, 2*Math.PI);
         ctx.fill();
 
-        if (fixation._x) {
+        if (this.showOriginalFixLocation && fixation._x) {
             ctx.fillStyle = "rgba(255,255,255,0.15)";
             ctx.beginPath();
             ctx.arc( fixation._x, fixation.y, Math.round( Math.sqrt( fixation.duration ) ) / 2, 0, 2*Math.PI);
@@ -254,17 +301,24 @@
         ctx.stroke();
     };
 
-    Path.prototype._drawWord = function (ctx, word, ignoreDuration) {
+    Path.prototype._drawWord = function (ctx, word, backgroundAlpha) {
 
-        if (word.duration && !ignoreDuration) {
-            ctx.fillStyle = app.Colors.rgb2rgba( this.wordHighlightColor, 
-                    Math.max( 0, Math.min( 1, (word.duration - this.durationTransp) / (this.durationOpaque - this.durationTransp) ) ) );
-            ctx.fillRect( word.x, word.y, word.width, word.height);
+        // if (word.duration && !ignoreDuration) {
+        //     ctx.fillStyle = app.Colors.rgb2rgba( this.wordHighlightColor, 
+        //             Math.max( 0, Math.min( 1, (word.duration - this.durationTransp) / (this.durationOpaque - this.durationTransp) ) ) );
+        //     ctx.fillRect( word.x, word.y, word.width, word.height);
+        // }
+
+        if (backgroundAlpha > 0) {
+            //backgroundAlpha = Math.sin( backgroundAlpha * Math.PI / 2);
+            ctx.fillStyle = app.Colors.rgb2rgba( this.wordHighlightColor, backgroundAlpha);
+            ctx.fillRect( Math.round( word.x ), Math.round( word.y ), Math.round( word.width ), Math.round( word.height ) );
         }
 
         ctx.fillStyle = this.wordColor;
         ctx.fillText( word.text, word.x, word.y + 0.8 * word.height);
 
+        ctx.lineWidth = 1;
         ctx.strokeRect( word.x, word.y, word.width, word.height);
     };
 
