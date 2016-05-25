@@ -1,8 +1,6 @@
 (function (app) { 'use strict';
 
-	function WordSplit () {
-
-	}
+	var WordSplit = {};
 
     WordSplit.syllables = function (word) {
         var result = [];
@@ -14,10 +12,10 @@
             var c = word[i];
             syllable +=c;
 
-            var charType = vowels.some( vowel => { return c === vowel; } ) ? types.VOWEL : types.CONSONANT;
+            var charType = VOWELS.some( vowel => { return c === vowel; } ) ? VOWEL : CONSONANT;
             chain += charType;
 //console.log(chain, ':', syllable);
-            if (charType === types.VOWEL && chain.length > 1) {			// when there are at least 2 chars, and the lst one is vowel,
+            if (charType === VOWEL && chain.length > 1) {			// when there are at least 2 chars, and the lst one is vowel,
                 var boundIndex = bounds.findIndex( (bound, index) => {	// then search for the matching bound
 //console.log('--- bound check ---' );
                     var isMatching = chain.endsWith( bound[2] );
@@ -28,7 +26,7 @@
                             isMatching = false;
 //console.log('    cancel - this is long vowel');
                         }
-                        else if (diftongs.some( diftong => { return s === diftong; } )) {
+                        else if (DIFTONGS.some( diftong => { return s === diftong; } )) {
                             isMatching = false;
 //console.log('    cancel - this is diftong');
                         }
@@ -54,22 +52,21 @@
         return result;
     };
 
-    var types = {
-        VOWEL: 'v',
-        CONSONANT: 'c'
-    };
-    var vowels = [ 'a', 'o', 'u', 'i', 'e', 'ä', 'ö', 'y' ];
-    var diftongs = [
+    const VOWEL = 'v';
+    const CONSONANT = 'c';
+
+    const VOWELS = [ 'a', 'o', 'u', 'i', 'e', 'ä', 'ö', 'y' ];
+    const DIFTONGS = [
         'ai', 'ei', 'oi', 'ui', 'yi', 'äi', 'öi', 
         'au', 'eu', 'iu', 'ou',
-        'äy', 'ey', 'iy', 'öy', 
+        'äy', 'ey', 'iy', 'öy',
         'ie', 'uo', 'yö'
     ];
     var bounds = [
-        [ 'v', 'cv'],
-        [ 'vc', 'cv' ],
-        [ 'vcc', 'cv' ],
-        [ 'v', 'v' ]
+        [ VOWEL, CONSONANT+VOWEL ],
+        [ VOWEL+CONSONANT, CONSONANT+VOWEL ],
+        [ VOWEL+CONSONANT+CONSONANT, CONSONANT+VOWEL ],
+        [ VOWEL, VOWEL ]
     ];
 
     bounds.forEach( item => {

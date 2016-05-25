@@ -44,13 +44,50 @@
         return maxRange;
     }
 
+    Metric.getAlpha = function (word, metricType, metricRange) {
+        return alphaComputers[ metricType ]( word, metricRange );
+    };
+
+    function mapDurationToAlpha (word, maxDuration) {
+        var result = 0;
+        if (word.duration > DURATION_TRANSPARENT) {
+            result = (word.duration - DURATION_TRANSPARENT) / (maxDuration - DURATION_TRANSPARENT);
+        }
+        return result;
+    };
+
+    function mapCharSpeedTAlpha (word, maxCharSpeed) {
+        var result = 0;
+        if (word.charSpeed > 0) {
+            result = 1 - word.charSpeed / maxCharSpeed;
+        }
+        return result;
+    };
+
+    function mapSyllableSpeedToAlpha (word, maxSyllableSpeed) {
+        var result = 0;
+        if (word.syllableSpeed > 0) {
+            result = 1 - word.syllableSpeed / maxSyllableSpeed;
+        }
+        return result;
+    };
+
+    const alphaComputers = [
+        function () { return 0; },      // for NONE
+        mapDurationToAlpha,
+        mapCharSpeedTAlpha,
+        mapSyllableSpeedToAlpha,
+    ];
+
+    const DURATION_TRANSPARENT = 100;
+    
     Metric.Type = {
         NONE: 0,
         DURATION: 1,
         CHAR_SPEED: 2,
         SYLL_SPEED: 3,
     };
-    
+
     app.Metric = Metric;
     
 })( this['Reading'] || module.exports );

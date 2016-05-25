@@ -5,36 +5,32 @@ mixin options(id, lists)
     div(id=id).slideout.right
         .title Options
         .slideout_inner
-            .group Colors
+            .group
+                .name Text
                 .row
-                    .label Text
+                    .label Color
                     input.value#text(type="color")
                 .row
-                    .label Current word
-                    input.value#currentWord(type="color")
-
-            .group Font
-                .row
-                    .label Size
+                    .label Font size
                     input.value#fontSize
-                //.row
-                //    .label Line spacing
-                //    input.value#lineHeight
+                .row
+                    .label Hidden initially
+                    input.value#hiddenText(type="checkbox")
 
-            .group Gaze
+            .group
+                .name Gaze
                 .row
                     .label Show pointer
                     input.value#showPointer(type="checkbox")
                 .row
                     .label Highlight focused word
                     input.value#highlightWord(type="checkbox")
-
-            .group Other
                 .row
-                    .label Hidden initial text
-                    input.value#hiddenText(type="checkbox")
+                    .label Highlighting color
+                    input.value#currentWord(type="color")
 
-            .group Session visualization
+            .group
+                .name Session visualization
                 .row
                     .label Color metric
                     select.value#path_colorMetric
@@ -53,7 +49,8 @@ mixin options(id, lists)
                     .label Show orig. fixation location
                     input.value#path_showOriginalFixLocation(type="checkbox")
 
-            .group Summary visualization
+            .group
+                .name Summary visualization
                 .row
                     .label Color metric
                     select.value#wordGazing_colorMetric
@@ -68,6 +65,5 @@ mixin options(id, lists)
                 .row
                     .label Show regressions
                     input.value#wordGazing_showRegressions(type="checkbox")
-            br
             input.save(type="button", value="Save")
             input.close(type="button", value="Close")

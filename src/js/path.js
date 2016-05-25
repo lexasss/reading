@@ -15,6 +15,9 @@
     //          wordColor           - word color
     //          wordHighlightColor  - mapped word rectangle color
     //          wordStrokeColor     - word rectable border color
+    //          textColor           - info text color 
+    //          textFont            - info text font
+    //          colorMetric         - word background coloring metric
     //          showConnections     - flat to display fixation-word connections
     //          showSaccades        - flag to display saccades
     //          showFixations       - flag to display fixations
@@ -33,8 +36,6 @@
         this.wordColor = options.wordColor || '#CCC';
         this.wordHighlightColor = options.wordHighlightColor || '#606';
         this.wordStrokeColor = options.wordStrokeColor || '#800';
-        this.durationTransp = options.durationTransp || 100;
-        this.durationOpaque = options.durationOpaque || 1000;
         this.textColor = options.textColor || '#CCC';
         this.textFont = options.textFont || '32px Arial';
 
@@ -137,10 +138,9 @@
                 var ctx = getCanvas2D();
                 var fixations = this._remapStatic( sessionVal );
                 var metricRange = app.Metric.compute( sessionVal.words, this.colorMetric );
-                //this._showHighlights( ctx, fixations );
                 this._drawWords( ctx, sessionVal.words, metricRange );
                 if (this.showFixations) {
-                    this._showFixations( ctx, fixations );
+                    this._drawFixations( ctx, fixations );
                 }
                 this._drawTitle( ctx, name );
             }
@@ -176,63 +176,39 @@
         }
     };*/
 
-    Path.prototype._showHighlights = function (ctx, fixations) {
-        var words = new Map();
-        for (var i = 0; i < fixations.length; i += 1) {
-            var fix = fixations[i];
-            if (fix.word) {
-                var wordDuration = words.get( fix.word ) || 0;
-                words.set( fix.word, wordDuration + fix.duration );
-            }
-        }
+    Path.prototype._drawTitle = function (ctx, title) {
+        ctx.fillStyle = this.textColor;
+        ctx.font = this.textFont;
 
-        for (var [word, duration] of words) {
-            this._highlightWord( ctx, word, duration );
-        }
-    };
+        var textWidth = ctx.measureText( title ).width;
+        ctx.fillText( title, (_canvas.width - textWidth) / 2, 32);
+    }
 
     Path.prototype._drawWords = function (ctx, words, metricRange) {
-        var converter = [
-            function () { return 0; },
-            this._mapDurationToColor.bind( this ),
-            this._mapCharSpeedToColor.bind( this ),
-            this._mapSyllableSpeedToColor.bind( this ),
-        ];
-
         ctx.strokeStyle = this.wordStrokeColor;
-        //ctx.fillStyle = this.wordHighlightColor;
         
         words.forEach( word => {
-            var alpha = converter[ this.colorMetric ]( ctx, word, metricRange );
+            var alpha = app.Metric.getAlpha( word, this.colorMetric, metricRange );
             this._drawWord( ctx, word, alpha );
         });
     };
 
-    Path.prototype._mapDurationToColor = function (ctx, word, maxDuration) {
-        var result = 0;
-        if (word.duration > this.durationTransp) {
-            result = (word.duration - this.durationTransp) / (maxDuration - this.durationTransp);
+    Path.prototype._drawWord = function (ctx, word, backgroundAlpha) {
+
+        if (backgroundAlpha > 0) {
+            //backgroundAlpha = Math.sin( backgroundAlpha * Math.PI / 2);
+            ctx.fillStyle = app.Colors.rgb2rgba( this.wordHighlightColor, backgroundAlpha);
+            ctx.fillRect( Math.round( word.x ), Math.round( word.y ), Math.round( word.width ), Math.round( word.height ) );
         }
-        return result;
+
+        ctx.fillStyle = this.wordColor;
+        ctx.fillText( word.text, word.x, word.y + 0.8 * word.height);
+
+        ctx.lineWidth = 1;
+        ctx.strokeRect( word.x, word.y, word.width, word.height);
     };
 
-    Path.prototype._mapCharSpeedToColor = function (ctx, word, maxCharSpeed) {
-        var result = 0;
-        if (word.charSpeed > 0) {
-            result = 1 - word.charSpeed / maxCharSpeed;
-        }
-        return result;
-    };
-
-    Path.prototype._mapSyllableSpeedToColor = function (ctx, word, maxSyllableSpeed) {
-        var result = 0;
-        if (word.syllableSpeed > 0) {
-            result = 1 - word.syllableSpeed / maxSyllableSpeed;
-        }
-        return result;
-    };
-
-    Path.prototype._showFixations = function (ctx, fixations) {
+    Path.prototype._drawFixations = function (ctx, fixations) {
         ctx.fillStyle = this.fixationColor;
         ctx.strokeStyle = this.saccadeColor;
 
@@ -258,14 +234,6 @@
             prevFix = fix;
         }
     };
-
-    Path.prototype._drawTitle = function (ctx, title) {
-        ctx.fillStyle = this.textColor;
-        ctx.font = this.textFont;
-
-        var textWidth = ctx.measureText( title ).width;
-        ctx.fillText( title, (_canvas.width - textWidth) / 2, 32);
-    }
 
     Path.prototype._drawFixation = function (ctx, fixation) {
         if (fixation.line != undefined) {
@@ -299,34 +267,6 @@
         ctx.moveTo( from.x, from.y );
         ctx.lineTo( to.x, to.y );
         ctx.stroke();
-    };
-
-    Path.prototype._drawWord = function (ctx, word, backgroundAlpha) {
-
-        // if (word.duration && !ignoreDuration) {
-        //     ctx.fillStyle = app.Colors.rgb2rgba( this.wordHighlightColor, 
-        //             Math.max( 0, Math.min( 1, (word.duration - this.durationTransp) / (this.durationOpaque - this.durationTransp) ) ) );
-        //     ctx.fillRect( word.x, word.y, word.width, word.height);
-        // }
-
-        if (backgroundAlpha > 0) {
-            //backgroundAlpha = Math.sin( backgroundAlpha * Math.PI / 2);
-            ctx.fillStyle = app.Colors.rgb2rgba( this.wordHighlightColor, backgroundAlpha);
-            ctx.fillRect( Math.round( word.x ), Math.round( word.y ), Math.round( word.width ), Math.round( word.height ) );
-        }
-
-        ctx.fillStyle = this.wordColor;
-        ctx.fillText( word.text, word.x, word.y + 0.8 * word.height);
-
-        ctx.lineWidth = 1;
-        ctx.strokeRect( word.x, word.y, word.width, word.height);
-    };
-
-    Path.prototype._highlightWord = function (ctx, word, duration) {
-        ctx.fillStyle = app.Colors.rgb2rgba( this.wordHighlightColor, 
-                    Math.max( 0, Math.min( 1, (duration - this.durationTransp) / (this.durationOpaque - this.durationTransp) ) ) );
-        ctx.fillRect( Math.round( word.left ), Math.round( word.top ), 
-                    Math.round( word.right - word.left ), Math.round( word.bottom - word.top ) );
     };
 
     Path.prototype._remap = function (session) {

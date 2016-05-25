@@ -20,8 +20,6 @@ if (!this['Reading']) {
     //          wordColor           - word color
     //          wordHighlightColor  - mapped word rectangle color
     //          wordStrokeColor     - word rectable border color
-    //          durationTransp      - transparency is 100% for this and lower durations 
-    //          durationOpaque      - transparency is 0% for this and longer durations 
     //          textColor           - info text color
     //          textFont            - info text font
     //          colorMetric         - the metric to map onto the word background color
@@ -41,8 +39,6 @@ if (!this['Reading']) {
         this.wordColor = options.wordColor || '#CCC';
         this.wordHighlightColor = options.wordHighlightColor || '#606';
         this.wordStrokeColor = options.wordStrokeColor || '#800';
-        this.durationTransp = options.durationTransp || 100;
-        this.durationOpaque = options.durationOpaque || 1000;
         this.textColor = options.textColor || '#CCC';
         this.textFont = options.textFont || '32px Arial';
         
@@ -208,44 +204,13 @@ if (!this['Reading']) {
     }
 
     WordGazing.prototype._drawWords = function (ctx, words, metricRange) {
-        var colorMetric = app.Metric.Type;
-        var converter = [
-            function () { return 0; },
-            this._mapDurationToColor.bind( this ),
-            this._mapCharSpeedToColor.bind( this ),
-            this._mapSyllableSpeedToColor.bind( this ),
-        ];
         
         ctx.strokeStyle = this.wordStrokeColor;
         
         words.forEach( word => {
-            var alpha = converter[ this.colorMetric ]( ctx, word, metricRange );
+            var alpha = app.Metric.getAlpha( word, this.colorMetric, metricRange );
             this._drawWord( ctx, word, alpha );
         });
-    };
-
-    WordGazing.prototype._mapDurationToColor = function (ctx, word, maxDuration) {
-        var result = 0;
-        if (word.duration > this.durationTransp) {
-            result = (word.duration - this.durationTransp) / (maxDuration - this.durationTransp);
-        }
-        return result;
-    };
-
-    WordGazing.prototype._mapCharSpeedToColor = function (ctx, word, maxCharSpeed) {
-        var result = 0;
-        if (word.charSpeed > 0) {
-            result = 1 - word.charSpeed / maxCharSpeed;
-        }
-        return result;
-    };
-
-    WordGazing.prototype._mapSyllableSpeedToColor = function (ctx, word, maxSyllableSpeed) {
-        var result = 0;
-        if (word.syllableSpeed > 0) {
-            result = 1 - word.syllableSpeed / maxSyllableSpeed;
-        }
-        return result;
     };
 
     WordGazing.prototype._drawWord = function (ctx, word, backgroundAlpha) {

@@ -1,9 +1,21 @@
+@import "slideout";
+
 #options {
+    user-select: none;
+    max-height: 100vh;
+    overflow: auto;
+
     .group {
         font-size: 14pt;
         font-family: Arial, sans-serif;
         font-weight: bold;
         margin-bottom: 0.9em;
+
+        .name {
+            color: #FFD;
+            background: lighten(@back, 5%);
+            margin-bottom: 0.5em;
+        }
 
         .row {
             font-size: 12pt;
@@ -22,6 +34,10 @@
                 text-align: right;
                 float: right;
                 clear: right;
+            }
+
+            input.value[type="color"] {
+                width: 4.5em;
             }
             
             select.value {
