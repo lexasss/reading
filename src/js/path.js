@@ -72,13 +72,13 @@
                 var ctx = this._getCanvas2D();
 
                 this._drawWords( ctx, sessionVal.words, metricRange );
-                if (this.showFixations) {
+                if (this.showFixations && fixations) {
                     this._drawFixations( ctx, fixations );
                 }
                 this._drawTitle( ctx, name );
             }
         } else {
-            alert( 'record ' + name + ' does not exist' );
+            window.alert( 'record ' + name + ' does not exist' );
         }
     };
 

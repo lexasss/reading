@@ -1,6 +1,6 @@
 (function (app) { 'use strict';
 
-	var Metric = { };
+    var Metric = { };
 
     Metric.compute = function (words, metricType) {
 

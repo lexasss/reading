@@ -1,5 +1,6 @@
 // Requires:
 //      app.firebase
+//      utils/logger
 
 (function (app) { 'use strict';
 
@@ -18,7 +19,8 @@
 
         _services = services;
 
-        _services.getTextSetup = _services.getTextSetup || console.error( 'No "getTextSetup" service for Statistics' );
+        var logError = app.Logger.moduleErrorPrinter( 'Statistics' );
+        _services.getTextSetup = _services.getTextSetup || logError( 'getTextSetup' );
 
         _view = document.querySelector( this.root );
         _view.style.display = 'none';
@@ -144,7 +146,7 @@
     };
 
     Statistics.prototype._saveRemote = function () {
-        var name = prompt( 'Please enter the name', GUID() );
+        var name = window.prompt( 'Please enter the name', GUID() );
         if (name) {
             var setup = _services.getTextSetup();
             var record = app.firebase.child( name + '_' + setup.textID + '_' + setup.lineSize);
@@ -218,12 +220,12 @@
     }
 
     Record.prototype.start = function () {
-        this.timestamp = performance.now();
+        this.timestamp = window.performance.now();
         this.focusCount++;
     };
 
     Record.prototype.stop = function () {
-        this.duration += performance.now() - this.timestamp;
+        this.duration += window.performance.now() - this.timestamp;
     };
 
     Record.prototype.toString = function () {

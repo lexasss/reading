@@ -1,3 +1,6 @@
+// Requires:
+//      utils/logger
+
 (function (app) { 'use strict';
 
     // Text controller
@@ -13,7 +16,8 @@
         this.root = options.root || '#textContainer';
         _services = services;
 
-        _services.splitText = _services.splitText || console.error( 'No "splitText" service for Text' );
+        var logError = app.Logger.moduleErrorPrinter( 'Text' );
+        _services.splitText = _services.splitText || logError( 'splitText' );
 
         _textContainer = document.querySelector( this.root );
         

@@ -98,13 +98,41 @@ module.exports = function(grunt) {
                 'src/js/**/*.js'
             ],
             options: {
+                configFile: './node_modules/eslint/conf/eslint.json',
                 parserOptions: {
                     ecmaVersion: 6,
-                    sourceType: "script"
+                    sourceType: 'script'
                 },
                 env: {
-                    browser: true
-                }
+                    browser: true,
+                    es6: true
+                },
+                rules: {
+                    'comma-dangle': 'off'
+                },
+                globals: [
+                    // browser
+                    'document',
+                    'console',
+                    'window',
+                    'setTimeout',
+                    'clearTimeout',
+                    'localStorage',
+                    'arguments',
+                    'Blob',
+                    'Map',
+                    'NodeFilter',
+
+                    // Node
+                    'module',
+                    'require',
+
+                    // libs
+                    'Firebase',
+                    'GazeTargets',
+                    'shortcut',
+                    'regression'
+                ]
             }
         }
     });

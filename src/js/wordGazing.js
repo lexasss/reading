@@ -1,13 +1,8 @@
 // Requires:
 //      app,Colors
 //      app.firebase
-//      utils/wordSplit
 //      utils/metric
 //      utils/visualization
-
-if (!this.Reading) {
-    var wordSplit = require('./utils/wordSplit.js');
-}
 
 (function (app) { 'use strict';
 
@@ -52,7 +47,7 @@ if (!this.Reading) {
             }
         });
 
-        for (var [key, condition] of conditions) {
+        for (var key of conditions.keys()) {
             var option = document.createElement('option');
             var nameParts = key.split( '_' );
             var spacingName = this.spacingNames ? this.spacingNames[ +nameParts[1] ] : nameParts[1];
@@ -111,7 +106,7 @@ if (!this.Reading) {
                 fixations = this._remapStatic( sessionVal, words );
             }
         } else {
-            alert('record ' + sessionName + ' does not exist');
+            window.alert( 'record ' + sessionName + ' does not exist' );
         }
 
         return [words, fixations];

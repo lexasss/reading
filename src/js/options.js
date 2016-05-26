@@ -1,3 +1,6 @@
+// Requires:
+//      utils/logger
+
 (function (app) { 'use strict';
 
     // Controller for the text options side-slider
@@ -30,23 +33,25 @@
         
         this._slideout = document.querySelector( this.root );
 
+        var logError = app.Logger.moduleErrorPrinter( 'Options' );
+
         _services = services;
-        _services.showPointer = _services.showPointer || console.error( 'No "showPointer" service for Options' );
-        _services.highlightWord = _services.highlightWord || console.error( 'No "highlightWord" service for Options' );
-        _services.hideText = _services.hideText || console.error( 'No "hideText" service for Options' );
+        _services.showPointer = _services.showPointer || logError( 'showPointer' );
+        _services.highlightWord = _services.highlightWord || logError( 'highlightWord' );
+        _services.hideText = _services.hideText || logError( 'hideText' );
 
         _services.path = _services.path || {};
-        _services.path.colorMetric = _services.path.colorMetric || console.error( 'No "path.colorMetric" service for Options' );
-        _services.path.showConnections = _services.path.showConnections || console.error( 'No "path.showConnections" service for Options' );
-        _services.path.showSaccades = _services.path.showSaccades || console.error( 'No "path.showSaccades" service for Options' );
-        _services.path.showFixations = _services.path.showFixations || console.error( 'No "path.showFixations" service for Options' );
-        _services.path.showOriginalFixLocation = _services.path.showOriginalFixLocation || console.error( 'No "path.showOriginalFixLocation" service for Options' );
+        _services.path.colorMetric = _services.path.colorMetric || logError( 'path.colorMetric"' );
+        _services.path.showConnections = _services.path.showConnections || logError( 'path.showConnections' );
+        _services.path.showSaccades = _services.path.showSaccades || logError( 'path.showSaccades' );
+        _services.path.showFixations = _services.path.showFixations || logError( 'path.showFixations' );
+        _services.path.showOriginalFixLocation = _services.path.showOriginalFixLocation || logError( 'path.showOriginalFixLocation' );
 
         _services.wordGazing = _services.wordGazing || {};
-        _services.wordGazing.colorMetric = _services.wordGazing.colorMetric || console.error( 'No "wordGazing.colorMetric" service for Options' );
-        _services.wordGazing.showFixations = _services.wordGazing.showFixations || console.error( 'No "wordGazing.showFixations" service for Options' );
-        _services.wordGazing.uniteSpacings = _services.wordGazing.uniteSpacings || console.error( 'No "wordGazing.uniteSpacings" service for Options' );
-        _services.wordGazing.showRegressions = _services.wordGazing.showRegressions || console.error( 'No "wordGazing.showRegressions" service for Options' );
+        _services.wordGazing.colorMetric = _services.wordGazing.colorMetric || logError( 'wordGazing.colorMetric' );
+        _services.wordGazing.showFixations = _services.wordGazing.showFixations || logError( 'wordGazing.showFixations' );
+        _services.wordGazing.uniteSpacings = _services.wordGazing.uniteSpacings || logError( 'wordGazing.uniteSpacings' );
+        _services.wordGazing.showRegressions = _services.wordGazing.showRegressions || logError( 'wordGazing.showRegressions' );
 
         var cssRules = [
             /*{
@@ -69,37 +74,35 @@
         this._style = document.createElement( 'style' );
         document.body.appendChild( this._style );
 
-        var self = this;
-        
         var apply = document.querySelector( this.root + ' .save' );
-        apply.addEventListener( 'click', function () {
-            getRulesFromEditors( self._style, cssRules );
-            self._slideout.classList.remove( 'expanded' );
+        apply.addEventListener( 'click', () => {
+            getRulesFromEditors( this._style, cssRules );
+            this._slideout.classList.remove( 'expanded' );
 
             saveSettings( cssRules );
         });
 
         var close = document.querySelector( this.root + ' .close' );
-        close.addEventListener( 'click', function () {
-            self._slideout.classList.remove( 'expanded' );
+        close.addEventListener( 'click', () => {
+            this._slideout.classList.remove( 'expanded' );
         });
 
         var slideoutTitle = document.querySelector( this.root + ' .title');
-        slideoutTitle.addEventListener( 'click', function (e) {
-            self._slideout.classList.toggle( 'expanded' );
+        slideoutTitle.addEventListener( 'click', () => {
+            this._slideout.classList.toggle( 'expanded' );
             setRulesToEditors( cssRules );
         });
 
-        window.addEventListener( 'load', function () {
+        window.addEventListener( 'load', () => {
             loadSettings( cssRules );
-            self._style.innerHTML = cssRules.reduce( function (css, rule) {
+            this._style.innerHTML = cssRules.reduce( function (css, rule) {
                 return css + rule.selector + ' { ' + rule.name + ': ' + rule.initial + rule.suffix + ' !important; } ';
             }, '');
             
             obtainInitialRules( cssRules );
             
-            bindSettingsToEditors( self.root );
-            bindRulesToEditors( cssRules, self.root + ' #' );
+            bindSettingsToEditors( this.root );
+            bindRulesToEditors( cssRules, this.root + ' #' );
         });
     }
 
@@ -289,7 +292,7 @@
         var bindCheckbox = (id, service) => {
             var flag = document.querySelector( root + ' #' + id );
             flag.checked = service();
-            flag.addEventListener( 'click', function (e) {
+            flag.addEventListener( 'click', function () {
                 service( this.checked );
             });
         };
@@ -297,7 +300,7 @@
         var bindSelect = (id, service) => {
             var select = document.querySelector( root + ' #' + id );
             select.selectedIndex = service();
-            select.addEventListener( 'change', function (e) {
+            select.addEventListener( 'change', function () {
                 service( this.selectedIndex );
             });
         };

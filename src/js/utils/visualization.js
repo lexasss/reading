@@ -1,7 +1,7 @@
 // Base for visualizations
 // Interface to implement:
-//		_load
-//		_fillDataQueryList
+//        _load
+//        _fillDataQueryList
 
 (function (app) { 'use strict';
 
@@ -14,15 +14,15 @@
     //          textColor           - info text color
     //          textFont            - info text font
     //      }
-	function Visualization (options) {
+    function Visualization (options) {
         this.wordColor = options.wordColor || '#CCC';
         this.wordHighlightColor = options.wordHighlightColor || '#606';
         this.wordStrokeColor = options.wordStrokeColor || '#800';
         this.textColor = options.textColor || '#CCC';
         this.textFont = options.textFont || '32px Arial';
 
-		this._snapshot = null;
-	}
+        this._snapshot = null;
+    }
 
     // Initialization routine, to be called prior constructing any visualization object
     //  Arguments:
@@ -71,7 +71,7 @@
 
         app.firebase.once('value', snapshot => {
             if (!snapshot.exists()) {
-                alert('no records in DB');
+                window.alert( 'no records in DB' );
                 return;
             }
 
@@ -79,7 +79,7 @@
             this._showDataSelectionDialog();
 
         }, function (err) {
-            alert(err);
+            window.alert( err );
         });
     };
 

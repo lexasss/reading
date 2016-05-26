@@ -1,6 +1,7 @@
 // Requires:
 //      shortcut
 //      GazeTargets
+//      utils/logger
 
 (function (app) { 'use strict';
 
@@ -22,12 +23,13 @@
 
         _services = services;
 
-        _services.getTexts = _services.getTexts || console.error( 'No "getTexts" service for Controls' );
-        _services.getSpacings = _services.getSpacings || console.error( 'No "getSpacings" service for Controls' );
-        _services.switchText = _services.switchText || console.error( 'No "switchText" service for Controls' );
-        _services.switchSpacing = _services.switchSpacing || console.error( 'No "switchSpacing" service for Controls' );
-        _services.selectSession = _services.selectSession || console.error( 'No "selectSession" service for Controls' );
-        _services.selectCondition = _services.selectCondition || console.error( 'No "selectCondition" service for Controls' );
+        var logError = app.Logger.moduleErrorPrinter( 'Controls' );
+        _services.getTexts = _services.getTexts || logError( 'getTexts' );
+        _services.getSpacings = _services.getSpacings || logError( 'getSpacings' );
+        _services.switchText = _services.switchText || logError( 'switchText' );
+        _services.switchSpacing = _services.switchSpacing || logError( 'switchSpacing' );
+        _services.selectSession = _services.selectSession || logError( 'selectSession' );
+        _services.selectCondition = _services.selectCondition || logError( 'selectCondition' );
 
         //var container = document.querySelector( this.root );
 

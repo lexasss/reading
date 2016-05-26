@@ -1,3 +1,6 @@
+// Requires:
+//      utils/logger
+
 (function (app) { 'use strict';
 
     // Controller for the text editing side-slider
@@ -14,7 +17,8 @@
         this.root = options.root || '#textEditor';
         this.text = options.text || '#text';
 
-        services.splitText = services.splitText || console.error( 'No "splitText" service for TextEditor' );
+        var logError = app.Logger.moduleErrorPrinter( 'TextEditor' );
+        services.splitText = services.splitText || logError( 'splitText' );
         
         this._slideout = document.querySelector( this.root );
 

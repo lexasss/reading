@@ -1,6 +1,6 @@
 (function (app) { 'use strict';
 
-	var WordSplit = {};
+    var WordSplit = {};
 
     WordSplit.syllables = function (word) {
         var result = [];
@@ -35,7 +35,7 @@
             var charType = VOWELS.some( isVowel ) ? VOWEL : CONSONANT;
             chain += charType;
 //console.log(chain, ':', syllable);
-            if (charType === VOWEL && chain.length > 1) {			// when there are at least 2 chars, and the lst one is vowel,
+            if (charType === VOWEL && chain.length > 1) {            // when there are at least 2 chars, and the lst one is vowel,
                 var boundIndex = bounds.findIndex( isMatchingSyllableBound );
                 if (boundIndex >= 0) {
                     var newSyllableLength = bounds[ boundIndex ][1].length;
