@@ -51,8 +51,8 @@
 
         _textSwitchers = document.querySelector( this.root + ' .text' );
         var texts = _services.getTexts();
-        for (var i = 0; i < texts.length; i += 1) {
-            var swither = document.createElement('div');
+        for (let i = 0; i < texts.length; i += 1) {
+            let swither = document.createElement('div');
             swither.className = 'button';
             swither.textContent = 'Text ' + (i + 1);
             swither.addEventListener('click', getTextSwitcherHandler( i ));
@@ -64,8 +64,8 @@
 
         _spacingSwitchers = document.querySelector( this.root + ' .spacing' );
         var spacings = _services.getSpacings();
-        for (var i = 0; i < spacings.length; i += 1) {
-            var swither = document.createElement('div');
+        for (let i = 0; i < spacings.length; i += 1) {
+            let swither = document.createElement('div');
             swither.className = 'button';
             swither.textContent = spacings[ i ];
             swither.addEventListener('click', getSpacingSwitcherHandler( i ));
@@ -135,7 +135,7 @@
         } else {
             button.classList.remove('disabled');
         }
-    };
+    }
 
     function setButtonBlockDisabled(container, isDisabled) {
         var switches = container.childNodes;
@@ -148,15 +148,15 @@
         return function () { 
             _services.switchText( index );
             select(this, _textSwitchers);
-        }
-    };
+        };
+    }
 
     function getSpacingSwitcherHandler(index) {
         return function () { 
             _services.switchSpacing( index );
             select(this, _spacingSwitchers);
-        }
-    };
+        };
+    }
 
     function select(button, container) {
         var switches = container.childNodes;
@@ -181,4 +181,4 @@
 
     app.Controls = Controls;
     
-})( Reading || window );
+})( this.Reading || module.exports );

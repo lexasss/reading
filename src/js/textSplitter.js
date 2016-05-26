@@ -108,4 +108,4 @@
 
     app.TextSplitter = TextSplitter;
     
-})( Reading || window );
+})( this.Reading || module.exports );

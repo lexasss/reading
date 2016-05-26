@@ -86,9 +86,25 @@ module.exports = function(grunt) {
             options: {
                 globals: {
                     console: true,
-                    module: true
+                    module: true,
                 },
+                esversion: 6,
                 multistr: true
+            }
+        },
+        
+        eslint: {
+            files: [
+                'src/js/**/*.js'
+            ],
+            options: {
+                parserOptions: {
+                    ecmaVersion: 6,
+                    sourceType: "script"
+                },
+                env: {
+                    browser: true
+                }
             }
         }
     });
@@ -100,10 +116,12 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-postcss');
     grunt.loadNpmTasks('grunt-contrib-jshint');
+    grunt.loadNpmTasks('grunt-eslint');
 
     grunt.registerTask('rebuild', ['clean', 'jade', 'less', 'concat', 'copy', 'postcss']);
     grunt.registerTask('default', ['jade', 'less', 'concat', 'copy:img', 'postcss']);
     grunt.registerTask('updatelibs', ['copy:gazeTargets' ]);
     grunt.registerTask('copylibs', ['copy:libs' ]);
     grunt.registerTask('compile', ['jshint']);
+    grunt.registerTask('compile2', ['eslint']);
 };

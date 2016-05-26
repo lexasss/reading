@@ -141,7 +141,7 @@
         document.body.appendChild( downloadLink );
 
         downloadLink.click();
-    }
+    };
 
     Statistics.prototype._saveRemote = function () {
         var name = prompt( 'Please enter the name', GUID() );
@@ -154,7 +154,7 @@
                 setup: setup
             });
         }
-    }
+    };
 
     Statistics.prototype._getWordsList = function () {
         var list = [];
@@ -262,4 +262,4 @@
 
     app.Statistics = Statistics;
     
-})( Reading || window );
+})( this.Reading || module.exports );

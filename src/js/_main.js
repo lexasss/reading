@@ -5,6 +5,9 @@ var Reading = Reading || {};
 
 // "components" contains selectors for each component 
 Reading.init = function (components) {
+
+	Reading.loadingCallbacks.forEach( callback => { callback(); } );
+
 	// DB
 	Reading.firebase = new Firebase("https://burning-torch-9217.firebaseio.com/school/");
 
@@ -19,7 +22,6 @@ Reading.init = function (components) {
 	    splitText: textSplitter.split.bind( textSplitter )
 	});
 
-	var visualizationRoot = { root: components.path	};
 	var visualizationCallbacks = {
 	    shown: text.hide,
 	    hidden: function () {
@@ -29,11 +31,15 @@ Reading.init = function (components) {
 	    }
 	};
 
-	var path = new Reading.Path( { root: components.path }, visualizationCallbacks );
-	var wordGazing = new Reading.WordGazing( {
-		root: components.path,
+	Reading.Visualization.init( components.visualization, visualizationCallbacks );
+
+	var path = new Reading.Path({
+		root: components.visualization
+	});
+	var wordGazing = new Reading.WordGazing({
+		root: components.visualization,
 		spacingNames: text.spacings
-	}, visualizationCallbacks );
+	});
 
 	var controls = new Reading.Controls({
 	    root: components.controls
@@ -50,12 +56,9 @@ Reading.init = function (components) {
 	    root: components.options,
 	    text: components.textContainer + ' ' + components.text
 	}, {
-		showPointer: function (value) { 
-			if (value !== undefined) {
-				GazeTargets.updateSettings( { pointer: { show: value } } );
-			} else {
-				return GazeTargets.getSettings( 'pointer/show' );
-			}
+		showPointer: function (value) { return value === undefined ?
+			GazeTargets.getSettings( 'pointer/show' ) :
+			GazeTargets.updateSettings( { pointer: { show: value } } );
 		},
 		highlightWord: function (value) { return value === undefined ? 
 			textSplitter.highlightCurrentWord :
@@ -154,3 +157,9 @@ Reading.init = function (components) {
 	    fixation: statistics.logFixation
 	});
 };
+
+Reading.loaded = function (callback) {
+	Reading.loadingCallbacks.push( callback );
+};
+
+Reading.loadingCallbacks = [];

@@ -100,4 +100,4 @@
 
     app.Colors = Colors;
 
-})( Reading || window );
+})( this.Reading || module.exports );

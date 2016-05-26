@@ -77,4 +77,4 @@
 
     app.GazeTargetsManager = GazeTargetsManager;
     
-})( Reading || window );
+})( this.Reading || module.exports );

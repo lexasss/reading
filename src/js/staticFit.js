@@ -1,7 +1,7 @@
 // Requires:
 //      regression.js
 
-if (!this['Reading']) {
+if (!this.Reading) {
 	var regression = require('../../libs/regression.js');
 }
 
@@ -317,7 +317,7 @@ if (!this['Reading']) {
 			error2 += (fix.y - y) * (fix.y - y);
 		}
 
-		return error = Math.sqrt( error2 / fixations.length );
+		return Math.sqrt( error2 / fixations.length );
 	}
 
 	function avgY (fixations) {
@@ -350,8 +350,8 @@ if (!this['Reading']) {
 		var leftMostX = Number.MAX_VALUE, 
 			rightMostX = Number.MIN_VALUE;
 
-		for (var i = 0; i < fixations.length; i += 1) {
-			var fix = fixations[i];
+		for (let i = 0; i < fixations.length; i += 1) {
+			let fix = fixations[i];
 			if (fix.x < leftMostX) {
 				leftMostX = fix.x;
 				leftMostFix = fix;
@@ -374,20 +374,20 @@ if (!this['Reading']) {
 
 			if (scale < SCALE_DIFF_THRESHOLD) {
 				scale = SCALE_DIFF_THRESHOLD;
-				var boundCorrection = (scale * oldRange - newRange) / 2;
+				let boundCorrection = (scale * oldRange - newRange) / 2;
 				leftBound -= boundCorrection;
 				rightBound -= boundCorrection;
 			}
 			else if (scale > (2 - SCALE_DIFF_THRESHOLD)) {
 				scale = 2 - SCALE_DIFF_THRESHOLD;
-				var boundCorrection = (scale * oldRange - newRange) / 2;
+				let boundCorrection = (scale * oldRange - newRange) / 2;
 				leftBound -= boundCorrection;
 				rightBound -= boundCorrection;
 			}
 
 			log('X >>>>>>');
-			for (var i = 0; i < fixations.length; i += 1) {
-				var fix = fixations[i];
+			for (let i = 0; i < fixations.length; i += 1) {
+				let fix = fixations[i];
 				fix._x = fix.x;
 				fix.x = leftBound + scale * (fix.x - leftMostX);
 				log( fix.x + ' >> ' + fix._x );
@@ -399,7 +399,7 @@ if (!this['Reading']) {
 		for (var i = 0; i < fixations.length; i += 1) {
 			var fix = fixations[i];
 			var minDist = Number.MAX_VALUE;
-			var minDistWordID = -1
+			var minDistWordID = -1;
 			for (var j = 0; j < words.length; j += 1) {
 				var word = words[j];
 				var effectiveWordWidth = word.fixations || word.text.length < 3  ? 0.7 * word.width : word.width;
@@ -481,7 +481,7 @@ if (!this['Reading']) {
 						fix.isRegression = false;
 					}
 					else {
-						var prevFix = getPrevMappedFix( i, 1 );
+						//var prevFix = getPrevMappedFix( i, 1 );
 						var prev2Fix = getPrevMappedFix( i, 2 );
 						if (prevFix !== undefined && prev2Fix !== undefined && prevFix.line != prev2Fix.line) {
 							fix.isRegression = false;
@@ -494,20 +494,22 @@ if (!this['Reading']) {
 
 	function log (title) {
 		
-		if (this['Reading'] !== undefined) {
+		if (this.Reading !== undefined) {
 			return;
 		} 
 
 		console.log( '\n', title );
+		var print = (item) => {
+			console.log( item );
+		};
+
 		for (var i = 1; i < arguments.length; i += 1) {
 			var data = arguments[i];
 			if (data === undefined) {
 				continue;
 			}
 			if (data instanceof Array) {
-				data.forEach( function (item) {
-					console.log( item );
-				});
+				data.forEach( print );
 			}
 			else {
 				console.log( data );
@@ -521,4 +523,4 @@ if (!this['Reading']) {
 		map: map
 	};
 
-})( this['Reading'] || module.exports );
+})( this.Reading || module.exports );

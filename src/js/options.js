@@ -148,14 +148,15 @@
         // }
 
         if (options.css) {
+            var ruleInitilization = (rule) => {
+                if (rule.selector === parts[0] && rule.name === parts[1]) {
+                    rule.initial = options.css[ savedRule ];
+                } 
+            };
             for (var savedRule in options.css) {
                 var parts = savedRule.split( '____' );
-                cssRules.forEach( function (rule) {
-                    if (rule.selector === parts[0] && rule.name === parts[1]) {
-                        rule.initial = options.css[ savedRule ];
-                    } 
-                });
-            };
+                cssRules.forEach( ruleInitilization );
+            }
         }
     }
 
@@ -291,7 +292,7 @@
             flag.addEventListener( 'click', function (e) {
                 service( this.checked );
             });
-        }
+        };
 
         var bindSelect = (id, service) => {
             var select = document.querySelector( root + ' #' + id );
@@ -299,7 +300,7 @@
             select.addEventListener( 'change', function (e) {
                 service( this.selectedIndex );
             });
-        }
+        };
 
         bindCheckbox( 'showPointer', _services.showPointer );
         bindCheckbox( 'highlightWord', _services.highlightWord );
@@ -319,4 +320,4 @@
 
     app.Options = Options;
     
-})( Reading || window );
+})( this.Reading || module.this.exports );

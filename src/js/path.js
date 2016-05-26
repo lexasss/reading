@@ -5,39 +5,23 @@
 
 (function (app) { 'use strict';
 
-    // Path display routine
-    // Constructor arguments:
+    // Path visualization constructor
+    // Arguments:
     //      options: {
-    //          root                - selector for the element that contains statistics view
     //          fixationColor       - fixation color
     //          saccadeColor        - saccade color
     //          connectionColor     - connection color
-    //          wordColor           - word color
-    //          wordHighlightColor  - mapped word rectangle color
-    //          wordStrokeColor     - word rectable border color
-    //          textColor           - info text color 
-    //          textFont            - info text font
     //          colorMetric         - word background coloring metric
     //          showConnections     - flat to display fixation-word connections
     //          showSaccades        - flag to display saccades
     //          showFixations       - flag to display fixations
     //          showOriginalFixLocation - flag to display original fixation location
     //      }
-    //      callbacks: {
-    //          shown ()      - the path overlay was displayed
-    //          hidden ()     - the path overlay was hidden
-    //      }
-    function Path(options, callbacks) {
+    function Path(options) {
 
-        this.root = options.root || document.documentElement;
         this.fixationColor = options.fixationColor || '#000';
         this.saccadeColor = options.saccadeColor || '#08F';
         this.connectionColor = options.connectionColor || '#FF0';
-        this.wordColor = options.wordColor || '#CCC';
-        this.wordHighlightColor = options.wordHighlightColor || '#606';
-        this.wordStrokeColor = options.wordStrokeColor || '#800';
-        this.textColor = options.textColor || '#CCC';
-        this.textFont = options.textFont || '32px Arial';
 
         this.colorMetric = options.colorMetric || app.Metric.Type.DURATION;
         this.showConnections = options.showConnections !== undefined ? options.showConnections : false;
@@ -55,89 +39,38 @@
             'rgba(255,0,255,' + lineColorA +')',
         ];
 
-        _callbacks = callbacks;
-
-        _view = document.querySelector( this.root );
-        _canvas = document.querySelector( this.root + ' canvas');
-        _sessionPrompt = document.querySelector( this.root + ' .prompt' );
-
-        _view.classList.add( 'invisible' );
-        _sessionPrompt.classList.add( 'invisible' );
-
-        var self = this;
-
-        var close = document.querySelector( this.root + ' .close' );
-        close.addEventListener('click', function () {
-            _view.classList.add( 'invisible' );
-
-            var ctx = _canvas.getContext('2d');
-            ctx.clearRect(0, 0, _width, _height);
-
-            if (callbacks.hidden) {
-                callbacks.hidden();
-            }
-        });
-
-        var select = document.querySelector( this.root + ' .select' );
-        select.addEventListener('click', function () {
-            var list = _sessionPrompt.querySelector( 'select' );
-            self._load( list.options[ list.selectedIndex ].value );
-        });
+        app.Visualization.call( this, options );
     }
 
-    Path.prototype.queryData = function () {
-        if (_snapshot) {
-            this.showSessionSelectionDialog();
-            return;
-        }
+    app.loaded( () => { // we have to defer the prototype definitio until the Visualization mudule is loaded
 
-        app.firebase.once('value', snapshot => {
-            if (!snapshot.exists()) {
-                alert('no records in DB');
-                return;
-            }
+    Path.prototype = Object.create( app.Visualization.prototype );
+    Path.prototype.base = app.Visualization.prototype;
+    Path.prototype.constructor = Path;
 
-            _snapshot = snapshot;
-            this.showSessionSelectionDialog();
-
-        }, function (err) {
-            alert(err);
-        });
-    };
-
-    Path.prototype.showSessionSelectionDialog = function () {
-        if (_callbacks.shown) {
-            _callbacks.shown();
-        }
-
-        _view.classList.remove( 'invisible' );
-
-        var list = _sessionPrompt.querySelector( 'select' );
-        list.innerHTML = '';
-        _snapshot.forEach( childSnapshot => {
+    Path.prototype._fillDataQueryList = function (list) {
+        this._snapshot.forEach( childSnapshot => {
             var option = document.createElement('option');
             option.value = childSnapshot.key();
             option.textContent = childSnapshot.key();
             list.appendChild( option );
         });
+    };
 
-        _sessionPrompt.classList.remove( 'invisible' );
-    }
-
-    Path.prototype._load = function( name ) {
-        if (!_snapshot) {
+    Path.prototype._load = function (name) {
+        if (!this._snapshot) {
             return;
         }
 
-        _sessionPrompt.classList.add( 'invisible' );
-        
-        var session = _snapshot.child( name );
+        var session = this._snapshot.child( name );
         if (session && session.exists()) {
             var sessionVal = session.val();
             if (sessionVal) {
-                var ctx = getCanvas2D();
                 var fixations = this._remapStatic( sessionVal );
                 var metricRange = app.Metric.compute( sessionVal.words, this.colorMetric );
+
+                var ctx = this._getCanvas2D();
+
                 this._drawWords( ctx, sessionVal.words, metricRange );
                 if (this.showFixations) {
                     this._drawFixations( ctx, fixations );
@@ -145,70 +78,11 @@
                 this._drawTitle( ctx, name );
             }
         } else {
-            alert('record ' + name + ' does not exist');
+            alert( 'record ' + name + ' does not exist' );
         }
     };
 
-    /*
-    Path.prototype._show = function (ctx, session) {
-        if (session.words) {
-            ctx.strokeStyle = this.wordStrokeColor;
-            ctx.fillStyle = this.wordHighlightColor;
-            var words = session.words;
-            for (var i = 0; i < words.length; i += 1) {
-                this._drawWord( ctx, words[i] );
-            }
-        }
-
-        if (session.fixations) {
-            ctx.fillStyle = this.fixationColor;
-            ctx.strokeStyle = this.fixationColor;
-            var fixations = session.fixations;
-            var prevFix, fix;
-            for (var i = 0; i < fixations.length; i += 1) {
-                fix = fixations[i];
-                if (i > 0) {
-                    this._drawSaccade( ctx, prevFix, fix );
-                }
-                this._drawFixation( ctx, fix );
-                prevFix = fix;
-            }
-        }
-    };*/
-
-    Path.prototype._drawTitle = function (ctx, title) {
-        ctx.fillStyle = this.textColor;
-        ctx.font = this.textFont;
-
-        var textWidth = ctx.measureText( title ).width;
-        ctx.fillText( title, (_canvas.width - textWidth) / 2, 32);
-    }
-
-    Path.prototype._drawWords = function (ctx, words, metricRange) {
-        ctx.strokeStyle = this.wordStrokeColor;
-        
-        words.forEach( word => {
-            var alpha = app.Metric.getAlpha( word, this.colorMetric, metricRange );
-            this._drawWord( ctx, word, alpha );
-        });
-    };
-
-    Path.prototype._drawWord = function (ctx, word, backgroundAlpha) {
-
-        if (backgroundAlpha > 0) {
-            //backgroundAlpha = Math.sin( backgroundAlpha * Math.PI / 2);
-            ctx.fillStyle = app.Colors.rgb2rgba( this.wordHighlightColor, backgroundAlpha);
-            ctx.fillRect( Math.round( word.x ), Math.round( word.y ), Math.round( word.width ), Math.round( word.height ) );
-        }
-
-        ctx.fillStyle = this.wordColor;
-        ctx.fillText( word.text, word.x, word.y + 0.8 * word.height);
-
-        ctx.lineWidth = 1;
-        ctx.strokeRect( word.x, word.y, word.width, word.height);
-    };
-
-    Path.prototype._drawFixations = function (ctx, fixations) {
+   Path.prototype._drawFixations = function (ctx, fixations) {
         ctx.fillStyle = this.fixationColor;
         ctx.strokeStyle = this.saccadeColor;
 
@@ -236,7 +110,7 @@
     };
 
     Path.prototype._drawFixation = function (ctx, fixation) {
-        if (fixation.line != undefined) {
+        if (fixation.line !== undefined) {
             ctx.fillStyle = this.lineColors[ fixation.line % 6 ];
         }
         else {
@@ -295,7 +169,7 @@
         model.reset( layout );
         //model.callbacks( { onMapped: function (fixation) {} } );
         
-        var result = []
+        var result = [];
         session.fixations.forEach(function (fix) {
             var fixation = fixations.add( fix.x, fix.y, fix.duration );
             if (fixation) {
@@ -314,31 +188,9 @@
 
         app.StaticFit.map(session);
         return session.fixations;
-    }
+    };
 
-    var _callbacks;
-    var _view;
-    var _canvas;
-    var _sessionPrompt;
-    var _snapshot;
-    var _height;
-    var _width;
-
-    function getCanvas2D() {
-        if (!_width || !_height) {
-            _width = parseInt( window.getComputedStyle( _canvas ).width );
-            _height = parseInt( window.getComputedStyle( _canvas ).height );
-            _canvas.setAttribute( 'width',  _width );
-            _canvas.setAttribute( 'height', _height );
-        }
-
-        var ctx = _canvas.getContext('2d');
-
-        ctx.font = '24pt Calibri, Arial, sans-serif';
-        ctx.clearRect(0, 0, _width, _height);
-
-        return ctx;
-    }
+    });
 
     function Word(rect) {
         this.left = rect.left;
@@ -353,4 +205,4 @@
 
     app.Path = Path;
     
-})( Reading || window );
+})( this.Reading || module.exports );

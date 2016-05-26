@@ -6,7 +6,7 @@
         controls: 'controls',
         options: 'options',
         statistics: 'statistics',
-        path: 'path'
+        visualization: 'visualization'
     };
 
     // the order must match the utils/colorMetric order
@@ -41,15 +41,15 @@ html
         include ./components/statistics.jade
         +statistics( ids.statistics )
 
-        include ./components/path.jade
-        +path( ids.path )
+        include ./components/visualization.jade
+        +visualization( ids.visualization )
 
         script(src='app.js')
         script.
             Reading.init({
                 text: '##{ids.text}',
                 textContainer: '##{ids.textContainer}',
-                path: '##{ids.path}',
+                visualization: '##{ids.visualization}',
                 controls: '##{ids.controls}',
                 options: '##{ids.options}',
                 statistics: '##{ids.statistics}',

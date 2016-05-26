@@ -72,7 +72,7 @@
         else {
             return this._initialVisibility;
         }
-    }
+    };
 
     Text.prototype.switchText = function (index) {
         _textIndex = index;
@@ -130,4 +130,4 @@
 
     app.Text = Text;
     
-})( Reading || window );
+})( this.Reading || module.exports );

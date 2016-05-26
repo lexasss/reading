@@ -42,7 +42,7 @@
         });
 
         return maxRange;
-    }
+    };
 
     Metric.getAlpha = function (word, metricType, metricRange) {
         return alphaComputers[ metricType ]( word, metricRange );
@@ -54,7 +54,7 @@
             result = (word.duration - DURATION_TRANSPARENT) / (maxDuration - DURATION_TRANSPARENT);
         }
         return result;
-    };
+    }
 
     function mapCharSpeedTAlpha (word, maxCharSpeed) {
         var result = 0;
@@ -62,7 +62,7 @@
             result = 1 - word.charSpeed / maxCharSpeed;
         }
         return result;
-    };
+    }
 
     function mapSyllableSpeedToAlpha (word, maxSyllableSpeed) {
         var result = 0;
@@ -70,7 +70,7 @@
             result = 1 - word.syllableSpeed / maxSyllableSpeed;
         }
         return result;
-    };
+    }
 
     const alphaComputers = [
         function () { return 0; },      // for NONE
@@ -90,4 +90,4 @@
 
     app.Metric = Metric;
     
-})( this['Reading'] || module.exports );
+})( this.Reading || module.exports );
