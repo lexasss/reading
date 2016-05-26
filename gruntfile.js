@@ -66,16 +66,37 @@ module.exports = function(grunt) {
         },
 
         postcss: {
-            options: {
-                map: false,
-                processors: [
-                    require('autoprefixer')({
-                        browsers: ['last 2 versions']
-                    })
-                ]
-            },
-            css: {
+            build: {
+                options: {
+                    map: false,
+                    processors: [
+                        require('autoprefixer')({
+                            browsers: ['last 2 versions']
+                        })
+                    ]
+                },
                 src: 'build/*.css'
+            },
+            lint: {
+                options: {
+                    map: false,
+                    processors: [
+                        require('stylelint')({
+                            syntax: require('postcss-less'),
+                            extends: './node_modules/stylelint-config-standard/index.js',
+                            rules: {
+                                'at-rule-name-case': false,
+                                'indentation': 4,
+                                //'no-invalid-double-slash-comments': false,
+                                'comment-empty-line-before': [ 'never', {
+                                    except: ['first-nested'],
+                                    ignore: ['stylelint-commands', 'between-comments'],
+                                } ],
+                            }
+                        })
+                    ]
+                },
+                src: 'src/styles/**/*.less'
             }
         },
         
@@ -98,7 +119,7 @@ module.exports = function(grunt) {
                 'src/js/**/*.js'
             ],
             options: {
-                configFile: './node_modules/eslint/conf/eslint.json',
+                extends: './node_modules/eslint/conf/eslint.json',
                 parserOptions: {
                     ecmaVersion: 6,
                     sourceType: 'script'
@@ -134,22 +155,35 @@ module.exports = function(grunt) {
                     'regression'
                 ]
             }
-        }
+        },
+
+        // stylelint: {     // failed to configure this
+        //     files: [
+        //         'src/styles/**/*.less'
+        //     ],
+        //     options: {
+        //         configFile: './node_modules/stylelint-config-standard/index.js',
+        //         rules: {
+
+        //         }
+        //     }
+        // }
     });
 
-    grunt.loadNpmTasks('grunt-contrib-clean');
-    grunt.loadNpmTasks('grunt-contrib-jade');
-    grunt.loadNpmTasks('grunt-contrib-less');
-    grunt.loadNpmTasks('grunt-contrib-copy');
-    grunt.loadNpmTasks('grunt-contrib-concat');
-    grunt.loadNpmTasks('grunt-postcss');
-    grunt.loadNpmTasks('grunt-contrib-jshint');
-    grunt.loadNpmTasks('grunt-eslint');
+    grunt.loadNpmTasks( 'grunt-contrib-clean' );
+    grunt.loadNpmTasks( 'grunt-contrib-jade' );
+    grunt.loadNpmTasks( 'grunt-contrib-less' );
+    grunt.loadNpmTasks( 'grunt-contrib-copy' );
+    grunt.loadNpmTasks( 'grunt-contrib-concat' );
+    grunt.loadNpmTasks( 'grunt-postcss' );
+    grunt.loadNpmTasks( 'grunt-contrib-jshint' );
+    grunt.loadNpmTasks( 'grunt-eslint' );
+    // grunt.loadNpmTasks( 'grunt-stylelint' );
 
-    grunt.registerTask('rebuild', ['clean', 'jade', 'less', 'concat', 'copy', 'postcss']);
-    grunt.registerTask('quick', ['jade', 'less', 'concat', 'copy:img', 'postcss']);
-    grunt.registerTask('default', ['jade', 'less', 'concat', 'copy:img', 'copy:libs', 'postcss']);
+    grunt.registerTask('rebuild', ['clean', 'jade', 'less', 'concat', 'copy', 'postcss:build']);
+    grunt.registerTask('quick', ['jade', 'less', 'concat', 'copy:img', 'postcss:build']);
+    grunt.registerTask('default', ['jade', 'less', 'concat', 'copy:img', 'copy:libs', 'postcss:build']);
     grunt.registerTask('updatelibs', ['copy:gazeTargets' ]);
     grunt.registerTask('compile', ['jshint']);
-    grunt.registerTask('compile2', ['eslint']);
+    grunt.registerTask('compile2', ['eslint', 'postcss:lint']);
 };

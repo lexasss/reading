@@ -12,6 +12,7 @@
         width: 100vw;
         padding-bottom: 0.5em;
     }
+
     @media (max-width: @rowMode) {
         height: 100vh;
         padding-left: 0.5em;
@@ -19,13 +20,13 @@
 
     .button {
         background-color: #666;
-        background-image: linear-gradient(to bottom, #666666, #7d7d7d);
+        background-image: linear-gradient(to bottom, #666, #7d7d7d);
         border-radius: 5px;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
         color: #e7e5e5;
         cursor: pointer;
         text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
-        
+
         display: inline-block;
         width: 100%;
         padding: 10px 8px;
@@ -51,16 +52,16 @@
         }
 
         &.disabled {
-            background-color: #BBB;
-            background-image: linear-gradient(to bottom, #CCCCCC, #BBBBBB) !important;
-            color: #8A8A7B;
+            background-color: #bbb;
+            background-image: linear-gradient(to bottom, #ccc, #bbb) !important;
+            color: #8a8a7b;
             cursor: auto;
             pointer-events: none;
         }
 
         &.selected {
-            background-color: #FFF;
-            background-image: linear-gradient(to bottom, #48D, #26A) !important;
+            background-color: #fff;
+            background-image: linear-gradient(to bottom, #48d, #26a) !important;
         }
     }
 
@@ -76,13 +77,13 @@
     }
 
     .device {
-        color: #003366;
+        color: #036;
         display: inline-block;
         font: bold 18px Arial, Helvetica, sans-serif;
         padding: 0 10px;
         margin: auto;
         text-align: center;
-        
+
         @media (min-width: @rowMode) {
             min-width: 100px;
         }
