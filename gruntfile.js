@@ -147,9 +147,9 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-eslint');
 
     grunt.registerTask('rebuild', ['clean', 'jade', 'less', 'concat', 'copy', 'postcss']);
-    grunt.registerTask('default', ['jade', 'less', 'concat', 'copy:img', 'postcss']);
+    grunt.registerTask('quick', ['jade', 'less', 'concat', 'copy:img', 'postcss']);
+    grunt.registerTask('default', ['jade', 'less', 'concat', 'copy:img', 'copy:libs', 'postcss']);
     grunt.registerTask('updatelibs', ['copy:gazeTargets' ]);
-    grunt.registerTask('copylibs', ['copy:libs' ]);
     grunt.registerTask('compile', ['jshint']);
     grunt.registerTask('compile2', ['eslint']);
 };

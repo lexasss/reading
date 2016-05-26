@@ -1,5 +1,5 @@
 #Reading
-Records gaze data while reading text
+Records and visualizes gaze data while reading text in Finnish
 
 ##Dependencies
 Install [ETU-Driver](http://www.sis.uta.fi/~csolsp/downloads.php?id=ETUDriver).
