@@ -1,14 +1,28 @@
 'use strict';
 
+var assert = require('chai').assert;
 var wordSplit = require('../src/js/utils/wordSplit.js').WordSplit;
 
-console.log( wordSplit.syllables('aurinko') );
-console.log( wordSplit.syllables('minä') );
-console.log( wordSplit.syllables('maapallo') );
-console.log( wordSplit.syllables('serkku') );
-console.log( wordSplit.syllables('toivonen') );
-console.log( wordSplit.syllables('mies') );
-console.log( wordSplit.syllables('hänen') );
-console.log( wordSplit.syllables('aamulehti') );
-console.log( wordSplit.syllables('Kaislarannasta') );
-console.log( wordSplit.syllables('Tapasin') );
+describe( 'WordSplit', function() {
+	describe( '#syllables( string )', function () {
+		var words = [
+			['aurinko', 3],
+			['minä', 2],
+			['maapallo', 3],
+			['serkku', 2],
+			['toivonen', 3],
+			['mies', 1],
+			['hänen', 2],
+			['aamulehti', 4],
+			['Kaislarannasta', 5],
+			['Tapasin', 3]
+		];
+		words.forEach( (item) => {
+	    	it( `should return ${item[1]} for ${item[0]}`, function () {
+	    		var result = wordSplit.syllables( item[0] );
+				//console.log( result );
+				assert.equal( item[1], result.length )
+			});
+		});
+	});
+});
