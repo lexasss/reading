@@ -40,39 +40,74 @@
     };
 
     Logger.forModule = (moduleName) => {
-        var print = (item) => {
-            console.log( item );
-        };
-
         if (this.Reading !== undefined) {
             return () => { };
         }
 
         return {
             start: (title) => {
-                return new Record( title );
+                return new Record( moduleName, title );
             },
             end: (record) => {
-                console.log( '\n', moduleName );
-                record.print();
                 records.delete( record.id );
-            } 
+            }, 
+            log: function () {
+                console.log( '\n', moduleName, ...arguments );
+            }
         };
     };
 
-    function Record (title) {
+    function Record (module, title) {
         this.id = Symbol( title );
-        this._record = title ? [ title ] : [];
+        this._record = []; //title ? [ title ] : [];
+        this.level = 0;
+
+        this.generalPadding = '';
+        for (let i = 0; i < records.size; i += 1) {
+            this.generalPadding += Record.padding;
+        }
+
         records.set( this.id, this );
+
+        console.log( '' + this.generalPadding + module );
+        
+        if (title) {
+            console.log( Record.padding + this.generalPadding + title );
+        }
     }
+
+    Record.padding = '    ';
 
     Record.prototype.push = function () {
-        this._record.push( Array.prototype.join.call( arguments, ' ' ) );
-    }
+        var levelPadding = '';
+        for (var i = 0; i < this.level; i += 1) {
+            levelPadding += Record.padding;
+        }
+        //this._record.push( padding + Array.prototype.join.call( arguments, ' ' ) );
+        console.log( Record.padding + this.generalPadding + levelPadding + Array.prototype.join.call( arguments, ' ' ) );
+    };
+
+    Record.prototype.levelUp = function (text) {
+        if (text !== undefined) {
+            this.push( text );
+        }
+        this.level += 1;
+    };
+
+    Record.prototype.levelDown = function () {
+        this.level -= 1;
+        if (this.level < 0) {
+            this.level = 0;
+        }
+    };
+
+    Record.prototype.notEmpty = function () {
+        return this._record.length > 0;
+    };
 
     Record.prototype.print = function () {
-        console.log( '    ' + this._record.join( '\n    ' ) );
-    }
+        console.log( Record.padding + this.generalPadding + this._record.join( '\n' + Record.padding ) );
+    };
 
     var records = new Map();
 

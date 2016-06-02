@@ -1,10 +1,17 @@
 // Reading model
 
-(function (app) {
+if (!this.Reading) {
+    module.exports.Logger = require('../utils/logger.js').Logger;
+    module.exports.Line = require('./line.js').Line;
+    module.exports.Geometry = require('./geometry.js').Geometry;
+    module.exports.Fixations = require('./fixations.js').Fixations;
+    module.exports.Zone = require('./zone.js').Zone;
+    module.exports.LinePredictor = require('./linePredictor.js').LinePredictor;
+}
 
-    'use strict';
+(function (app) { 'use strict';
 
-    var Model = {
+    var Model1 = {
 
         // Initializes the model
         // Arguments:
@@ -18,45 +25,42 @@
         //      readingZoneMarginY      (1) em
         //      neutralZoneMarginY      (2) em
         //      linePredictor:
-        //          factors:
-        //              currentLineDistReduce   - (0.8)     // fraction of the real distance
-        //              guessMaxDist            - (3)
-        //              currentLineDefDist      - (0.5)     // fraction of the lineSpace
-        //              currentLineMaxDist      - (0.7)     // fraction of the lineSpace
-        //              newLineSaccadeLength    - (-0.7)    // fraction of the max line width
+        //          currentLineDistReduce   - (0.8)     // fraction of the real distance
+        //          guessMaxDist            - (3)
+        //          currentLineDefDist      - (0.5)     // fraction of the lineSpace
+        //          currentLineMaxDist      - (0.7)     // fraction of the lineSpace
+        //          newLineSaccadeLength    - (-0.7)    // fraction of the max line width
         //  commons:
         //      fixedText               bool
-        init: function (_settings, _commons) {
-            _settings = _settings || {};
-            _commons = _commons || {};
+        init: function (settings, commons) {
+            settings = settings || {};
+            commons = commons || {};
 
-            settings = {
-                forgettingFactor: _settings.forgettingFactor || 0.2,
-                readingThreshold: _settings.readingThreshold || 3,
-                nonreadingThreshold: _settings.nonreadingThreshold || 2,
-                slope: _settings.slope || 0.15,
-                progressiveLeft: _settings.progressiveLeft || -1,
-                progressiveRight: _settings.progressiveRight || 9,
-                readingZoneMarginY: _settings.readingZoneMarginY || 1,
-                neutralZoneMarginY: _settings.neutralZoneMarginY || 2,
-                linePredictor: _settings.linePredictor
+            _settings = {
+                forgettingFactor: settings.forgettingFactor || 0.2,
+                readingThreshold: settings.readingThreshold || 3,
+                nonreadingThreshold: settings.nonreadingThreshold || 2,
+                slope: settings.slope || 0.15,
+                progressiveLeft: settings.progressiveLeft || -1,
+                progressiveRight: settings.progressiveRight || 9,
+                readingZoneMarginY: settings.readingZoneMarginY || 1,
+                neutralZoneMarginY: settings.neutralZoneMarginY || 2,
+                linePredictor: settings.linePredictor || {}
             };
 
-            if (_commons.fixedText === undefined) {
-                _commons.fixedText = true;
-            }
+            app.Line.init();
 
-            geometry = app.Geometry;
-            geometry.init( _commons.fixedText );
+            _geometry = app.Geometry;
+            _geometry.init( commons.fixedText !== undefined ? commons.fixedText : true);
 
-            fixationDetector = app.Fixations;
-            fixationDetector.init();
+            _fixationDetector = app.Fixations;
+            _fixationDetector.init();
 
-            zone = app.Zone;
-            newLineDetector = app.NewLineDetector;
-            linePredictor = app.LinePredictor;
+            _zone = app.Zone;
+            //newLineDetector = app.NewLineDetector;
+            _linePredictor = app.LinePredictor;
 
-            log = (logger || app.Logger).moduleLogPrinter( 'Model' );
+            _logger = app.Logger.forModule( 'Model1' );
         },
 
         feedFixation: function (fixation) {
@@ -65,16 +69,15 @@
                 return;
             }
 
-            log( '-------' );
-            log( fixation.toString() );
+            _log = _logger.start( '--- fix ---' );
+            _log.push( fixation.toString() );
 
             // new line searcfh disabled -->
             //var newLine = classifySaccadeZone( fixation );
             var guessedZone = scoreReading === 0 && fixation.saccade.x < 0 ?
-                zone.nonreading :
-                zone.match( fixation.saccade );
+                _zone.nonreading :
+                _zone.match( fixation.saccade );
 
-            logger.push( 'zone', guessedZone );
             fixation.saccade.zone = guessedZone;
             updateScores( guessedZone );
             // --> replacement
@@ -82,18 +85,25 @@
             var switched = updateMode();
 
             if (isReadingMode) {
-
                 var switchedToReading = switched.toReading;
                 var fix = switched.toReading ? getFirstReadingFixation( fixation ) : fixation;
 
+                _log.push( 'Mapping' );
                 while (fix) {
                     if (switched.toReading) {
-                        logger.log( fix.toString() );
+                        _log.push( '' );
+                        _log.push( fix.toString() );
                     }
-                    lastMapped = map( fix, switchedToReading);
+                    lastMapped = map( fix, switchedToReading );
                     switchedToReading = false;
+
+                    if (fix === fixation) {
+                        break;
+                    }
+
                     fix = fix.next;
                 }
+                _log.levelDown();
             }
             else {
                 lastMapped = null;
@@ -101,13 +111,13 @@
 
             lastFixation = fixation;
 
-            logger.closeBuffer();
+            _logger.end( _log );
         },
 
         feed: function (targets, data1, data2) {
             createGeometry(targets);
 
-            var newFixation = fixationDetector.feed( data1, data2 );
+            var newFixation = _fixationDetector.feed( data1, data2 );
             if (newFixation) {
                 this.feedFixation( newFixation );
             }
@@ -119,11 +129,11 @@
         },
 
         reset: function (targets) {
-            geometry.reset();
-            fixationDetector.reset();
-            zone.reset();
-            newLineDetector.reset();
-            linePredictor.reset();
+            _geometry.reset();
+            _fixationDetector.reset();
+            _zone.reset();
+            //newLineDetector.reset();
+            _linePredictor.reset();
 
             isReadingMode = false;
             scoreReading = 0;
@@ -139,12 +149,12 @@
             }
         },
 
-        callbacks: function (_callbacks) {
-            if (!_callbacks) {
-                return callbacks;
+        callbacks: function (callbacks) {
+            if (!callbacks) {
+                return _callbacks;
             }
             else {
-                callbacks.onMapped = _callbacks.onMapped;
+                _callbacks.onMapped = callbacks.onMapped;
             }
         },
 
@@ -158,13 +168,13 @@
     };
 
     // internal
-    var settings;
+    var _settings;
 
-    var geometry;
-    var fixationDetector;
-    var zone;
-    var newLineDetector;
-    var linePredictor;
+    var _geometry;
+    var _fixationDetector;
+    var _zone;
+    //var newLineDetector;
+    var _linePredictor;
 
     var isReadingMode;
     var scoreReading;
@@ -175,50 +185,52 @@
     var lastMapped;
     var lastFixation;
 
-    var log;
-    var callbacks = {
+    var _logger;
+    var _log;
+
+    var _callbacks = {
         onMapped: null
     };
 
-    function createGeometry(targets) {
-        var geomModel = geometry.create(targets);
+    function createGeometry (targets) {
+        var geomModel = _geometry.create( targets );
         if (geomModel) {
-            zone.init({
-                progressiveLeft: settings.progressiveLeft,
-                progressiveRight: settings.progressiveRight,
-                readingMarginY: settings.readingZoneMarginY,
-                neutralMarginY: settings.neutralZoneMarginY,
-                slope: settings.slope
+            _zone.init({
+                progressiveLeft: _settings.progressiveLeft,
+                progressiveRight: _settings.progressiveRight,
+                readingMarginY: _settings.readingZoneMarginY,
+                neutralMarginY: _settings.neutralZoneMarginY,
+                slope: _settings.slope
             }, geomModel);
-            newLineDetector.init({
-                minMarginY: 0.3,
-                maxMarginY: 1.3,
-                slope: settings.slope
-            }, geomModel);
-            linePredictor.init( geomModel, settings.linePredictor );
+            // newLineDetector.init({
+            //     minMarginY: 0.3,
+            //     maxMarginY: 1.3,
+            //     slope: _settings.slope
+            // }, geomModel);
+            _linePredictor.init( geomModel, _settings.linePredictor );
         }
     }
 
-    function updateScores(guessedZone) {
+    function updateScores (guessedZone) {
         switch (guessedZone) {
-            case zone.reading:
-                logger.push('in reading zone');
+            case _zone.reading:
+                _log.push( `zone ${guessedZone}: reading` );
                 scoreReading++;
-                scoreNonReading -= settings.forgettingFactor;
+                scoreNonReading -= _settings.forgettingFactor;
                 break;
-            case zone.neutral:
-                logger.push('in neutral zone');
+            case _zone.neutral:
+                _log.push( `zone ${guessedZone}: neutral` );
                 //scoreNonReading++;
                 break;
             default:
-                logger.push('in nonreading zone');
-                scoreNonReading = settings.nonreadingThreshold;
+                _log.push( `zone ${guessedZone}: nonreading` );
+                scoreNonReading = _settings.nonreadingThreshold;
                 scoreReading = 0;
         }
 
-        scoreReading = scoreReading < settings.readingThreshold ? scoreReading : settings.readingThreshold;
+        scoreReading = scoreReading < _settings.readingThreshold ? scoreReading : _settings.readingThreshold;
         scoreReading = scoreReading > 0 ? scoreReading : 0;
-        scoreNonReading = scoreNonReading < settings.nonreadingThreshold ? scoreNonReading : settings.nonreadingThreshold;
+        scoreNonReading = scoreNonReading < _settings.nonreadingThreshold ? scoreNonReading : _settings.nonreadingThreshold;
         scoreNonReading = scoreNonReading > 0 ? scoreNonReading : 0;
     }
 
@@ -228,11 +240,11 @@
             toNonReading: false
         };
 
-        if (!isReadingMode && scoreReading === settings.readingThreshold) {
+        if (!isReadingMode && scoreReading === _settings.readingThreshold) {
             changeMode(true);
             result.toReading = true;
         }
-        else if (isReadingMode && scoreNonReading === settings.nonreadingThreshold) {
+        else if (isReadingMode && scoreNonReading === _settings.nonreadingThreshold) {
             changeMode(false);
             result.toNonReading = true;
         }
@@ -241,22 +253,22 @@
     }
 
     function changeMode(toReading) {
-        logger.push('change Mode', toReading);
+        _log.push( 'change Mode', toReading );
         isReadingMode = toReading;
     }
 
     function updateOffset( fixation, line ) {
         if (isReadingMode && line) {
             offset = line.center.y - fixation.y;
-            logger.push('offset', offset);
+            _log.push( 'offset', offset );
         }
     }
 
     function map(fixation, isSwitchedToReading) {
 
-        currentLine = linePredictor.get( isSwitchedToReading, fixation, currentLine, offset );
+        currentLine = _linePredictor.get( isSwitchedToReading, fixation, currentLine, offset );
 
-        if (isReadingMode && (isSwitchedToReading || fixation.saccade.zone === zone.reading)) {
+        if (isReadingMode && (isSwitchedToReading || fixation.saccade.zone === _zone.reading)) {
             updateOffset( fixation, currentLine );
         }
 
@@ -265,7 +277,7 @@
         if (mapped) {
             var outlierFix = searchOutlier( fixation, mapped.line.index );
             if (outlierFix) {
-                logger.log('outlier fixation is backtracked: line #', mapped.line.index);
+                _logger.log( 'outlier fixation is backtracked: line #', mapped.line.index );
                 mapToWord( outlierFix, mapped.line, true );
             }
         }
@@ -275,12 +287,7 @@
 
     function mapToWord(fixation, line, skipFix) {
 
-        logger.closeBuffer();
-        logger.push('[MAP]');
-        // if (!isReadingMode) {
-        //     logger.log('    none');
-        //     return null;
-        // }
+        var log = _logger.start( 'MAP' );
 
         if (!line) {
             //logger.log(logger.Type.error, '    ???');
@@ -312,56 +319,63 @@
 
         fixation.word = result;
 
-        if (result && callbacks.onMapped) {
-            callbacks.onMapped( fixation );
+        if (result && _callbacks.onMapped) {
+            _callbacks.onMapped( fixation );
         }
         
-        logger.push('[d=', Math.floor( minDist ), ']', result ? result.line.index + ',' + result.index : '' );
+        log.push('[d=', Math.floor( minDist ), ']', result ? result.line.index + ',' + result.index : '' );
+        _logger.end( log );
+
         return result;
     }
 
-    function backtrackFixations( currentFixation, line ) {
-        logger.log( '------ backtrack ------' );    
+    /*function backtrackFixations( currentFixation, line ) {
+        _logger.log( '------ backtrack ------' );    
         var isReadingZone = true;
         var fixation = currentFixation.previous;
         while (fixation && !fixation.saccade.newLine) {
-            if (fixation.saccade.zone === zone.nonreading) {
+            if (fixation.saccade.zone === _zone.nonreading) {
                 fixation.word = mapToWord( fixation, line, true );
                 break;
             }
-            if (!isReadingZone && fixation.saccade.zone !== zone.reading) {
+            if (!isReadingZone && fixation.saccade.zone !== _zone.reading) {
                 break;
             }
             fixation.word = mapToWord( fixation, line );
-            isReadingZone = fixation.saccade.zone === zone.reading;
+            isReadingZone = fixation.saccade.zone === _zone.reading;
             fixation = fixation.previous;
         }
-        logger.log( '------ ///////// ------' );
-    }
+        _logger.log( '------ ///////// ------' );
+    }*/
 
     function getFirstReadingFixation( currentFixation ) {
-        logger.log( '------ backtrack ------' );
+        var log = _logger.start( '------ backtrack ------' );
         var result = null;
         var isReadingZone = true;
         var fixation = currentFixation.previous;
         while (fixation && !fixation.saccade.newLine) {
-            if (fixation.saccade.zone === zone.nonreading) {
+            if (fixation.saccade.zone === _zone.nonreading) {
                 result = isReadingZone ? fixation : fixation.next;
+                log.push( '--, finish' );
                 break;
             }
-            if (!isReadingZone && fixation.saccade.zone !== zone.reading) {
+            if (!isReadingZone && fixation.saccade.zone !== _zone.reading) {
                 result = fixation.next;
+                log.push( '++, finish' );
                 break;
             }
             result = fixation;
-            isReadingZone = fixation.saccade.zone === zone.reading;
+            isReadingZone = fixation.saccade.zone === _zone.reading;
             fixation = fixation.previous;
+            log.push( '--' );
         }
-        logger.log( '------ ///////// ------' );
+
+        _logger.end( log );
 
         return result;
     }
 
+    // outlier is the fixation that is the only fixation on another line
     function searchOutlier( fixation, lineIndex ) {
         var candidate = null;
         var pattern = [true, false, true];
@@ -389,6 +403,6 @@
     }
     
     // Publication
-    app.Model = Model;
+    app.Model1 = Model1;
 
 })( this.Reading || module.exports );

@@ -17,7 +17,7 @@
     //          showFixations       - flag to display fixations
     //          showOriginalFixLocation - flag to display original fixation location
     //      }
-    function Path(options) {
+    function Path (options) {
 
         this.fixationColor = options.fixationColor || '#000';
         this.saccadeColor = options.saccadeColor || '#08F';
@@ -42,7 +42,7 @@
         app.Visualization.call( this, options );
     }
 
-    app.loaded( () => { // we have to defer the prototype definitio until the Visualization mudule is loaded
+    app.loaded( () => { // we have to defer the prototype definition until the Visualization mudule is loaded
 
     Path.prototype = Object.create( app.Visualization.prototype );
     Path.prototype.base = app.Visualization.prototype;
@@ -61,6 +61,8 @@
         if (!this._snapshot) {
             return;
         }
+
+        //this._exportData();
 
         var session = this._snapshot.child( name );
         if (session && session.exists()) {
@@ -143,7 +145,7 @@
         ctx.stroke();
     };
 
-    Path.prototype._remap = function (session) {
+    Path.prototype._remapDynamic = function (session) {
         var fixations = GazeTargets.Models.Reading.Fixations;
         var model = GazeTargets.Models.Reading.Campbell;
         var logger = GazeTargets.Logger;
@@ -189,6 +191,44 @@
         app.StaticFit.map(session);
         return session.fixations;
     };
+
+
+    // Path.prototype._exportData = function () {
+
+    //     var data = '';
+    //     this._snapshot.forEach( childSnapshot => {
+    //         var sessionName = childSnapshot.key();
+    //         var session = this._snapshot.child( sessionName );
+    //         if (session && session.exists()) {
+    //             var sessionVal = session.val();
+    //             data += `\n${sessionName.split('_')[0]}\n`;
+    //             if (sessionVal && sessionVal.fixations) {
+    //                 data += `${sessionVal.setup.lineSize}\t${sessionVal.setup.textID}\n`;
+    //                 sessionVal.fixations.forEach( fix => {
+    //                     if (fix.x > 0 && fix.y > 0) {
+    //                         data += `${fix.ts}\t${fix.x}\t${fix.y}\t${fix.duration}\n`;
+    //                     }
+    //                 });
+    //             }
+    //         }
+    //     });
+
+    //     var blob = new Blob([data], {type: 'text/plain'});
+        
+    //     var downloadLink = document.createElement("a");
+    //     downloadLink.download = 'results.txt';
+    //     downloadLink.innerHTML = 'Download File';
+
+    //     var URL = window.URL || window.webkitURL;
+    //     downloadLink.href = URL.createObjectURL( blob );
+    //     downloadLink.onclick = function(event) { // self-destrly
+    //         document.body.removeChild(event.target);
+    //     };
+    //     downloadLink.style.display = 'none';
+    //     document.body.appendChild( downloadLink );
+
+    //     downloadLink.click();
+    // };
 
     });
 

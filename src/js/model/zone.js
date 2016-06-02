@@ -2,12 +2,10 @@
 //      utils/logger
 
 if (!this.Reading) {
-    var logger = require('../utils/logger.js').Logger;
+    module.exports.Logger = require('../utils/logger.js').Logger;
 }
 
-(function (app) {
-
-    'use strict';
+(function (app) { 'use strict';
 
     var Zone = {
 
@@ -26,8 +24,7 @@ if (!this.Reading) {
             _neutralMarginY = Math.round( (settings.neutralMarginY || 3) * _lineHeight );
             _slope = settings.slope || 0.1;
 
-            //logger = root.GazeTargets.Logger;
-            _logger = (logger || app.Logger).forModule( 'Zone' );
+            _logger = app.Logger.forModule( 'Zone' );
         },
 
         match: function (saccade) {
@@ -44,6 +41,7 @@ if (!this.Reading) {
 
             _log.push( 'result: ', zone );
             _logger.end( _log );
+
             return zone;
         },
 

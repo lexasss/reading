@@ -5,9 +5,7 @@ if (!this.Reading) {
     module.exports.Zone = require('./zone.js').Zone;
 }
 
-(function (app) {
-
-    'use strict';
+(function (app) { 'use strict';
 
     var Fixations = {
 

@@ -1,21 +1,25 @@
-// Reading model: text geometry model creator
-// Depends on:
-//      libs/regression
+// Requires:
+//      utils/logger
 
-(function (root) {
+if (!this.Reading) {
+    module.exports.Logger = require('../utils/logger.js').Logger;
+    module.exports.Line = require('./line.js').Line;
+}
 
-    'use strict';
+(function (app) { 'use strict';
 
     var Geometry = {
 
-        init: function(_isTextFixed) {
-            isTextFixed = _isTextFixed;
+        init: function (options) {
+            options = options || {};
 
-            logger = root.GazeTargets.Logger;
+            _isTextFixed = options.isTextFixed || true;
+
+            _logger = app.Logger.forModule( 'Geometry' );
         },
 
         create: function (targets) {
-            if (isTextFixed && lines.length > 0) {
+            if (_isTextFixed && _lines.length > 0) {
                 return null;
             }
 
@@ -27,220 +31,86 @@
         },
 
         reset: function () {
-            // lines.forEach(function (line) {
+            // _lines.forEach(function (line) {
             //     line.forEach(function (w) {
-            //         logger.log('new Word({ left: ' + w.rect.left + 
+            //         _logger.log('new Word({ left: ' + w.rect.left + 
             //             ', top: ' + w.rect.top + 
             //             ', right: ' + w.rect.right + 
             //             ', bottom: ' + w.rect.bottom + ' }),');
             //     });
             // });
-            lines = [];
-            lineSpacing = 0;
-            lineHeight = 0;
-            lineWidth = 0;
+            _lines = [];
+            _lineSpacing = 0;
+            _lineHeight = 0;
+            _lineWidth = 0;
         },
 
         model: function () {
             return {
-                lines: lines,
-                lineSpacing: lineSpacing,
-                lineHeight: lineHeight,
-                lineWidth: lineWidth
+                lines: _lines,
+                lineSpacing: _lineSpacing,
+                lineHeight: _lineHeight,
+                lineWidth: _lineWidth
             };
         }
     };
 
-    // internal
-    var modelMaxGradient = 0.15;
-    var modelTypeSwitchThreshold = 8;
-    var modelRemoveOldFixThreshold = 10;
-    
-    var isTextFixed;
+    var _isTextFixed;
 
-    var lines = [];
-    var lineSpacing;
-    var lineHeight;
-    var lineWidth;
+    var _lines = [];
+    var _lineSpacing;
+    var _lineHeight;
+    var _lineWidth;
 
-    var logger;
+    var _logger;
 
-    function compute(targets) {
+    function compute (targets) {
 
         var lineY = 0;
         var currentLine = null;
 
-        for (var i = 0; i < targets.length; ++i) {
+        for (var i = 0; i < targets.length; i += 1) {
             var target = targets[i];
             var rect = target.getBoundingClientRect();
             if (lineY < rect.top || !currentLine) {
                 if (currentLine) {
-                    lineSpacing += rect.top - currentLine.top;
-                    lineHeight += currentLine.bottom - currentLine.top;
-                    if (lineWidth < currentLine.right - currentLine.left) {
-                        lineWidth = currentLine.right - currentLine.left;
+                    _lineSpacing += rect.top - currentLine.top;
+                    _lineHeight += currentLine.bottom - currentLine.top;
+                    if (_lineWidth < currentLine.right - currentLine.left) {
+                        _lineWidth = currentLine.right - currentLine.left;
                     }
                 }
-                currentLine = new Line(rect, target, lines.length, lines[lines.length - 1]);
-                lines.push(currentLine);
+                currentLine = new app.Line( rect, target, _lines.length, _lines[ _lines.length - 1 ] );
+                _lines.push( currentLine );
                 lineY = rect.top;
             }
             else {
-                currentLine.add(rect, target);
+                currentLine.add( rect, target );
             }
-//                logger.log('{ left: ' + Math.round(rect.left) + ', top: ' + Math.round(rect.top) + ', right: ' + Math.round(rect.right) + ', bottom: ' + Math.round(rect.bottom) + ' }');
+//                _logger.log('{ left: ' + Math.round(rect.left) + ', top: ' + Math.round(rect.top) + ', right: ' + Math.round(rect.right) + ', bottom: ' + Math.round(rect.bottom) + ' }');
         }
 
         if (currentLine) {
-            lineHeight += currentLine.bottom - currentLine.top;
-            lineHeight /= lines.length;
-            if (lineWidth < currentLine.right - currentLine.left) {
-                lineWidth = currentLine.right - currentLine.left;
+            _lineHeight += currentLine.bottom - currentLine.top;
+            _lineHeight /= _lines.length;
+            if (_lineWidth < currentLine.right - currentLine.left) {
+                _lineWidth = currentLine.right - currentLine.left;
             }
         }
 
-        if (lines.length > 1) {
-            lineSpacing /= lines.length - 1;
+        if (_lines.length > 1) {
+            _lineSpacing /= _lines.length - 1;
         }
-        else if (lines.length > 0) {
-            var line = lines[0];
-            lineSpacing = 2 * (line.bottom - line.top);
+        else if (_lines.length > 0) {
+            var line = _lines[0];
+            _lineSpacing = 2 * (line.bottom - line.top);
         }
         
-        logger.log('geometry model created', lines.length);
-    }
-
-    // Line object
-    function Line(word, dom, index, prevLine) {
-        this.left = word.left;
-        this.top = word.top;
-        this.right = word.right;
-        this.bottom = word.bottom;
-        this.center = {
-            x: (word.left + word.right) / 2,
-            y: (word.top + word.bottom) / 2
-        };
-
-        this.words = [];
-        this.words.push(new Word(word, dom, this));
-
-        this.index = index;
-        this.previous = prevLine;
-        this.next = null;
-        if (this.previous) {
-            this.previous.next = this;
-        }
-        
-        this.fixations = [];
-        this.fitEq = null;
-    }
-
-    Line.prototype.width = function () {
-        return this.right - this.left;
-    }
-
-    Line.prototype.add = function (word, dom) {
-
-        this.right = word.right;
-        if (this.bottom < word.bottom) {
-            this.bottom = word.bottom;
-        }
-
-        this.words.push(new Word(word, dom, this));
-    };
-
-    Line.prototype.addFixation = function (fixation) {
-
-        this.fixations.push( [fixation.x, fixation.y, fixation.saccade] );
-
-        if (this.fixations.length > 1) {
-            this.removeOldFixation();
-            var type = this.fixations.length < modelTypeSwitchThreshold ? 'linear' : 'polynomial';
-            var model = window.regression.model( type, this.fixations, 2 );
-            this.fitEq = model.equation;
-            logger.push( 'model for line', this.index, ':', this.fitEq );
-
-            if (type === 'linear') {    // put restriction on the gradient
-                if (this.fitEq[1] < -modelMaxGradient) {
-                    this.fitEq = fixLinearModel( this.fixations, -modelMaxGradient );
-                    logger.push( 'model reset to', this.fitEq );
-                }
-                else if (this.fitEq[1] > modelMaxGradient) {
-                    this.fitEq = fixLinearModel( this.fixations, modelMaxGradient );
-                    logger.push( 'model reset to', this.fitEq );
-                }
-            }
-        }
-    };
-
-    Line.prototype.removeOldFixation = function () {
-        var lastIndex = this.fixations.length - 1;
-        if (lastIndex < 5) {
-            return;
-        }
-
-        var index = lastIndex;
-        var fix;
-        while (index > 0) {
-            fix = this.fixations[ index ];
-            if (index > 0 && fix[2].newLine) {       // the current line started here
-                if (lastIndex - index + 1 > modelRemoveOldFixThreshold) {     // lets have at least 15 fixations
-                    this.fixations = this.fixations.slice( index );
-                    logger.push( 'line fixations: reduced' );
-                }
-                break;
-            }
-            index -= 1;
-        }
-    };
-
-    // returns difference between model x and the actual x
-    Line.prototype.fit = function (x, y) {
-        if (this.fitEq) {
-            var result = y - window.regression.fit( this.fitEq, x );
-            //logger.push( 'fitting', x, 'to line', this.index, ': error is ', result );
-            logger.push( 'e[', this.index, '] =', Math.floor( result ) );
-            return result;
-        }
-        return Number.MAX_VALUE;
-    };
-
-    // Word object
-    function Word(rect, dom, line) {
-        this.rect = rect;
-        this.dom = dom;
-        this.line = line;
-        this.index = line.words.length;
-    }
-
-    Word.prototype.toString = function () {
-        return this.rect.left + ',' + this.rect.top + ' / ' + this.line.index;
-    };
-
-    function fixLinearModel( fixations, gradient ) {
-        var sum = 0;
-        for (var i = 0; i < fixations.length; ++i) {
-            var fix = fixations[i];
-            sum += fix[1] - gradient * fix[0];
-        }
-        return [sum / fixations.length, gradient];
+        var log = _logger.start( _lines.length + ' lines' );
+        _logger.end( log );
     }
 
     // Publication
-    if (!root.GazeTargets) {
-        root.GazeTargets = {};
-    }
+    app.Geometry = Geometry;
 
-    if (!root.GazeTargets.Models) {
-        root.GazeTargets.Models = {};
-    }
-
-    if (!root.GazeTargets.Models.Reading) {
-        root.GazeTargets.Models.Reading = {};
-    }
-
-    root.GazeTargets.Models.Reading.Geometry = Geometry;
-    root.GazeTargets.Models.Reading.Geometry.Line = Line;
-    root.GazeTargets.Models.Reading.Geometry.Word = Word;
-
-})(window);
+})( this.Reading || module.exports );
