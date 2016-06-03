@@ -29,74 +29,46 @@ if (!this.Reading) {
             _fixationDetector = app.Fixations;
             _fixationDetector.init();
 
-            _zone = app.Zone;
-
             _logger = app.Logger.forModule( 'Model2' );
         },
 
         feedFixation: function (fixation) {
             if (!fixation) {
-                lastFixation = null;
                 return;
             }
+
+            _lastFixation = fixation;
 
             _log = _logger.start( '--- fix ---' );
             _log.push( fixation.toString() );
 
-            // new line searcfh disabled -->
-            //var newLine = classifySaccadeZone( fixation );
-            var guessedZone = scoreReading === 0 && fixation.saccade.x < 0 ?
-                _zone.nonreading :
-                _zone.match( fixation.saccade );
+            _currentLine = lineFromSaccade( fixation.saccade.y ); // line, null, or false
 
-            fixation.saccade.zone = guessedZone;
-            updateScores( guessedZone );
-            // --> replacement
-
-            var switched = updateMode();
-
-            if (isReadingMode) {
-                var switchedToReading = switched.toReading;
-                var fix = switched.toReading ? getFirstReadingFixation( fixation ) : fixation;
-
-                _log.push( 'Mapping' );
-                while (fix) {
-                    if (switched.toReading) {
-                        _log.push( '' );
-                        _log.push( fix.toString() );
-                    }
-                    lastMapped = map( fix, switchedToReading );
-                    switchedToReading = false;
-
-                    if (fix === fixation) {
-                        break;
-                    }
-
-                    fix = fix.next;
-                }
-                _log.levelDown();
+            if (!_currentLine) {
+                _currentLine = lineFromAbsolutePosition( fixation );
             }
-            else {
-                lastMapped = null;
+            else {  // check how far the fixation from the currentlt mapped line
+                _currentLine = ensureFixationIsClose( fixation );
             }
 
-            lastFixation = fixation;
+            _lastMapped = mapToWord( fixation );
 
             _logger.end( _log );
 
-            return lastMapped ? lastMapped.dom : null;
+            return _lastMapped ? _lastMapped.dom : null;
         },
 
         feed: function (targets, x, y) {
             var result = null;
-            createGeometry( targets );
+
+            _geomModel = _geometry.create( targets );
 
             var newFixation = _fixationDetector.feed( x, y );
             if (newFixation) {
                 result = this.feedFixation( newFixation );
             }
             else {
-                lastFixation = null;
+                _lastFixation = null;
             }
 
             return result;
@@ -105,21 +77,14 @@ if (!this.Reading) {
         reset: function (targets) {
             _geometry.reset();
             _fixationDetector.reset();
-            _zone.reset();
-            //newLineDetector.reset();
-            _linePredictor.reset();
 
-            isReadingMode = false;
-            scoreReading = 0;
-            scoreNonReading = 0;
-            
-            offset = 0;
-            currentLine = null;
-            lastMapped = null;
-            lastFixation = null;
+            _currentLine = null;
+            _lastMapped = null;
+            _lastFixation = null;
+            _geomModel = null;
 
             if (targets) {
-                createGeometry( targets );
+                _geomModel = _geometry.create( targets );
             }
         },
 
@@ -133,7 +98,7 @@ if (!this.Reading) {
         },
 
         currentWord: function () {
-            return lastMapped;
+            return _lastMapped;
         },
 
         mappedFix: function () {
@@ -146,137 +111,123 @@ if (!this.Reading) {
 
     var _geometry;
     var _fixationDetector;
-    var _zone;
-    //var newLineDetector;
-    var _linePredictor;
-
-    var isReadingMode;
-    var scoreReading;
-    var scoreNonReading;
-
-    var offset;
-    var currentLine;
-    var lastMapped;
-    var lastFixation;
-
     var _logger;
     var _log;
+
+    var _geomModel;
+    var _currentLine;
+    var _lastMapped;
+    var _lastFixation;
 
     var _callbacks = {
         onMapped: null
     };
 
-    function createGeometry (targets) {
-        var geomModel = _geometry.create( targets );
-        if (geomModel) {
-            _zone.init({
-                progressiveLeft: _settings.progressiveLeft,
-                progressiveRight: _settings.progressiveRight,
-                readingMarginY: _settings.readingZoneMarginY,
-                neutralMarginY: _settings.neutralZoneMarginY,
-                slope: _settings.slope
-            }, geomModel);
-            // newLineDetector.init({
-            //     minMarginY: 0.3,
-            //     maxMarginY: 1.3,
-            //     slope: _settings.slope
-            // }, geomModel);
-            _linePredictor.init( geomModel, _settings.linePredictor );
+    function lineFromSaccade (dy) {
+        var saccadeThreshold = _geomModel.lineHeight * 1.2;
+        var nextLineSaccadeThreshold = _geomModel.lineSpacing * 1.75;
+        
+        var lineChange = Number.NaN;
+
+        if (Math.abs( dy ) < saccadeThreshold) {
+            lineChange = 0;
         }
+        else if (dy > 0 && dy < nextLineSaccadeThreshold)  {
+            lineChange = 1;
+        }
+        else if (dy < 0) {
+            lineChange = Math.round( dy / _geomModel.lineSpacing);
+        }
+
+        _log.push( Number.isNaN( lineChange ) ? 'chaotic jump' : 'line changed by ' + lineChange);
+
+        var result = null;
+        if (_currentLine && !Number.isNaN( lineChange )) {
+            var newLineIndex = _currentLine.index + lineChange;
+            if (newLineIndex >= 0 && newLineIndex < _geomModel.lines.length) {
+                result = _geomModel.lines[ newLineIndex ];
+                _log.push( 'line #', result.index );
+            }
+            else {
+                _log.push( 'jump outside the line' );
+            }
+        } 
+        else {
+            result = false;
+            _log.push( 'cannot estimate line from saccade' );
+        }
+
+
+        return result;
     }
 
-    function updateScores (guessedZone) {
-        switch (guessedZone) {
-            case _zone.reading:
-                _log.push( `zone ${guessedZone}: reading` );
-                scoreReading++;
-                scoreNonReading -= _settings.forgettingFactor;
-                break;
-            case _zone.neutral:
-                _log.push( `zone ${guessedZone}: neutral` );
-                //scoreNonReading++;
-                break;
-            default:
-                _log.push( `zone ${guessedZone}: nonreading` );
-                scoreNonReading = _settings.nonreadingThreshold;
-                scoreReading = 0;
+    function lineFromAbsolutePosition (fixation) {
+        var verticalThreshold = _geomModel.lineSpacing * 0.5;
+        var horizontalThreshold = 200;
+        var result = _geomModel.lines.find( (line) => {
+            let dy = Math.abs( fixation.y - line.center.y );
+            let dx = fixation.x < line.left ? line.left - fixation.x : 
+                    (fixation.x > line.right ? fixation.x - line.right : 0);
+            return dx < horizontalThreshold && dy < verticalThreshold;
+        });
+
+        if (result) {
+            _log.push( 'line #', result.index );
         }
-
-        scoreReading = scoreReading < _settings.readingThreshold ? scoreReading : _settings.readingThreshold;
-        scoreReading = scoreReading > 0 ? scoreReading : 0;
-        scoreNonReading = scoreNonReading < _settings.nonreadingThreshold ? scoreNonReading : _settings.nonreadingThreshold;
-        scoreNonReading = scoreNonReading > 0 ? scoreNonReading : 0;
-    }
-
-    function updateMode() {
-        var result = {
-            toReading: false,
-            toNonReading: false
-        };
-
-        if (!isReadingMode && scoreReading === _settings.readingThreshold) {
-            changeMode(true);
-            result.toReading = true;
-        }
-        else if (isReadingMode && scoreNonReading === _settings.nonreadingThreshold) {
-            changeMode(false);
-            result.toNonReading = true;
+        else {
+            _log.push( 'the fixation is not on any line' );
         }
 
         return result;
     }
 
-    function changeMode(toReading) {
-        _log.push( 'change Mode', toReading );
-        isReadingMode = toReading;
-    }
+    function ensureFixationIsClose (fixation) {
+        var fixOffsetY = fixation.y - _currentLine.center.y;
+        _log.push( 'checking the Y offset', fixOffsetY );
 
-    function updateOffset( fixation, line ) {
-        if (isReadingMode && line) {
-            offset = line.center.y - fixation.y;
-            _log.push( 'offset', offset );
-        }
-    }
-
-    function map(fixation, isSwitchedToReading) {
-
-        currentLine = _linePredictor.get( isSwitchedToReading, fixation, currentLine, offset );
-
-        if (isReadingMode && (isSwitchedToReading || fixation.saccade.zone === _zone.reading)) {
-            updateOffset( fixation, currentLine );
-        }
-
-        var mapped = mapToWord( fixation, currentLine ); // , isSwitchedToReading ?
-
-        if (mapped) {
-            var outlierFix = searchOutlier( fixation, mapped.line.index );
-            if (outlierFix) {
-                _logger.log( 'outlier fixation is backtracked: line #', mapped.line.index );
-                mapToWord( outlierFix, mapped.line, true );
+        var doesNotFollow = _geomModel.lines.find( line => {
+            if (!line.fixations.length) {
+                return false;
             }
+
+            var y = line.center.y;
+            _log.push( '    ly =', y );
+            var avgOffsetY = line.fixations.reduce( (sum, fix) => {
+                _log.push( '    :', (fix[1] - y) );
+                return sum + (fix[1] - y);
+            }, 0) / line.fixations.length;
+
+            _log.push( '    d = ', avgOffsetY );
+
+            if (avgOffsetY === undefined) {
+                return false;
+            }
+            
+            return fixOffsetY < avgOffsetY - _geomModel.lineHeight || 
+                   fixOffsetY > avgOffsetY + _geomModel.lineHeight
+        });
+
+        if (doesNotFollow) {
+            _log.push( 'the line is too far, mapping naively' );
+            return lineFromAbsolutePosition( fixation );
         }
-        
-        return mapped;
+
+        return _currentLine;
     }
 
-    function mapToWord(fixation, line, skipFix) {
-
-        var log = _logger.start( 'MAP' );
-
-        if (!line) {
-            //logger.log(logger.Type.error, '    ???');
+    function mapToWord (fixation) {
+        if (!_currentLine) {
             return null;
         }
 
-        if (isReadingMode && !skipFix) { // && fixation.saccade.zone === zone.reading ?
-            line.addFixation( fixation );
-        }
-        
+        _currentLine.addFixation( fixation );
+        fixation.line = _currentLine.index;
+
         var x = fixation.x;
         var result = null;
         var minDist = Number.MAX_VALUE;
 
-        var words = line.words;
+        var words = _currentLine.words;
         for (var i = 0; i < words.length; ++i) {
             var word = words[i];
             var rect = word.rect;
@@ -297,85 +248,11 @@ if (!this.Reading) {
             _callbacks.onMapped( fixation );
         }
         
-        log.push('[d=', Math.floor( minDist ), ']', result ? result.line.index + ',' + result.index : '' );
-        _logger.end( log );
+        _log.push( '[d=', Math.floor( minDist ), ']', result ? result.line.index + ',' + result.index : '' );
 
         return result;
     }
 
-    /*function backtrackFixations( currentFixation, line ) {
-        _logger.log( '------ backtrack ------' );    
-        var isReadingZone = true;
-        var fixation = currentFixation.previous;
-        while (fixation && !fixation.saccade.newLine) {
-            if (fixation.saccade.zone === _zone.nonreading) {
-                fixation.word = mapToWord( fixation, line, true );
-                break;
-            }
-            if (!isReadingZone && fixation.saccade.zone !== _zone.reading) {
-                break;
-            }
-            fixation.word = mapToWord( fixation, line );
-            isReadingZone = fixation.saccade.zone === _zone.reading;
-            fixation = fixation.previous;
-        }
-        _logger.log( '------ ///////// ------' );
-    }*/
-
-    function getFirstReadingFixation( currentFixation ) {
-        var log = _logger.start( '------ backtrack ------' );
-        var result = null;
-        var isReadingZone = true;
-        var fixation = currentFixation.previous;
-        while (fixation && !fixation.saccade.newLine) {
-            if (fixation.saccade.zone === _zone.nonreading) {
-                result = isReadingZone ? fixation : fixation.next;
-                log.push( '--, finish' );
-                break;
-            }
-            if (!isReadingZone && fixation.saccade.zone !== _zone.reading) {
-                result = fixation.next;
-                log.push( '++, finish' );
-                break;
-            }
-            result = fixation;
-            isReadingZone = fixation.saccade.zone === _zone.reading;
-            fixation = fixation.previous;
-            log.push( '--' );
-        }
-
-        _logger.end( log );
-
-        return result;
-    }
-
-    // outlier is the fixation that is the only fixation on another line
-    function searchOutlier( fixation, lineIndex ) {
-        var candidate = null;
-        var pattern = [true, false, true];
-        var matched = 0;
-        var index = 0;
-
-        while (index < 3 && fixation) {
-            if (!fixation.word) {
-                break;
-            }
-
-            var isOnCurrentLine = lineIndex === fixation.word.line.index;
-            if (isOnCurrentLine === pattern[ index ]) {
-                ++matched;
-            }
-            if (index === 1) {
-                candidate = fixation;
-            }
-
-            fixation = fixation.previous;
-            ++index;
-        }
-                
-        return matched === pattern.length ? candidate : null;
-    }
-    
     // Publication
     app.Model2 = Model2;
 

@@ -68,7 +68,8 @@
         if (session && session.exists()) {
             var sessionVal = session.val();
             if (sessionVal) {
-                var fixations = this._remapStatic( sessionVal );
+                //var fixations = this._remapStatic( sessionVal );
+                var fixations = this._remapDynamic( sessionVal );
                 var metricRange = app.Metric.compute( sessionVal.words, this.colorMetric );
 
                 var ctx = this._getCanvas2D();
@@ -146,9 +147,8 @@
     };
 
     Path.prototype._remapDynamic = function (session) {
-        var fixations = GazeTargets.Models.Reading.Fixations;
-        var model = GazeTargets.Models.Reading.Campbell;
-        var logger = GazeTargets.Logger;
+        var fixations = app.Fixations;
+        var model = app.Model2;
 
         fixations.init( 80, 50 );
         model.init({
@@ -161,18 +161,16 @@
             }
         });
 
-        var layout = session.words.map(function (word) {
+        var layout = session.words.map( function (word) {
             return new Word({ left: word.x, top: word.y, right: word.x + word.width, bottom: word.y + word.height });
         });
 
-        logger.level( logger.Level.debug );
-        
         fixations.reset();
         model.reset( layout );
         //model.callbacks( { onMapped: function (fixation) {} } );
         
         var result = [];
-        session.fixations.forEach(function (fix) {
+        session.fixations.forEach( function (fix) {
             var fixation = fixations.add( fix.x, fix.y, fix.duration );
             if (fixation) {
                 model.feedFixation( fixation );
@@ -180,8 +178,6 @@
             }
         });
 
-        logger.level( logger.Level.silent );
-        
         return result;
     };
 

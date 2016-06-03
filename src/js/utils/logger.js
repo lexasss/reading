@@ -40,9 +40,9 @@
     };
 
     Logger.forModule = (moduleName) => {
-        if (this.Reading !== undefined) {
-            return () => { };
-        }
+        // if (this.Reading !== undefined) {
+        //     return () => { };
+        // }
 
         return {
             start: (title) => {
