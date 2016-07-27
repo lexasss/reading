@@ -32,10 +32,13 @@ mixin options(id, lists)
             .group
                 .name Session visualization
                 .row
-                    .label Color metric
+                    .label Word color metric
                     select.value#path_colorMetric
                         each metric in lists.colorMetrics
                             option(value="#{metric}") #{metric}
+                .row
+                    .label Colorize fixation according to line
+                    input.value#path_fixationUseLineColor(type="checkbox")
                 .row
                     .label Show word-fixation connections
                     input.value#path_showConnections(type="checkbox")

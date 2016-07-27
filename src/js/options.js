@@ -15,6 +15,7 @@
     //          hideText (bool)
     //          path {
     //              colorMetric (index)
+    //              fixationUseLineColor (bool)
     //              showConnections (bool)
     //              showSaccades (bool)
     //              showFixations (bool)
@@ -310,6 +311,7 @@
         bindCheckbox( 'hiddenText', _services.hideText );
         
         bindSelect( 'path_colorMetric', _services.path.colorMetric );
+        bindCheckbox( 'path_fixationUseLineColor', _services.path.fixationUseLineColor );
         bindCheckbox( 'path_showConnections', _services.path.showConnections );
         bindCheckbox( 'path_showSaccades', _services.path.showSaccades );
         bindCheckbox( 'path_showFixations', _services.path.showFixations );

@@ -9,6 +9,7 @@
     // Arguments:
     //      options: {
     //          fixationColor       - fixation color
+    //          fixationUseLineColor- true/false for colorizing fixations according to the mapped line
     //          saccadeColor        - saccade color
     //          connectionColor     - connection color
     //          colorMetric         - word background coloring metric
@@ -22,6 +23,7 @@
         this.fixationColor = options.fixationColor || '#000';
         this.saccadeColor = options.saccadeColor || '#08F';
         this.connectionColor = options.connectionColor || '#FF0';
+        this.fixationUseLineColor = options.fixationUseLineColor || true;
 
         this.colorMetric = options.colorMetric || app.Metric.Type.DURATION;
         this.showConnections = options.showConnections !== undefined ? options.showConnections : false;
@@ -88,6 +90,9 @@
    Path.prototype._drawFixations = function (ctx, fixations) {
         ctx.fillStyle = this.fixationColor;
         ctx.strokeStyle = this.saccadeColor;
+        ctx.textAlign = 'center'; 
+        ctx.textBaseline = 'middle';
+        ctx.font = '12px Arial';
 
         var prevFix, fix;
         for (var i = 0; i < fixations.length; i += 1) {
@@ -100,7 +105,7 @@
                 this._drawSaccade( ctx, prevFix, fix );
             }
 
-            this._drawFixation( ctx, fix );
+            this._drawFixation( ctx, fix, i );
 
             if (this.showConnections && fix.word) {
                 ctx.strokeStyle = this.connectionColor;
@@ -112,7 +117,21 @@
         }
     };
 
-    Path.prototype._drawFixation = function (ctx, fixation) {
+    Path.prototype._drawGreyFixation = function (ctx, fixation, fixID) {
+        ctx.fillStyle = 'rgba(0,0,0,0.50)';
+        ctx.beginPath();
+        ctx.arc( fixation.x, fixation.y, 15, 0, 2*Math.PI);
+        ctx.fill();
+
+        ctx.fillStyle = '#FF0';
+        ctx.fillText( '' + fixID, fixation.x, fixation.y );
+    }
+
+    Path.prototype._drawFixation = function (ctx, fixation, fixID) {
+        if (!this.fixationUseLineColor) {
+            return this._drawGreyFixation( ctx, fixation, fixID );
+        }
+
         if (fixation.line !== undefined) {
             ctx.fillStyle = this.lineColors[ fixation.line % 6 ];
         }
