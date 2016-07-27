@@ -121,7 +121,7 @@
     };
 
     Path.prototype._drawGreyFixation = function (ctx, fixation, fixID) {
-        ctx.fillStyle = 'rgba(0,0,0,0.30)';
+        ctx.fillStyle = 'rgba(0,0,0,0.50)';
         ctx.beginPath();
         ctx.arc( fixation.x, fixation.y, 15, 0, 2*Math.PI);
         ctx.fill();
