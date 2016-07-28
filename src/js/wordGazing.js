@@ -84,7 +84,8 @@
             var ctx = this._getCanvas2D();
             var metricRange = app.Metric.compute( words, this.colorMetric );
 
-            this._drawWords( ctx, words, metricRange );
+            var showIDs = false;
+            this._drawWords( ctx, words, metricRange, showIDs );
 
             if (this.showFixations) {
                 this._drawFixations( ctx, fixations );

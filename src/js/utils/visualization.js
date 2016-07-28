@@ -123,27 +123,36 @@
         ctx.fillText( title, (_canvas.width - textWidth) / 2, 32);
     };
 
-    Visualization.prototype._drawWords = function (ctx, words, metricRange) {
+    Visualization.prototype._drawWords = function (ctx, words, metricRange, showIDs) {
         ctx.strokeStyle = this.wordStrokeColor;
         ctx.lineWidth = 1;
         
-        words.forEach( word => {
+        words.forEach( (word, index) => {
             var alpha = app.Metric.getAlpha( word, this.colorMetric, metricRange );
-            this._drawWord( ctx, word, alpha );
+            this._drawWord( ctx, word, alpha, showIDs ? index : -1 );
         });
     };
 
-    Visualization.prototype._drawWord = function (ctx, word, backgroundAlpha) {
+    Visualization.prototype._drawWord = function (ctx, word, backgroundAlpha, index) {
         if (backgroundAlpha > 0) {
             //backgroundAlpha = Math.sin( backgroundAlpha * Math.PI / 2);
             ctx.fillStyle = app.Colors.rgb2rgba( this.wordHighlightColor, backgroundAlpha);
             ctx.fillRect( Math.round( word.x ), Math.round( word.y ), Math.round( word.width ), Math.round( word.height ) );
         }
 
+        ctx.textAlign = 'start'; 
+        ctx.textBaseline = 'alphabetic';
         ctx.fillStyle = this.wordColor;
         ctx.fillText( word.text, word.x, word.y + 0.8 * word.height);
 
-        ctx.strokeRect( word.x, word.y, word.width, word.height);
+        if (index >= 0) {
+            ctx.textAlign = 'center'; 
+            ctx.fillStyle = '#FF0';
+            ctx.fillText( '' + index, word.x + word.width / 2, word.y );
+        }
+        else {
+            ctx.strokeRect( word.x, word.y, word.width, word.height);
+        }
     };
 
     var _height;

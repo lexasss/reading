@@ -9,7 +9,7 @@
     // Arguments:
     //      options: {
     //          fixationColor       - fixation color
-    //          fixationUseLineColor- true/false for colorizing fixations according to the mapped line
+    //          showIDs             - if set, fixations and words are labelled by IDs. FIxations also have single color
     //          saccadeColor        - saccade color
     //          connectionColor     - connection color
     //          colorMetric         - word background coloring metric
@@ -23,7 +23,7 @@
         this.fixationColor = options.fixationColor || '#000';
         this.saccadeColor = options.saccadeColor || '#08F';
         this.connectionColor = options.connectionColor || '#FF0';
-        this.fixationUseLineColor = options.fixationUseLineColor || true;
+        this.showIDs = options.showIDs || true;
 
         this.colorMetric = options.colorMetric || app.Metric.Type.DURATION;
         this.showConnections = options.showConnections !== undefined ? options.showConnections : false;
@@ -76,7 +76,7 @@
 
                 var ctx = this._getCanvas2D();
 
-                this._drawWords( ctx, sessionVal.words, metricRange );
+                this._drawWords( ctx, sessionVal.words, metricRange, this.showIDs );
                 if (this.showFixations && fixations) {
                     this._drawFixations( ctx, fixations );
                 }
@@ -95,6 +95,7 @@
         ctx.font = '12px Arial';
 
         var prevFix, fix;
+        var id = 0;
         for (var i = 0; i < fixations.length; i += 1) {
             fix = fixations[i];
             if (fix.x <= 0 && fix.y <= 0) {
@@ -105,7 +106,7 @@
                 this._drawSaccade( ctx, prevFix, fix );
             }
 
-            this._drawFixation( ctx, fix, i );
+            this._drawFixation( ctx, fix, id );
 
             if (this.showConnections && fix.word) {
                 ctx.strokeStyle = this.connectionColor;
@@ -114,25 +115,23 @@
             }
 
             prevFix = fix;
+            id++;
         }
-
-        ctx.textAlign = 'start'; 
-        ctx.textBaseline = 'alphabetic';
     };
 
-    Path.prototype._drawGreyFixation = function (ctx, fixation, fixID) {
+    Path.prototype._drawGreyFixation = function (ctx, fixation, id) {
         ctx.fillStyle = 'rgba(0,0,0,0.50)';
         ctx.beginPath();
         ctx.arc( fixation.x, fixation.y, 15, 0, 2*Math.PI);
         ctx.fill();
 
         ctx.fillStyle = '#FF0';
-        ctx.fillText( '' + fixID, fixation.x, fixation.y );
+        ctx.fillText( '' + id, fixation.x, fixation.y );
     }
 
-    Path.prototype._drawFixation = function (ctx, fixation, fixID) {
-        if (!this.fixationUseLineColor) {
-            return this._drawGreyFixation( ctx, fixation, fixID );
+    Path.prototype._drawFixation = function (ctx, fixation, id) {
+        if (this.showIDs) {
+            return this._drawGreyFixation( ctx, fixation, id );
         }
 
         if (fixation.line !== undefined) {
@@ -211,42 +210,42 @@
     };
 
 
-    // Path.prototype._exportData = function () {
+    Path.prototype._exportData = function () {
 
-    //     var data = '';
-    //     this._snapshot.forEach( childSnapshot => {
-    //         var sessionName = childSnapshot.key();
-    //         var session = this._snapshot.child( sessionName );
-    //         if (session && session.exists()) {
-    //             var sessionVal = session.val();
-    //             data += `\n${sessionName.split('_')[0]}\n`;
-    //             if (sessionVal && sessionVal.fixations) {
-    //                 data += `${sessionVal.setup.lineSize}\t${sessionVal.setup.textID}\n`;
-    //                 sessionVal.fixations.forEach( fix => {
-    //                     if (fix.x > 0 && fix.y > 0) {
-    //                         data += `${fix.ts}\t${fix.x}\t${fix.y}\t${fix.duration}\n`;
-    //                     }
-    //                 });
-    //             }
-    //         }
-    //     });
+        var data = '';
+        this._snapshot.forEach( childSnapshot => {
+            var sessionName = childSnapshot.key();
+            var session = this._snapshot.child( sessionName );
+            if (session && session.exists()) {
+                var sessionVal = session.val();
+                data += `\n${sessionName.split('_')[0]}\n`;
+                if (sessionVal && sessionVal.fixations) {
+                    data += `${sessionVal.setup.lineSize}\t${sessionVal.setup.textID}\n`;
+                    sessionVal.fixations.forEach( fix => {
+                        //if (fix.x > 0 && fix.y > 0) {
+                            data += `${fix.ts}\t${fix.x}\t${fix.y}\t${fix.duration}\n`;
+                        //}
+                    });
+                }
+            }
+        });
 
-    //     var blob = new Blob([data], {type: 'text/plain'});
+        var blob = new Blob([data], {type: 'text/plain'});
         
-    //     var downloadLink = document.createElement("a");
-    //     downloadLink.download = 'results.txt';
-    //     downloadLink.innerHTML = 'Download File';
+        var downloadLink = document.createElement("a");
+        downloadLink.download = 'results.txt';
+        downloadLink.innerHTML = 'Download File';
 
-    //     var URL = window.URL || window.webkitURL;
-    //     downloadLink.href = URL.createObjectURL( blob );
-    //     downloadLink.onclick = function(event) { // self-destrly
-    //         document.body.removeChild(event.target);
-    //     };
-    //     downloadLink.style.display = 'none';
-    //     document.body.appendChild( downloadLink );
+        var URL = window.URL || window.webkitURL;
+        downloadLink.href = URL.createObjectURL( blob );
+        downloadLink.onclick = function(event) { // self-destrly
+            document.body.removeChild(event.target);
+        };
+        downloadLink.style.display = 'none';
+        document.body.appendChild( downloadLink );
 
-    //     downloadLink.click();
-    // };
+        downloadLink.click();
+    };
 
     });
 

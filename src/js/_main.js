@@ -73,9 +73,9 @@ Reading.init = function (components) {
                 path.colorMetric :
                 (path.colorMetric = value);
             },
-            fixationUseLineColor: function (value) { return value === undefined ?
-                path.fixationUseLineColor :
-                (path.fixationUseLineColor = value);
+            showIDs: function (value) { return value === undefined ?
+                path.showIDs :
+                (path.showIDs = value);
             },
             showConnections: function (value) { return value === undefined ?
                 path.showConnections :

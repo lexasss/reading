@@ -37,8 +37,8 @@ mixin options(id, lists)
                         each metric in lists.colorMetrics
                             option(value="#{metric}") #{metric}
                 .row
-                    .label Colorize fixation according to line
-                    input.value#path_fixationUseLineColor(type="checkbox")
+                    .label Show IDs
+                    input.value#path_showIDs(type="checkbox")
                 .row
                     .label Show word-fixation connections
                     input.value#path_showConnections(type="checkbox")
