@@ -51,12 +51,23 @@
     Path.prototype.constructor = Path;
 
     Path.prototype._fillDataQueryList = function (list) {
+        //var records = [];
         this._snapshot.forEach( childSnapshot => {
             var option = document.createElement('option');
             option.value = childSnapshot.key();
             option.textContent = childSnapshot.key();
+            if (this._sessioName === option.value) {
+                option.selected = true;
+            }
             list.appendChild( option );
+
+            // var fixations = this._remapStatic( childSnapshot.val() );
+            // if (fixations) {
+            //     records.push( childSnapshot.key() );
+            //     records = records.concat( this._exportMapping( fixations ) );
+            // }
         });
+        //this._save( records.join( '\n' ), 'mapping.txt' );
     };
 
     Path.prototype._load = function (name) {
@@ -70,9 +81,10 @@
         if (session && session.exists()) {
             var sessionVal = session.val();
             if (sessionVal) {
-                //var fixations = this._remapStatic( sessionVal );
-                var fixations = this._remapDynamic( sessionVal );
-                this._saveMapping( fixations );
+                this._sessioName = name;
+
+                var fixations = this._remapStatic( sessionVal );
+                //var fixations = this._remapDynamic( sessionVal );
                 var metricRange = app.Metric.compute( sessionVal.words, this.colorMetric );
 
                 var ctx = this._getCanvas2D();
@@ -168,14 +180,17 @@
         ctx.stroke();
     };
 
-    Path.prototype._saveMapping = function (fixations) {
+    Path.prototype._exportMapping = function (fixations) {
         var records = fixations.map( fixation => {
+            if (fixation.x < 0 || fixation.y < 0 ) {
+                return null;
+            }
             return `${fixation.x}\t${fixation.y}\t` + 
                 ( fixation.line === undefined || fixation.line === null ? `-1\t` : `${fixation.line}\t` ) +
                 ( fixation.word === undefined || fixation.word === null ? `-1\t` : `${fixation.word.index}\t` );
         });
-        this._save( records.join( '\n' ), 'mapping.txt' );
-    };
+        return records.filter( record => { return record !== null; } );
+    }
 
     Path.prototype._remapDynamic = function (session) {
         var fixations = app.Fixations;
