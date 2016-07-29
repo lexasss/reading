@@ -72,6 +72,7 @@
             if (sessionVal) {
                 //var fixations = this._remapStatic( sessionVal );
                 var fixations = this._remapDynamic( sessionVal );
+                this._saveMapping( fixations );
                 var metricRange = app.Metric.compute( sessionVal.words, this.colorMetric );
 
                 var ctx = this._getCanvas2D();
@@ -167,6 +168,15 @@
         ctx.stroke();
     };
 
+    Path.prototype._saveMapping = function (fixations) {
+        var records = fixations.map( fixation => {
+            return `${fixation.x}\t${fixation.y}\t` + 
+                ( fixation.line === undefined || fixation.line === null ? `-1\t` : `${fixation.line}\t` ) +
+                ( fixation.word === undefined || fixation.word === null ? `-1\t` : `${fixation.word.index}\t` );
+        });
+        this._save( records.join( '\n' ), 'mapping.txt' );
+    };
+
     Path.prototype._remapDynamic = function (session) {
         var fixations = app.Fixations;
         var model = app.Model2;
@@ -230,10 +240,14 @@
             }
         });
 
+        save( data, 'fixations.txt' );
+    };
+
+    Path.prototype._save = function (data, filename) {
         var blob = new Blob([data], {type: 'text/plain'});
         
         var downloadLink = document.createElement("a");
-        downloadLink.download = 'results.txt';
+        downloadLink.download = filename;
         downloadLink.innerHTML = 'Download File';
 
         var URL = window.URL || window.webkitURL;

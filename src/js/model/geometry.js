@@ -80,12 +80,12 @@ if (!this.Reading) {
                         _lineWidth = currentLine.right - currentLine.left;
                     }
                 }
-                currentLine = new app.Line( rect, target, _lines.length, _lines[ _lines.length - 1 ] );
+                currentLine = new app.Line( rect, i, target, _lines.length, _lines[ _lines.length - 1 ] );
                 _lines.push( currentLine );
                 lineY = rect.top;
             }
             else {
-                currentLine.add( rect, target );
+                currentLine.add( rect, i, target );
             }
 //                _logger.log('{ left: ' + Math.round(rect.left) + ', top: ' + Math.round(rect.top) + ', right: ' + Math.round(rect.right) + ', bottom: ' + Math.round(rect.bottom) + ' }');
         }

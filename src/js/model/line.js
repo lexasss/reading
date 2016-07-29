@@ -10,7 +10,7 @@ if (!this.Reading) {
 (function (app) { 'use strict';
     
     // Line object
-    function Line (word, dom, index, prevLine) {
+    function Line (word, wordID, dom, index, prevLine) {
         this.left = Number.MAX_VALUE;
         this.top = Number.MAX_VALUE;
         this.right = Number.MIN_VALUE;
@@ -30,7 +30,7 @@ if (!this.Reading) {
         this.words = [];
 
         if (word) {
-	        this.add( word, dom );
+	        this.add( word, wordID, dom );
 	    }
     }
 
@@ -42,7 +42,7 @@ if (!this.Reading) {
         return this.right - this.left;
     };
 
-    Line.prototype.add = function (word, dom) {
+    Line.prototype.add = function (word, wordID, dom) {
         this.left = Math.min( this.left, word.left );
         this.right = Math.max( this.right, word.right );
         this.top = Math.min( this.top, word.top );
@@ -53,7 +53,7 @@ if (!this.Reading) {
             y: (this.top + this.bottom) / 2
         };
 
-        this.words.push( new Word( word, dom, this ) );
+        this.words.push( new Word( word, wordID, dom, this ) );
     };
 
     Line.prototype.addFixation = function (fixation) {
@@ -136,8 +136,9 @@ if (!this.Reading) {
     }
 
     // Word object
-    function Word (rect, dom, line) {
+    function Word (rect, id, dom, line) {
         this.rect = rect;
+        this.id = id;
         this.dom = dom;
         this.line = line;
         this.index = line.words.length;

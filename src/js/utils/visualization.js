@@ -126,14 +126,17 @@
     Visualization.prototype._drawWords = function (ctx, words, metricRange, showIDs) {
         ctx.strokeStyle = this.wordStrokeColor;
         ctx.lineWidth = 1;
-        
+
+        var indexComputer = IndexComputer();
+
         words.forEach( (word, index) => {
             var alpha = app.Metric.getAlpha( word, this.colorMetric, metricRange );
-            this._drawWord( ctx, word, alpha, showIDs ? index : -1 );
+            this._drawWord( ctx, word, alpha, 
+                showIDs ? indexComputer.feed( word.x, word.y ) : null);
         });
     };
 
-    Visualization.prototype._drawWord = function (ctx, word, backgroundAlpha, index) {
+    Visualization.prototype._drawWord = function (ctx, word, backgroundAlpha, indexes) {
         if (backgroundAlpha > 0) {
             //backgroundAlpha = Math.sin( backgroundAlpha * Math.PI / 2);
             ctx.fillStyle = app.Colors.rgb2rgba( this.wordHighlightColor, backgroundAlpha);
@@ -145,10 +148,16 @@
         ctx.fillStyle = this.wordColor;
         ctx.fillText( word.text, word.x, word.y + 0.8 * word.height);
 
-        if (index >= 0) {
-            ctx.textAlign = 'center'; 
+        if (indexes) {
+            if (indexes.word === 0) {
+                ctx.fillStyle = '#0F0';
+                ctx.textAlign = 'end'; 
+                ctx.fillText( '' + indexes.line, word.x - 20, word.y + 0.8 * word.height );
+            }
+
             ctx.fillStyle = '#FF0';
-            ctx.fillText( '' + index, word.x + word.width / 2, word.y );
+            ctx.textAlign = 'center'; 
+            ctx.fillText( '' + indexes.word, word.x + word.width / 2, word.y );
         }
         else {
             ctx.strokeRect( word.x, word.y, word.width, word.height);
@@ -163,6 +172,33 @@
     var _sessionPrompt;
 
     var _sessionPromtCallback;
+
+    var IndexComputer = function () {
+        var lastX = -1;
+        var lastY = -1;
+        var currentWordIndex = -1;
+        var currentLineIndex = -1;
+
+        return {
+            feed: function (x, y) {
+                if (y > lastY) {
+                    currentLineIndex++;
+                    currentWordIndex = 0;
+                }
+                else if (x > lastX) {
+                    currentWordIndex++;
+                }
+
+                lastX = x;
+                lastY = y;
+
+                return {
+                    word: currentWordIndex, 
+                    line: currentLineIndex
+                };
+            }
+        };
+    };
 
     app.Visualization = Visualization;
     
