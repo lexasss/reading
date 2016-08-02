@@ -22,6 +22,7 @@
         this.textFont = options.textFont || '32px Arial';
 
         this._snapshot = null;
+        this._sessioName = '';
     }
 
     // Initialization routine, to be called prior constructing any visualization object
@@ -36,10 +37,12 @@
 
         _view = document.querySelector( root );
         _canvas = document.querySelector( root + ' canvas');
-        _sessionPrompt = document.querySelector( root + ' .prompt' );
+        _sessionPrompt = document.querySelector( root + ' #session' );
+        _filePrompt = document.querySelector( root + ' #file' );
 
         _view.classList.add( 'invisible' );
         _sessionPrompt.classList.add( 'invisible' );
+        _filePrompt.classList.add( 'invisible' );
 
         var close = document.querySelector( root + ' .close' );
         close.addEventListener('click', () => {
@@ -61,13 +64,21 @@
 
             _sessionPromtCallback( selectedOption.value, selectedOption.textContent );
         });
+
+        var browse = document.querySelector( root + ' .file' );
+        browse.addEventListener('change', (e) => {
+            var fileName = e.target.files[0];
+            _filePrompt.classList.add( 'invisible' );
+
+            _filePromtCallback( fileName );
+        });
     };
 
     Visualization.prototype.queryData = function () {
         if (this._snapshot) {
             this._showDataSelectionDialog();
             return;
-        }
+        }   
 
         app.firebase.once('value', snapshot => {
             if (!snapshot.exists()) {
@@ -97,6 +108,19 @@
 
         _sessionPromtCallback = this._load.bind( this );
         _sessionPrompt.classList.remove( 'invisible' );
+    };
+
+    Visualization.prototype._showFileSelectionDialog = function (prompt, callback) {
+        if (_callbacks.shown) {
+            _callbacks.shown();
+        }
+
+        _view.classList.remove( 'invisible' );
+
+        _filePromtCallback = callback;
+        _filePrompt.querySelector( '.title' ).textContent = prompt || 'Select a file:';
+        _filePrompt.querySelector( '.file' ).filename = '';
+        _filePrompt.classList.remove( 'invisible' );
     };
 
     Visualization.prototype._getCanvas2D = function () {
@@ -170,8 +194,10 @@
     var _view;
     var _canvas;
     var _sessionPrompt;
+    var _filePrompt;
 
     var _sessionPromtCallback;
+    var _filePromtCallback;
 
     var IndexComputer = function () {
         var lastX = -1;

@@ -11,12 +11,13 @@ if (!this.Reading) {
 
     var MARGIN_X = 100;
     var MARGIN_Y = 180;
-    var FIT_THESHOLD = 27;
+    var FIT_THESHOLD = 17;
     var SKIMMING_THRESHOLD_X = 500;
     var SKIMMING_THRESHOLD_Y = 40;
     var SCALE_DIFF_THRESHOLD = 0.9;
     var MAX_LINEAR_GRADIENT = 0.15;
     var LONG_SET_LENGTH_THRESHOLD = 3;
+
     var SET_TYPE = {
         LONG: 'long',
         SHORT: 'short',
@@ -24,6 +25,33 @@ if (!this.Reading) {
     };
 
     var log;
+    
+    function settings (value) {
+        if (!value) {
+            return {
+                marginX: MARGIN_X,
+                marginY: MARGIN_Y,
+                fitThreshold: FIT_THESHOLD,
+                skimmigThresholdX: SKIMMING_THRESHOLD_X,
+                skimmigThresholdY: SKIMMING_THRESHOLD_Y,
+                scaleDiffThreshold: SCALE_DIFF_THRESHOLD,
+                maxLinearGradient: MAX_LINEAR_GRADIENT,
+                longSetLengthThreshold: LONG_SET_LENGTH_THRESHOLD,
+                logging: (logger || app.Logger).enabled
+            };
+        }
+        else {
+            MARGIN_X = value.marginX !== undefined ? value.marginX : MARGIN_X;
+            MARGIN_Y = value.marginY !== undefined ? value.marginY : MARGIN_Y;
+            FIT_THESHOLD = value.fitThreshold !== undefined ? value.fitThreshold : FIT_THESHOLD;
+            SKIMMING_THRESHOLD_X = value.skimmigThresholdX !== undefined ? value.skimmigThresholdX : SKIMMING_THRESHOLD_X;
+            SKIMMING_THRESHOLD_Y = value.skimmigThresholdY !== undefined ? value.skimmigThresholdY : SKIMMING_THRESHOLD_Y;
+            SCALE_DIFF_THRESHOLD = value.scaleDiffThreshold !== undefined ? value.scaleDiffThreshold : SCALE_DIFF_THRESHOLD;
+            MAX_LINEAR_GRADIENT = value.maxLinearGradient !== undefined ? value.maxLinearGradient : MAX_LINEAR_GRADIENT;
+            LONG_SET_LENGTH_THRESHOLD = value.longSetLengthThreshold !== undefined ? value.longSetLengthThreshold : LONG_SET_LENGTH_THRESHOLD;
+            (logger || app.Logger).enabled = value.logging !== undefined ? value.logging : (logger || app.Logger).enabled;
+        }
+    }
 
     function map (data) {
         if (!data.fixations || !data.words) {
@@ -495,7 +523,8 @@ if (!this.Reading) {
 
     // Export
     app.StaticFit = {
-        map: map
+        map: map,
+        settings: settings
     };
 
 })( this.Reading || module.exports );

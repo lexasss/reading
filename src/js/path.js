@@ -50,6 +50,46 @@
     Path.prototype.base = app.Visualization.prototype;
     Path.prototype.constructor = Path;
 
+    Path.prototype.queryFile = function () {
+
+        var readFile = function (resolve) {
+            return function (file) {
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    var lines = e.target.result.split( '\r\n' );
+                    resolve({
+                        rows: lines,
+                        filename: file.name
+                    });
+                };
+
+                console.log( 'loading', file.name );
+                reader.readAsText( file );
+            };
+        };
+
+        function selectAndLoadFile( showDialogProcedure, prompt ) {
+            return new Promise((resolve, reject) => {
+                showDialogProcedure( prompt, readFile( resolve ) );
+            });
+        }
+
+        var showFileSelectionDialog = this._showFileSelectionDialog.bind( this );
+        var data = {};
+        selectAndLoadFile( showFileSelectionDialog, 'Select fixations:' )
+            .then( fixations => {
+                data.fixations = app.lundDataParser.fixations( fixations.rows );
+                data.stimuliIndex = +fixations.filename
+                    .split( '.' )[0]
+                    .split( '_' )[1]
+                    - 1;
+                return selectAndLoadFile( showFileSelectionDialog, 'Select stiumuli:' );
+            }).then( words => {
+                data.words = app.lundDataParser.words( words.rows, data.stimuliIndex);
+                this._remapAndShow( words.filename, data );
+            });
+    };
+
     Path.prototype._fillDataQueryList = function (list) {
         //var records = [];
         this._snapshot.forEach( childSnapshot => {
@@ -81,26 +121,30 @@
         if (session && session.exists()) {
             var sessionVal = session.val();
             if (sessionVal) {
-                this._sessioName = name;
-
-                var fixations = this._remapStatic( sessionVal );
-                //var fixations = this._remapDynamic( sessionVal );
-                var metricRange = app.Metric.compute( sessionVal.words, this.colorMetric );
-
-                var ctx = this._getCanvas2D();
-
-                this._drawWords( ctx, sessionVal.words, metricRange, this.showIDs );
-                if (this.showFixations && fixations) {
-                    this._drawFixations( ctx, fixations );
-                }
-                this._drawTitle( ctx, name );
+                this._remapAndShow( name, sessionVal );
             }
         } else {
             window.alert( 'record ' + name + ' does not exist' );
         }
     };
 
-   Path.prototype._drawFixations = function (ctx, fixations) {
+    Path.prototype._remapAndShow = function (name, data) {
+        this._sessioName = name;
+
+        var fixations = this._remapStatic( data );
+        //var fixations = this._remapDynamic( sessionVal );
+        var metricRange = app.Metric.compute( data.words, this.colorMetric );
+
+        var ctx = this._getCanvas2D();
+
+        this._drawWords( ctx, data.words, metricRange, this.showIDs );
+        if (this.showFixations && fixations) {
+            this._drawFixations( ctx, fixations );
+        }
+        this._drawTitle( ctx, name );
+    };
+
+    Path.prototype._drawFixations = function (ctx, fixations) {
         ctx.fillStyle = this.fixationColor;
         ctx.strokeStyle = this.saccadeColor;
         ctx.textAlign = 'center'; 

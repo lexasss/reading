@@ -4,7 +4,10 @@ mixin visualization(id)
     div(id=id).path
         input.close(type="button", value="Close")
         canvas
-        .prompt Select a session:
+        div#session.prompt Select a session:
             div
                 select
                 input.select(type="button", value="Select", autofocus="autofocus")
+        div#file.prompt
+            .title Select a file:
+            input.file(type="file")

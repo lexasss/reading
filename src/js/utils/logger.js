@@ -1,6 +1,8 @@
 (function (app) {
 
-    var Logger = { };
+    var Logger = {
+        enabled: true
+    };
 
     Logger.moduleErrorPrinter = (moduleName) => {
         if (this.Reading !== undefined) {
@@ -22,6 +24,10 @@
         }
 
         return (title) => {
+            if (!Logger.enabled) {
+                return;
+            }
+            
             console.log( '\n', moduleName );
             console.log( title );
             for (var i = 1; i < arguments.length; i += 1) {
@@ -52,6 +58,9 @@
                 records.delete( record.id );
             }, 
             log: function () {
+                if (!Logger.enabled) {
+                    return;
+                }
                 console.log( '\n', moduleName, ...arguments );
             }
         };
@@ -69,6 +78,10 @@
 
         records.set( this.id, this );
 
+        if (!Logger.enabled) {
+            return;
+        }
+
         console.log( '' + this.generalPadding + module );
         
         if (title) {
@@ -84,6 +97,9 @@
             levelPadding += Record.padding;
         }
         //this._record.push( padding + Array.prototype.join.call( arguments, ' ' ) );
+        if (!Logger.enabled) {
+            return;
+        }
         console.log( Record.padding + this.generalPadding + levelPadding + Array.prototype.join.call( arguments, ' ' ) );
     };
 
@@ -106,6 +122,9 @@
     };
 
     Record.prototype.print = function () {
+        if (!Logger.enabled) {
+            return;
+        }
         console.log( Record.padding + this.generalPadding + this._record.join( '\n' + Record.padding ) );
     };
 

@@ -49,7 +49,8 @@ Reading.init = function (components) {
         switchText: text.switchText.bind( text ),
         switchSpacing: text.switchSpacing.bind( text ),
         selectSession: path.queryData.bind( path ),
-        selectCondition: wordGazing.queryData.bind( wordGazing )
+        selectCondition: wordGazing.queryData.bind( wordGazing ),
+        selectFile: path.queryFile.bind( path ),
     });
 
     var options = new Reading.Options({

@@ -30,6 +30,7 @@
         _services.switchSpacing = _services.switchSpacing || logError( 'switchSpacing' );
         _services.selectSession = _services.selectSession || logError( 'selectSession' );
         _services.selectCondition = _services.selectCondition || logError( 'selectCondition' );
+        _services.selectFile = _services.selectFile || logError( 'selectFile' );
 
         //var container = document.querySelector( this.root );
 
@@ -87,6 +88,11 @@
             _services.selectCondition();
         });
 
+        _loadFile = document.querySelector( '.loadFile' );
+        _loadFile.addEventListener('click', function () {
+            _services.selectFile();
+        });
+
         shortcut.add( 'Space', function() {
             _toggle.click();
         });
@@ -104,6 +110,7 @@
         setButtonBlockDisabled( _spacingSwitchers, true );
         _loadSession.classList.add( 'disabled' );
         _loadCondition.classList.add( 'disabled' );
+        _loadFile.classList.add( 'disabled' );
     };
 
     Controls.prototype.unlock = function () {
@@ -111,6 +118,7 @@
         setButtonBlockDisabled( _spacingSwitchers, false );
         _loadSession.classList.remove( 'disabled' );
         _loadCondition.classList.remove( 'disabled' );
+        _loadFile.classList.remove( 'disabled' );
     };
     
     Controls.prototype.onStateUpdated = function (state) {
@@ -178,6 +186,7 @@
     var _spacingSwitchers;
     var _loadSession;
     var _loadCondition;
+    var _loadFile;
     
     var _connectionTimeout;
 
