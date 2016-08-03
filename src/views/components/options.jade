@@ -16,7 +16,6 @@ mixin options(id, lists)
                 .row
                     .label Hidden initially
                     input.value#hiddenText(type="checkbox")
-
             .group
                 .name Gaze
                 .row
@@ -28,7 +27,13 @@ mixin options(id, lists)
                 .row
                     .label Highlighting color
                     input.value#currentWord(type="color")
-
+            .group
+                .name Mapping
+                .row
+                    .label Word color metric
+                    select.value#path_mapping
+                        each mapping in lists.mappings
+                            option(value="#{mapping}") #{mapping}
             .group
                 .name Session visualization
                 .row
@@ -51,7 +56,6 @@ mixin options(id, lists)
                 .row
                     .label Show orig. fixation location
                     input.value#path_showOriginalFixLocation(type="checkbox")
-
             .group
                 .name Summary visualization
                 .row

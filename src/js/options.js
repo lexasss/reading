@@ -15,6 +15,7 @@
     //          hideText (bool)
     //          path {
     //              colorMetric (index)
+    //              mapping (index)
     //              showIDs (bool)
     //              showConnections (bool)
     //              showSaccades (bool)
@@ -43,6 +44,7 @@
 
         _services.path = _services.path || {};
         _services.path.colorMetric = _services.path.colorMetric || logError( 'path.colorMetric"' );
+        _services.path.mapping = _services.path.mapping || logError( 'path.mapping"' );
         _services.path.showConnections = _services.path.showConnections || logError( 'path.showConnections' );
         _services.path.showSaccades = _services.path.showSaccades || logError( 'path.showSaccades' );
         _services.path.showFixations = _services.path.showFixations || logError( 'path.showFixations' );
@@ -310,6 +312,8 @@
         bindCheckbox( 'highlightWord', _services.highlightWord );
         bindCheckbox( 'hiddenText', _services.hideText );
         
+        bindSelect( 'path_mapping', _services.path.mapping );
+
         bindSelect( 'path_colorMetric', _services.path.colorMetric );
         bindCheckbox( 'path_showIDs', _services.path.showIDs );
         bindCheckbox( 'path_showConnections', _services.path.showConnections );

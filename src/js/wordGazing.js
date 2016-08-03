@@ -11,7 +11,6 @@
     //      options: {
     //          spacingNames        - spacing names
     //          fixationColor       - fixation color
-    //          colorMetric         - the metric to map onto the word background color
     //          showFixations       - fixation display flag
     //          uniteSpacings       - if true, then the sessions with different spacing will be united
     //          showRegressions     - regression display flag
@@ -21,7 +20,6 @@
         this.spacingNames = options.spacingNames;
         this.fixationColor = options.fixationColor || '#FFF';
         
-        this.colorMetric = options.colorMetric || app.Metric.Type.DURATION;
         this.showFixations = options.showFixations !== undefined ? options.showFixations : false;
         this.uniteSpacings = options.uniteSpacings !== undefined ? options.uniteSpacings : true;
         this.showRegressions = options.showRegressions !== undefined ? options.showRegressions : false;

@@ -13,14 +13,17 @@
     //          wordStrokeColor     - word rectable border color
     //          textColor           - info text color
     //          textFont            - info text font
+    //          colorMetric         - word background coloring metric
     //      }
     function Visualization (options) {
         this.wordColor = options.wordColor || '#CCC';
         this.wordHighlightColor = options.wordHighlightColor || '#606';
         this.wordStrokeColor = options.wordStrokeColor || '#800';
         this.textColor = options.textColor || '#CCC';
-        this.textFont = options.textFont || '32px Arial';
+        this.textFont = options.textFont || '18px Arial';
 
+        this.colorMetric = options.colorMetric !== undefined ? options.colorMetric : app.Metric.Type.DURATION;
+        
         this._snapshot = null;
         this._sessioName = '';
     }
@@ -175,7 +178,7 @@
         if (indexes) {
             if (indexes.word === 0) {
                 ctx.fillStyle = '#0F0';
-                ctx.textAlign = 'end'; 
+                ctx.textAlign = 'end';
                 ctx.fillText( '' + indexes.line, word.x - 20, word.y + 0.8 * word.height );
             }
 

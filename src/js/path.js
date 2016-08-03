@@ -12,11 +12,11 @@
     //          showIDs             - if set, fixations and words are labelled by IDs. FIxations also have single color
     //          saccadeColor        - saccade color
     //          connectionColor     - connection color
-    //          colorMetric         - word background coloring metric
     //          showConnections     - flat to display fixation-word connections
     //          showSaccades        - flag to display saccades
     //          showFixations       - flag to display fixations
     //          showOriginalFixLocation - flag to display original fixation location
+    //          mapping             - mapping type
     //      }
     function Path (options) {
 
@@ -25,11 +25,12 @@
         this.connectionColor = options.connectionColor || '#FF0';
         this.showIDs = options.showIDs || true;
 
-        this.colorMetric = options.colorMetric || app.Metric.Type.DURATION;
         this.showConnections = options.showConnections !== undefined ? options.showConnections : false;
         this.showSaccades = options.showSaccades !== undefined ? options.showSaccades : false;
         this.showFixations = options.showFixations !== undefined ? options.showFixations : false;
         this.showOriginalFixLocation = options.showOriginalFixLocation !== undefined ? options.showOriginalFixLocation : false;
+
+        this.mapping = options.mapping !== undefined ? options.mapping : Path.Mapping.STATIC;
 
         var lineColorA = 0.5;
         this.lineColors = [
@@ -131,8 +132,13 @@
     Path.prototype._remapAndShow = function (name, data) {
         this._sessioName = name;
 
-        var fixations = this._remapStatic( data );
-        //var fixations = this._remapDynamic( sessionVal );
+        var fixations;
+        switch (this.mapping) {
+            case Path.Mapping.STATIC: fixations = this._remapStatic( data ); break;
+            case Path.Mapping.DYNAMIC: fixations = this._remapDynamic( data ); break;
+            default: console.error( 'unknown mapping type' ); return;
+        }
+
         var metricRange = app.Metric.compute( data.words, this.colorMetric );
 
         var ctx = this._getCanvas2D();
@@ -328,6 +334,11 @@
         this.right = rect.right;
         this.bottom = rect.bottom;
     }
+
+    Path.Mapping = {
+        STATIC: 0,
+        DYNAMIC: 1
+    };
 
     Word.prototype.getBoundingClientRect = function () {
         return this;

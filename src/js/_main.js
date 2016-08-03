@@ -74,6 +74,10 @@ Reading.init = function (components) {
                 path.colorMetric :
                 (path.colorMetric = value);
             },
+            mapping: function (value) { return value === undefined ?
+                path.mapping :
+                (path.mapping = value);
+            },
             showIDs: function (value) { return value === undefined ?
                 path.showIDs :
                 (path.showIDs = value);

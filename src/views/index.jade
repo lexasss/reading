@@ -9,9 +9,10 @@
         visualization: 'visualization'
     };
 
-    // the order must match the utils/colorMetric order
+    // the order must match the corresponding enums
     var optionLists = {
-        colorMetrics: [ 'none', 'duration', 'char speed', 'syllable speed' ]
+        colorMetrics: [ 'none', 'duration', 'char speed', 'syllable speed' ],   // Matric@utils/metric.js
+        mappings: [ 'static', 'dynamic' ]        // Mapping@path.js
     };
 
 doctype html
