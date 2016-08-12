@@ -27,7 +27,7 @@
         app.Visualization.call( this, options );
     }
 
-    app.loaded( () => { // we have to defer the prototype definitio until the Visualization mudule is loaded
+    app.loaded( () => { // we have to defer the prototype definition until the Visualization mudule is loaded
 
     WordGazing.prototype = Object.create( app.Visualization.prototype );
     WordGazing.prototype.base = app.Visualization.prototype;
@@ -145,6 +145,8 @@
         });
     };
 
+    });
+
     function getConditionNameFromSessionName (sessionName, considerSpacings) {
         var result;
         var nameParts = sessionName.split( '_' );
@@ -156,8 +158,6 @@
         }
         return result;
     }
-
-    });
 
     app.WordGazing = WordGazing;
     

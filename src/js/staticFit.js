@@ -11,7 +11,7 @@ if (!this.Reading) {
 
     var MARGIN_X = 100;
     var MARGIN_Y = 180;
-    var FIT_THESHOLD = 17;
+    var FIT_THESHOLD = 27;
     var SKIMMING_THRESHOLD_X = 500;
     var SKIMMING_THRESHOLD_Y = 40;
     var SCALE_DIFF_THRESHOLD = 0.9;
@@ -452,7 +452,8 @@ if (!this.Reading) {
                 top: closestWord.y,
                 right: closestWord.x + closestWord.width,
                 bottom: closestWord.y + closestWord.height,
-                index: minDistWordID
+                index: minDistWordID,
+                text: closestWord.text
             };
 
             if (closestWord.fixations) {

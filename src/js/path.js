@@ -2,6 +2,7 @@
 //      app,Colors
 //      app.firebase
 //      utils.metric
+//      utils.remapExporter
 
 (function (app) { 'use strict';
 
@@ -92,7 +93,6 @@
     };
 
     Path.prototype._fillDataQueryList = function (list) {
-        //var records = [];
         this._snapshot.forEach( childSnapshot => {
             var option = document.createElement('option');
             option.value = childSnapshot.key();
@@ -101,14 +101,9 @@
                 option.selected = true;
             }
             list.appendChild( option );
-
-            // var fixations = this._remapStatic( childSnapshot.val() );
-            // if (fixations) {
-            //     records.push( childSnapshot.key() );
-            //     records = records.concat( this._exportMapping( fixations ) );
-            // }
         });
-        //this._save( records.join( '\n' ), 'mapping.txt' );
+
+        app.RemapExporter.export( this._snapshot, this._remapStatic );
     };
 
     Path.prototype._load = function (name) {
@@ -116,7 +111,8 @@
             return;
         }
 
-        //this._exportData();
+        //app.RemapExporter.save( app.RemapExporter.exportFixations( this._snapshot ).join( '\n' ), 'fixations.txt' );
+        //app.RemapExporter.save( app.RemapExporter.exportWords( this._snapshot ).join( '\n' ), 'words.txt' );
 
         var session = this._snapshot.child( name );
         if (session && session.exists()) {
@@ -230,19 +226,9 @@
         ctx.stroke();
     };
 
-    Path.prototype._exportMapping = function (fixations) {
-        var records = fixations.map( fixation => {
-            if (fixation.x < 0 || fixation.y < 0 ) {
-                return null;
-            }
-            return `${fixation.x}\t${fixation.y}\t` + 
-                ( fixation.line === undefined || fixation.line === null ? `-1\t` : `${fixation.line}\t` ) +
-                ( fixation.word === undefined || fixation.word === null ? `-1\t` : `${fixation.word.index}\t` );
-        });
-        return records.filter( record => { return record !== null; } );
-    }
-
     Path.prototype._remapDynamic = function (session) {
+        app.Logger.enabled = false;
+
         var fixations = app.Fixations;
         var model = app.Model2;
 
@@ -284,61 +270,72 @@
         return session.fixations;
     };
 
+    }); // end of delayed call
 
-    Path.prototype._exportData = function () {
+    Path.Mapping = {
+        STATIC: 0,
+        DYNAMIC: 1
+    };
 
-        var data = '';
-        this._snapshot.forEach( childSnapshot => {
+    function exportFixations (snapshot) {
+        var records = [];
+        snapshot.forEach( childSnapshot => {
             var sessionName = childSnapshot.key();
-            var session = this._snapshot.child( sessionName );
+            var session = snapshot.child( sessionName );
             if (session && session.exists()) {
                 var sessionVal = session.val();
-                data += `\n${sessionName.split('_')[0]}\n`;
+                records.push( `\n${sessionName.split('_')[0]}` );
                 if (sessionVal && sessionVal.fixations) {
-                    data += `${sessionVal.setup.lineSize}\t${sessionVal.setup.textID}\n`;
+                    records.push( `${sessionVal.setup.lineSize}\t${sessionVal.setup.textID}` );
                     sessionVal.fixations.forEach( fix => {
                         //if (fix.x > 0 && fix.y > 0) {
-                            data += `${fix.ts}\t${fix.x}\t${fix.y}\t${fix.duration}\n`;
+                            records.push( `${fix.ts}\t${fix.x}\t${fix.y}\t${fix.duration}` );
                         //}
                     });
                 }
             }
         });
 
-        save( data, 'fixations.txt' );
+        return records;
     };
 
-    Path.prototype._save = function (data, filename) {
-        var blob = new Blob([data], {type: 'text/plain'});
-        
-        var downloadLink = document.createElement("a");
-        downloadLink.download = filename;
-        downloadLink.innerHTML = 'Download File';
+    function exportWords (snapshot) {
+        var records = [];
+        var texts = [];
 
-        var URL = window.URL || window.webkitURL;
-        downloadLink.href = URL.createObjectURL( blob );
-        downloadLink.onclick = function(event) { // self-destrly
-            document.body.removeChild(event.target);
-        };
-        downloadLink.style.display = 'none';
-        document.body.appendChild( downloadLink );
+        snapshot.forEach( childSnapshot => {
+            var sessionName = childSnapshot.key();
+            var parts = sessionName.split('_');
+            var textID = parts[1];
+            var lineSpacing = parts[2];
+            if (lineSpacing !== '2') {
+                return;
+            }
+            if (texts.indexOf( textID ) < 0) {
+                var session = snapshot.child( sessionName );
+                if (session && session.exists()) {
+                    var sessionVal = session.val();
+                    if (sessionVal && sessionVal.words) {
+                        texts.push( textID );
+                        records.push( `\n${textID}\t${lineSpacing}\n` );
+                        sessionVal.words.forEach( word => {
+                            records.push( `${word.x}\t${word.y}\t${word.width}\t${word.height}\t${word.text}\n` );
+                        });
+                    }
+                }
+            }
 
-        downloadLink.click();
-    };
+        });
 
-    });
+        return records;
+    }
 
-    function Word(rect) {
+    function Word (rect) {
         this.left = rect.left;
         this.top = rect.top;
         this.right = rect.right;
         this.bottom = rect.bottom;
     }
-
-    Path.Mapping = {
-        STATIC: 0,
-        DYNAMIC: 1
-    };
 
     Word.prototype.getBoundingClientRect = function () {
         return this;
