@@ -40,6 +40,9 @@ Reading.init = function (components) {
         root: components.visualization,
         spacingNames: text.spacings
     });
+    var rtv = new Reading.RTV({
+        root: components.visualization
+    });
 
     var controls = new Reading.Controls({
         root: components.controls
@@ -51,6 +54,7 @@ Reading.init = function (components) {
         selectSession: path.queryData.bind( path ),
         selectCondition: wordGazing.queryData.bind( wordGazing ),
         selectFile: path.queryFile.bind( path ),
+        simulate: rtv.queryData.bind( rtv ),
     });
 
     var options = new Reading.Options({

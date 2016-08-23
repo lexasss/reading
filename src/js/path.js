@@ -17,7 +17,6 @@
     //          showSaccades        - flag to display saccades
     //          showFixations       - flag to display fixations
     //          showOriginalFixLocation - flag to display original fixation location
-    //          mapping             - mapping type
     //      }
     function Path (options) {
 
@@ -30,8 +29,6 @@
         this.showSaccades = options.showSaccades !== undefined ? options.showSaccades : false;
         this.showFixations = options.showFixations !== undefined ? options.showFixations : false;
         this.showOriginalFixLocation = options.showOriginalFixLocation !== undefined ? options.showOriginalFixLocation : false;
-
-        this.mapping = options.mapping !== undefined ? options.mapping : Path.Mapping.STATIC;
 
         var lineColorA = 0.5;
         this.lineColors = [
@@ -130,8 +127,8 @@
 
         var fixations;
         switch (this.mapping) {
-            case Path.Mapping.STATIC: fixations = this._remapStatic( data ); break;
-            case Path.Mapping.DYNAMIC: fixations = this._remapDynamic( data ); break;
+            case app.Visualization.Mapping.STATIC: fixations = this._remapStatic( data ); break;
+            case app.Visualization.Mapping.DYNAMIC: fixations = this._remapDynamic( data ); break;
             default: console.error( 'unknown mapping type' ); return;
         }
 
@@ -264,18 +261,12 @@
     };
 
     Path.prototype._remapStatic = function (session) {
-        localStorage.setItem('data', JSON.stringify(session));
-
-        app.StaticFit.map(session);
+        // localStorage.setItem('data', JSON.stringify(session));
+        app.StaticFit.map( session );
         return session.fixations;
     };
 
     }); // end of delayed call
-
-    Path.Mapping = {
-        STATIC: 0,
-        DYNAMIC: 1
-    };
 
     function exportFixations (snapshot) {
         var records = [];

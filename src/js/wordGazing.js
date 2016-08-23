@@ -18,7 +18,7 @@
     function WordGazing (options) {
 
         this.spacingNames = options.spacingNames;
-        this.fixationColor = options.fixationColor || '#FFF';
+        this.fixationColor = options.fixationColor || '#000';
         
         this.showFixations = options.showFixations !== undefined ? options.showFixations : false;
         this.uniteSpacings = options.uniteSpacings !== undefined ? options.uniteSpacings : true;
@@ -34,16 +34,7 @@
     WordGazing.prototype.constructor = WordGazing;
 
     WordGazing.prototype._fillDataQueryList = function (list) {
-        var conditions = new Map();
-        this._snapshot.forEach( childSnapshot => {
-            var sessionName = childSnapshot.key();
-            var key = getConditionNameFromSessionName( sessionName, !this.uniteSpacings );
-            if (key) {
-                var sessions = conditions.get( key ) || [];
-                sessions.push( sessionName );
-                conditions.set( key, sessions );
-            }
-        });
+        var conditions = this._getConditions( this.uniteSpacings );
 
         for (var key of conditions.keys()) {
             var option = document.createElement('option');
@@ -68,7 +59,7 @@
         var sessionNames = [];
         this._snapshot.forEach( childSnapshot => {
             var sessionName = childSnapshot.key();
-            var key = getConditionNameFromSessionName( sessionName, !this.uniteSpacings );
+            var key = this._getConditionNameFromSessionName( sessionName, !this.uniteSpacings );
             if (key === conditionName) {
                 [words, fixes] = this._loadSession( words, sessionName );
                 if (fixes) {
@@ -95,6 +86,7 @@
 
     WordGazing.prototype._loadSession = function (words, sessionName) {
         var fixations;
+        var participantName = getParticipantNameFromSessionName( sessionName );
         var session = this._snapshot.child( sessionName );
         if (session && session.exists()) {
             var sessionVal = session.val();
@@ -102,12 +94,21 @@
                 if (!words) {   // this is the first session to load
                     words = sessionVal.words;
                 }
-                fixations = this._remapStatic( sessionVal, words );
+                // switch (this.mapping) {
+                //     case app.Visualization.Mapping.STATIC: fixations = this._remapStatic( sessionVal, words ); break;
+                //     case app.Visualization.Mapping.DYNAMIC: fixations = this._remapDynamic( data ); break;
+                //     default: console.error( 'unknown mapping type' ); return;
+                // }
+                fixations = this._remapStatic( sessionVal, words )
+                fixations.forEach( fixation => {
+                    fixation.participant = participantName;
+                });
             }
         } else {
             window.alert( 'record ' + sessionName + ' does not exist' );
         }
 
+        //calcParticipantGazing( words );
         return [words, fixations];
     };
 
@@ -119,16 +120,21 @@
             setup: session.setup,
             words: words
         });
+
         return session.fixations;
     };
 
     // Overriden from Visualization._drawWord
-    WordGazing.prototype._drawWord = function (ctx, word, backgroundAlpha) {
-        this.base._drawWord.call( this, ctx, word, backgroundAlpha );
+    WordGazing.prototype._drawWord = function (ctx, word, backgroundAlpha, indexes) {
+        this.base._drawWord.call( this, ctx, word, backgroundAlpha, indexes );
 
-        ctx.lineWidth = this.showRegressions && word.regressionCount ? word.regressionCount + 1 : 1;
-        ctx.strokeRect( word.x, word.y, word.width, word.height);
-        ctx.lineWidth = 1;
+        if (!indexes) {
+            if (this.showRegressions && word.regressionCount) {
+                ctx.lineWidth = word.regressionCount + 1;
+                ctx.strokeRect( word.x, word.y, word.width, word.height);
+                ctx.lineWidth = 1;
+            }
+        }
     };
 
     WordGazing.prototype._drawFixations = function (ctx, fixations) {
@@ -147,16 +153,49 @@
 
     });
 
-    function getConditionNameFromSessionName (sessionName, considerSpacings) {
-        var result;
+    function getParticipantNameFromSessionName (sessionName) {
         var nameParts = sessionName.split( '_' );
         if (nameParts.length === 3) {
-            result = nameParts[1];
-            if (considerSpacings) {
-                result += '_' + nameParts[2];
-            }
+            return nameParts[0];
         }
-        return result;
+    }
+
+    function compareParticipnatsByDuration (a, b) {
+        if (a.duration < b.duration) {
+            return 1;
+        }
+        if (a.duration > b.duration) {
+            return -1;
+        }
+        return 0;
+    }
+
+    function calcParticipantGazing( words ) {
+        words.forEach( word => {
+            if (!word.fixations) {
+                return;
+            }
+
+            let participants = new Map();
+            word.fixations.forEach( fixation => {
+                let participantDuration = participants.get( fixation.participant );
+                if (!participantDuration) {
+                    participants.set( fixation.participant, fixation.duration );
+                }
+                else {
+                    participants.set( fixation.participant, participantDuration + fixation.duration );
+                }
+            });
+
+            word.participants = [];
+            participants.forEach( (value, key) => {
+                word.participants.push({
+                    name: key,
+                    duration: value
+                });
+            });
+            word.participants = word.participants.sort( compareParticipnatsByDuration );
+        });
     }
 
     app.WordGazing = WordGazing;

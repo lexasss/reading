@@ -18,7 +18,7 @@
     //          selectSession ()    - show a DB session selection dialog
     //          selectCondition ()  - show a condition selection dialog
     //      }
-    function Controls(options, services) {
+    function Controls (options, services) {
         this.root = options.root || document.documentElement;
 
         _services = services;
@@ -31,6 +31,7 @@
         _services.selectSession = _services.selectSession || logError( 'selectSession' );
         _services.selectCondition = _services.selectCondition || logError( 'selectCondition' );
         _services.selectFile = _services.selectFile || logError( 'selectFile' );
+        _services.simulate = _services.simulate || logError( 'simulate' );
 
         //var container = document.querySelector( this.root );
 
@@ -78,19 +79,24 @@
             _spacingSwitchers.appendChild( swither );
         }
 
-        _loadSession = document.querySelector( '.loadSession' );
+        _loadSession = document.querySelector( this.root + ' .loadSession' );
         _loadSession.addEventListener('click', function () {
             _services.selectSession();
         });
 
-        _loadCondition = document.querySelector( '.loadCondition' );
+        _loadCondition = document.querySelector( this.root + ' .loadCondition' );
         _loadCondition.addEventListener('click', function () {
             _services.selectCondition();
         });
 
-        _loadFile = document.querySelector( '.loadFile' );
+        _loadFile = document.querySelector( this.root + ' .loadFile' );
         _loadFile.addEventListener('click', function () {
             _services.selectFile();
+        });
+
+        _simulate = document.querySelector( this.root + ' .simulate' );
+        _simulate.addEventListener('click', function () {
+            _services.simulate( true );
         });
 
         shortcut.add( 'Space', function() {
@@ -111,6 +117,7 @@
         _loadSession.classList.add( 'disabled' );
         _loadCondition.classList.add( 'disabled' );
         _loadFile.classList.add( 'disabled' );
+        _simulate.classList.add( 'disabled' );
     };
 
     Controls.prototype.unlock = function () {
@@ -119,6 +126,7 @@
         _loadSession.classList.remove( 'disabled' );
         _loadCondition.classList.remove( 'disabled' );
         _loadFile.classList.remove( 'disabled' );
+        _simulate.classList.remove( 'disabled' );
     };
     
     Controls.prototype.onStateUpdated = function (state) {
@@ -187,6 +195,7 @@
     var _loadSession;
     var _loadCondition;
     var _loadFile;
+    var _simulate;
     
     var _connectionTimeout;
 

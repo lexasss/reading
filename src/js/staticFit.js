@@ -90,6 +90,7 @@ if (!this.Reading) {
 
         for (var i = 0; i < words.length; i += 1) {
             var word = words[i];
+            word.id = i;
             if (word.x < box.left) { box.left = word.x;    }
             if (word.y < box.top) { box.top = word.y;    }
             if (word.x + word.width > box.right) { box.right = word.x + word.width;    }
@@ -453,7 +454,8 @@ if (!this.Reading) {
                 right: closestWord.x + closestWord.width,
                 bottom: closestWord.y + closestWord.height,
                 index: minDistWordID,
-                text: closestWord.text
+                text: closestWord.text,
+                id: closestWord.id
             };
 
             if (closestWord.fixations) {

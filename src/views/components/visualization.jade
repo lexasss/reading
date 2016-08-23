@@ -6,7 +6,8 @@ mixin visualization(id)
         canvas
         div#session.prompt Select a session:
             div
-                select
+                select.hidden#categories
+                select#conditions
                 input.select(type="button", value="Select", autofocus="autofocus")
         div#file.prompt
             .title Select a file:
