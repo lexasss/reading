@@ -125,6 +125,10 @@
         });
     };
 
+    Visualization.prototype._callbacks = function () {
+        return _callbacks;
+    }
+
     Visualization.prototype._getConditionNameFromSessionName = function (sessionName, considerSpacings) {
         var result;
         var nameParts = sessionName.split( '_' );

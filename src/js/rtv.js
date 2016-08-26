@@ -42,6 +42,12 @@
     RTV.prototype.base = app.Visualization.prototype;
     RTV.prototype.constructor = RTV;
 
+    RTV.prototype._stopAll = function () {
+        if (this._tracks) {
+            this._tracks.forEach( track => track.stop() );
+        }
+    }
+
     RTV.prototype._fillDataQueryList = function (list) {
 
         var conditions = this._getConditions( true );
@@ -57,6 +63,16 @@
     RTV.prototype._load = function (names) {
         if (!this._snapshot) {
             return;
+        }
+
+        if (!this._tracks) {    // first time, since we do not nullify this._tracks
+            let onHidden = this._callbacks().hidden;
+            this._callbacks().hidden = () => {
+                this._stopAll();
+                if (onHidden) {
+                    onHidden();
+                }
+            }
         }
 
         var tracks = [];
@@ -82,6 +98,7 @@
         this._drawTracks( ctx, tracks );
         
         this._run( ctx, tracks );
+        this._tracks = tracks;
     };
 
     RTV.prototype._computeFontSize = function (words) {
@@ -157,8 +174,8 @@
 
                     let y = track.y + word.id * track.height;
                     ctx.fillRect( track.x, y, track.width - 1, track.height );
-                    pointer.style = `left: ${track.x + (track.width - pointer.offsetWidth) / 2}px;
-                                     top: ${y + (track.height - pointer.offsetHeight) / 2}px`;
+                    pointer.style = `left: ${track.x + Math.round((track.width - pointer.offsetWidth) / 2)}px;
+                                     top: ${y + Math.round((track.height - pointer.offsetHeight) / 2)}px`;
                 },
                 () => {
                     ctx.textAlign = 'center';
@@ -184,6 +201,9 @@
         this.y = 0;
         this.width = 0;
         this.heigth = 0;
+        this.pointerSize = 8;
+        this.fixationTimer = null;
+        this.nextTimer = null;
 
         session.words.forEach( word => {
             word.totalDuration = 0;
@@ -197,7 +217,7 @@
         this.delay = Math.round( 3000 * Math.random() );
         this.fixationIndex = -1;
 
-        this.callback = this._next.bind( this );
+        this.__next = this._next.bind( this );
     }
 
     Track.prototype.setRect = function (x, y, width, height) {
@@ -218,7 +238,24 @@
         this.pointer.classList.add( 'invisible' );
         this.root.appendChild( this.pointer );
 
-        setTimeout( this.callback, this.delay);
+        this.nextTimer = setTimeout( this.__next, this.delay);
+    }
+
+    Track.prototype.stop = function () {
+        if (this.nextTimer) {
+            clearTimeout( this.nextTimer );
+            this.nextTimer = null;
+        }
+
+        if (this.fixationTimer) {
+            clearTimeout( this.fixationTimer );
+            this.fixationTimer = null;
+        }
+
+        if (this.pointer) {
+            this.root.removeChild( this.pointer );
+            this.pointer = null;
+        }
     }
 
     Track.prototype._next = function () {
@@ -229,19 +266,34 @@
         this.fixationIndex++;
         if (this.fixationIndex < this.fixations.length) {
             let pause = this.fixations[ this.fixationIndex ].ts - fixation.ts;
-            setTimeout( this.callback, pause );
+            this.nextTimer = setTimeout( this.__next, pause );
         }
         else {
             this.onCompleted();
             this.root.removeChild( this.pointer );
             this.pointer = null;
+            this.nextTimer = null;
         }
     }
 
     Track.prototype._moveFixation = function (word, duration) {
+        if (this.fixationTimer) {
+            clearTimeout( this.fixationTimer );
+            this.fixationTimer = null;
+        }
+
         if (word) {
             this.onWordFixated( word, duration, this.pointer );
+
+            let y = this.y + word.id * this.height;
+            this.pointer.style = `left: ${this.x + (this.width - this.pointerSize) / 2}px;
+                                  top: ${y + (this.height - this.pointerSize) / 2}px`;
             this.pointer.classList.remove( 'invisible' );
+
+            this.fixationTimer = setTimeout( () => {
+                this.fixationTimer = null;
+                this.pointer.classList.add( 'invisible' );
+            }, duration);
         }
         else {
             this.pointer.classList.add( 'invisible' );
