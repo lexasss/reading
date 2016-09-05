@@ -30,8 +30,8 @@ if (!this.Reading) {
         this.words = [];
 
         if (word) {
-	        this.add( word, wordID, dom );
-	    }
+            this.add( word, wordID, dom );
+        }
     }
 
     Line.init = function () {
