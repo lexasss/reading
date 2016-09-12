@@ -8,7 +8,7 @@
         if (this.Reading !== undefined) {
             return () => { };
         }
-        
+
         return (missingService) => {
             console.error( 'Missing "${missingService}" service for "${moduleName}"' );
         };
@@ -27,7 +27,7 @@
             if (!Logger.enabled) {
                 return;
             }
-            
+
             console.log( '\n', moduleName );
             console.log( title );
             for (var i = 1; i < arguments.length; i += 1) {
@@ -56,12 +56,12 @@
             },
             end: (record) => {
                 records.delete( record.id );
-            }, 
+            },
             log: function () {
                 if (!Logger.enabled) {
                     return;
                 }
-                console.log( '\n', moduleName, ...arguments );
+                console.log( moduleName, ...arguments );
             }
         };
     };
@@ -83,7 +83,7 @@
         }
 
         console.log( '' + this.generalPadding + module );
-        
+
         if (title) {
             console.log( Record.padding + this.generalPadding + title );
         }

@@ -17,6 +17,10 @@
     //          showSaccades        - flag to display saccades
     //          showFixations       - flag to display fixations
     //          showOriginalFixLocation - flag to display original fixation location
+    //          originalFixationColor - original fixation color, if displayed
+    //          greyFixationColor   - the color of fixation used for inspection
+    //          fixationNumberColor - the color of fixation number
+    //          greyFixationSize    - size of grey fixations
     //      }
     function Path (options) {
 
@@ -29,15 +33,19 @@
         this.showSaccades = options.showSaccades !== undefined ? options.showSaccades : false;
         this.showFixations = options.showFixations !== undefined ? options.showFixations : false;
         this.showOriginalFixLocation = options.showOriginalFixLocation !== undefined ? options.showOriginalFixLocation : false;
+        this.originalFixationColor = options.originalFixationColor || 'rgba(0,0,0,0.15)';
+        this.greyFixationColor = options.greyFixationColor || 'rgba(0,0,0,0.5)';
+        this.fixationNumberColor = options.fixationNumberColor || '#FF0';
+        this.greyFixationSize = options.greyFixationSize || 15;
 
         var lineColorA = 0.5;
         this.lineColors = [
-            'rgba(255,0,0,' + lineColorA +')',
-            'rgba(255,255,0,' + lineColorA +')',
-            'rgba(0,255,0,' + lineColorA +')',
-            'rgba(0,255,224,' + lineColorA +')',
-            'rgba(0,128,255,' + lineColorA +')',
-            'rgba(255,0,255,' + lineColorA +')',
+            `rgba(255,0,0,${lineColorA}`,
+            `rgba(255,255,0,${lineColorA}`,
+            `rgba(0,255,0,${lineColorA}`,
+            `rgba(0,255,224,${lineColorA}`,
+            `rgba(0,128,255,${lineColorA}`,
+            `rgba(255,0,255,${lineColorA}`,
         ];
 
         app.Visualization.call( this, options );
@@ -136,7 +144,7 @@
 
         var ctx = this._getCanvas2D();
 
-        this._drawWords( ctx, data.words, metricRange, this.showIDs );
+        this._drawWords( ctx, data.words, metricRange, this.showIDs, (this.showIDs && !this.showConnections) );
         if (this.showFixations && fixations) {
             this._drawFixations( ctx, fixations );
         }
@@ -146,7 +154,7 @@
     Path.prototype._drawFixations = function (ctx, fixations) {
         ctx.fillStyle = this.fixationColor;
         ctx.strokeStyle = this.saccadeColor;
-        ctx.textAlign = 'center'; 
+        ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.font = '12px Arial';
 
@@ -176,49 +184,55 @@
     };
 
     Path.prototype._drawGreyFixation = function (ctx, fixation, id) {
-        ctx.fillStyle = 'rgba(0,0,0,0.50)';
+        ctx.fillStyle = this.greyFixationColor;
         ctx.beginPath();
-        ctx.arc( fixation.x, fixation.y, 15, 0, 2*Math.PI);
+        ctx.arc( fixation._x, fixation.y, this.greyFixationSize, 0, 2*Math.PI);
         ctx.fill();
 
-        ctx.fillStyle = '#FF0';
-        ctx.fillText( '' + id, fixation.x, fixation.y );
+        ctx.fillStyle = this.fixationNumberColor;
+        ctx.fillText( '' + id, fixation._x, fixation.y );
     }
 
     Path.prototype._drawFixation = function (ctx, fixation, id) {
-        if (this.showIDs) {
-            return this._drawGreyFixation( ctx, fixation, id );
-        }
+        var circleSize;
 
-        if (fixation.line !== undefined) {
-            ctx.fillStyle = this.lineColors[ fixation.line % 6 ];
+        if (this.showIDs) {
+            this._drawGreyFixation( ctx, fixation, id );
+            circleSize = this.greyFixationSize;
         }
         else {
-            ctx.fillStyle = this.fixationColor;
+            if (fixation.line !== undefined) {
+                ctx.fillStyle = this.lineColors[ fixation.line % 6 ];
+            }
+            else {
+                ctx.fillStyle = this.fixationColor;
+            }
+
+            circleSize = Math.round( Math.sqrt( fixation.duration ) ) / 2;
+
+            ctx.beginPath();
+            ctx.arc( fixation.x, fixation.y, circleSize, 0, 2*Math.PI);
+            ctx.fill();
         }
 
-        ctx.beginPath();
-        ctx.arc( fixation.x, fixation.y, Math.round( Math.sqrt( fixation.duration ) ) / 2, 0, 2*Math.PI);
-        ctx.fill();
-
-        if (this.showOriginalFixLocation && fixation._x) {
-            ctx.fillStyle = "rgba(255,255,255,0.15)";
+        if (this.showOriginalFixLocation /*&& fixation._x*/) {
+            ctx.fillStyle = this.originalFixationColor;
             ctx.beginPath();
-            ctx.arc( fixation._x, fixation.y, Math.round( Math.sqrt( fixation.duration ) ) / 2, 0, 2*Math.PI);
+            ctx.arc( fixation.x, fixation.y, circleSize, 0, 2*Math.PI);
             ctx.fill();
         }
     };
 
     Path.prototype._drawSaccade = function (ctx, from, to) {
         ctx.beginPath();
-        ctx.moveTo( from.x, from.y );
-        ctx.lineTo( to.x, to.y );
+        ctx.moveTo( this.showIDs ? from._x : from.x, from.y );
+        ctx.lineTo( this.showIDs ? to._x : to.x, to.y );
         ctx.stroke();
     };
 
     Path.prototype._drawConnection = function (ctx, from, to) {
         ctx.beginPath();
-        ctx.moveTo( from.x, from.y );
+        ctx.moveTo( this.showIDs ? from._x : from.x, from.y );
         ctx.lineTo( to.x, to.y );
         ctx.stroke();
     };
@@ -247,7 +261,7 @@
         fixations.reset();
         model.reset( layout );
         //model.callbacks( { onMapped: function (fixation) {} } );
-        
+
         var result = [];
         session.fixations.forEach( function (fix) {
             var fixation = fixations.add( fix.x, fix.y, fix.duration );
@@ -333,5 +347,5 @@
     };
 
     app.Path = Path;
-    
+
 })( this.Reading || module.exports );

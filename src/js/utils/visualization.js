@@ -27,7 +27,7 @@
 
         this.colorMetric = options.colorMetric !== undefined ? options.colorMetric : app.Metric.Type.DURATION;
         this.mapping = options.mapping !== undefined ? options.mapping : Visualization.Mapping.STATIC;
-        
+
         this._snapshot = null;
         this._sessioName = '';
     }
@@ -80,7 +80,7 @@
             else {
                 var selectedOption = list.options[ list.selectedIndex ];
                 _sessionPromtCallback( selectedOption.value, selectedOption.textContent );
-            }            
+            }
         });
 
         var browse = document.querySelector( root + ' .file' );
@@ -94,7 +94,7 @@
         var categories = document.querySelector( root + ' #categories' );
         categories.addEventListener( 'change', e => {
             var selectedOption = e.target.options[ e.target.selectedIndex ];
-    
+
             if (selectedOption && selectedOption.data) {
                 var list = _sessionPrompt.querySelector( '#conditions' );
                 list.innerHTML = '';
@@ -109,7 +109,7 @@
         if (this._snapshot) {
             this._showDataSelectionDialog( multiple );
             return;
-        }   
+        }
 
         app.firebase.once( 'value', snapshot => {
             if (!snapshot.exists()) {
@@ -224,7 +224,7 @@
         ctx.fillText( title, (_canvas.width - textWidth) / 2, 32);
     };
 
-    Visualization.prototype._drawWords = function (ctx, words, metricRange, showIDs) {
+    Visualization.prototype._drawWords = function (ctx, words, metricRange, showIDs, hideBoundingBox) {
         ctx.strokeStyle = this.wordStrokeColor;
         ctx.lineWidth = 1;
 
@@ -232,19 +232,20 @@
 
         words.forEach( (word, index) => {
             var alpha = app.Metric.getAlpha( word, this.colorMetric, metricRange );
-            this._drawWord( ctx, word, alpha, 
-                showIDs ? indexComputer.feed( word.x, word.y ) : null);
+            this._drawWord( ctx, word, alpha,
+                showIDs ? indexComputer.feed( word.x, word.y ) : null,
+                hideBoundingBox);
         });
     };
 
-    Visualization.prototype._drawWord = function (ctx, word, backgroundAlpha, indexes) {
+    Visualization.prototype._drawWord = function (ctx, word, backgroundAlpha, indexes, hideBoundingBox) {
         if (backgroundAlpha > 0) {
             //backgroundAlpha = Math.sin( backgroundAlpha * Math.PI / 2);
             // ctx.fillStyle = app.Colors.rgb2rgba( this.wordHighlightColor, backgroundAlpha);
             // ctx.fillRect( Math.round( word.x ), Math.round( word.y ), Math.round( word.width ), Math.round( word.height ) );
         }
 
-        ctx.textAlign = 'start'; 
+        ctx.textAlign = 'start';
         ctx.textBaseline = 'alphabetic';
         ctx.fillStyle = this.wordColor;
         ctx.fillText( word.text, word.x, word.y + 0.8 * word.height);
@@ -262,10 +263,11 @@
             }
 
             ctx.fillStyle = '#008';
-            ctx.textAlign = 'center'; 
+            ctx.textAlign = 'center';
             ctx.fillText( '' + indexes.word, word.x + word.width / 2, word.y );
         }
-        else {
+
+        if (!hideBoundingBox) {
             if (word.participants) {
                 ctx.font = '12px Arial';
                 word.participants.forEach( (participant, index) => {
@@ -273,7 +275,7 @@
                         return;
                     }
                     let id = +participant.name.substr(1);
-                    ctx.fillStyle = '#004' //`rgb(${10*id},0,0)`; 
+                    ctx.fillStyle = '#004' //`rgb(${10*id},0,0)`;
                     ctx.fillText( participant.name, word.x, word.y + index * 15 - 20);
                 });
                 ctx.font = this.wordFont;
@@ -315,7 +317,7 @@
                 lastY = y;
 
                 return {
-                    word: currentWordIndex, 
+                    word: currentWordIndex,
                     line: currentLineIndex
                 };
             }
@@ -340,5 +342,5 @@
     };
 
     app.Visualization = Visualization;
-    
+
 })( this.Reading || module.exports );

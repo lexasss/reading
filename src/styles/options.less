@@ -5,6 +5,10 @@
     max-height: 100vh;
     overflow: auto;
 
+    &.expanded {
+        width: 22em;
+    }
+
     .group {
         font-size: 14pt;
         font-family: Arial, sans-serif;
@@ -23,13 +27,11 @@
             height: 1.5em;
 
             .label {
-                /* width: 7em; */
                 display: inline-block;
             }
 
             .value {
                 width: 4em;
-                /* min-height: 1.4em; */
                 text-align: right;
                 float: right;
                 clear: right;

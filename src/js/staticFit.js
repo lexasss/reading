@@ -25,7 +25,7 @@ if (!this.Reading) {
     };
 
     var log;
-    
+
     function settings (value) {
         if (!value) {
             return {
@@ -58,23 +58,25 @@ if (!this.Reading) {
             return;
         }
 
-        log = (logger || app.Logger).moduleLogPrinter( 'StaticFit' );
+        app.Logger.enabled = true;
+        log = (logger || app.Logger).forModule( 'StaticFit' ).log;
 
         var text = getText( data.words );
         var fixations = filterFixations( data.fixations, text.box );
         var progressions = splitToProgressions( fixations );
         var sets = mergeSets( progressions, text.lines.length );
         sets = dropSingleFixations( sets );
-    
+
         sets.sort( function (a, b) {
             return avgY(a) - avgY(b);
         });
 
         labelFixations( sets );
-        log('Fixation labelled', data.fixations);
+        log( 'Fixation labelled', data.fixations );
 
         mapToWords( sets, text.lines );
         computeRegressions( data.fixations );
+        removeTransitiosToNextLine( data.fixations, data.words );
     }
 
     function getText (words) {
@@ -118,10 +120,11 @@ if (!this.Reading) {
 
         for (var i = 0; i < fixations.length; i += 1) {
             var fix = fixations[i];
+            fix.id = i;
             if (fix.x > textbox.left - MARGIN_X &&
                 fix.x < textbox.right + MARGIN_X &&
                 fix.y > textbox.top - MARGIN_Y &&
-                fix.y < textbox.bottom + MARGIN_Y) { 
+                fix.y < textbox.bottom + MARGIN_Y) {
                 result.push( fix );
             }
         }
@@ -198,11 +201,11 @@ if (!this.Reading) {
         log( '============================' );
         log( 'Joining only long sets' );
         result = mergeSetsOfType( fixationsSets, lineCount, SET_TYPE.LONG );
-        
+
         log( '============================' );
         log( 'Merging short to long sets' );
         result = mergeSetsOfType( result, lineCount, SET_TYPE.SHORT );
-        
+
         log( '============================' );
         log( 'Merging the remained single-fixation sets with short sets' );
         result = mergeSetsOfType( result, lineCount, SET_TYPE.SHORT, 2 );
@@ -213,16 +216,22 @@ if (!this.Reading) {
             result = mergeSetsOfType( result, lineCount, SET_TYPE.LONG, 2, SET_TYPE.LONG );
         }
 
+        if (result.length > lineCount) {
+            log( '============================' );
+            log( 'And still too long... Just merge closest sets until we get the right number' );
+            result = mergeSetsOfType( result, lineCount, SET_TYPE.LONG, 1, SET_TYPE.LONG, Number.MAX_VALUE );
+        }
+
         log( '============================' );
         log( 'Final sets', result );
-        
+
         return result;
     }
 
-    function mergeSetsOfType (fixationsSets, lineCount, setLengthType, longSetThreshold, joiningLengthType) {
+    function mergeSetsOfType (fixationsSets, lineCount, setLengthType, longSetThreshold, joiningLengthType, fitThreshold) {
         while (fixationsSets.length > lineCount) {
-            var newSets = mergeTwoNearestSets( fixationsSets, setLengthType, longSetThreshold, joiningLengthType );
-            
+            var newSets = mergeTwoNearestSets( fixationsSets, setLengthType, longSetThreshold, joiningLengthType, fitThreshold );
+
             if (!newSets) {
                 break;
             }
@@ -233,10 +242,13 @@ if (!this.Reading) {
         return fixationsSets;
     }
 
-    function mergeTwoNearestSets (fixationsSets, setLengthType, longSetThreshold, joiningLengthType) {
+    function mergeTwoNearestSets (fixationsSets, setLengthType, longSetThreshold, joiningLengthType, fitThreshold) {
+
+        var isForcedMerging = fitThreshold !== FIT_THESHOLD;
 
         joiningLengthType = joiningLengthType || SET_TYPE.LONG;
         longSetThreshold = longSetThreshold || LONG_SET_LENGTH_THRESHOLD;
+        fitThreshold = fitThreshold || FIT_THESHOLD;
 
         var unions = [];
         for (var i = 0; i < fixationsSets.length; i += 1) {
@@ -286,8 +298,8 @@ if (!this.Reading) {
                 }
             }
 
-            if (minIndex >= 0 && minError < FIT_THESHOLD) {
-                var areSetsJoined = joinSets( fixationsSets, unions[ minIndex ] );
+            if (minIndex >= 0 && minError < fitThreshold) {
+                var areSetsJoined = joinSets( fixationsSets, unions[ minIndex ], isForcedMerging ? Number.MAX_VALUE : undefined );
                 if (areSetsJoined) {
                     result = fixationsSets;
                 }
@@ -309,13 +321,15 @@ if (!this.Reading) {
         return getFittingError( newSet, model.equation );
     }
 
-    function joinSets( fixationsSets, union ) {
+    function joinSets( fixationsSets, union, maxGradient ) {
+        maxGradient = maxGradient || MAX_LINEAR_GRADIENT;
+
         var set1 = fixationsSets[ union.set1 ];
         var set2 = fixationsSets[ union.set2 ];
         var newSet = set1.concat( set2 );
 
         var model = regression.model( 'linear', fixationSetToFitArray( newSet ) );
-        if (Math.abs( model.equation[1] ) < MAX_LINEAR_GRADIENT) {
+        if (Math.abs( model.equation[1] ) < maxGradient) {
             var minIndex = Math.min( union.set1, union.set2 );
             var maxIndex = Math.max( union.set1, union.set2 );
 
@@ -378,7 +392,7 @@ if (!this.Reading) {
         var leftThreshold = getThreshold( words[0] );
         var rightThreshold = getThreshold( words[ words.length - 2 ] );
 
-        var leftMostX = Number.MAX_VALUE, 
+        var leftMostX = Number.MAX_VALUE,
             rightMostX = Number.MIN_VALUE;
 
         for (let i = 0; i < fixations.length; i += 1) {
@@ -396,7 +410,7 @@ if (!this.Reading) {
 
         if (leftMostX < leftThreshold || rightMostX > rightThreshold) {
             var leftBound = leftMostX < leftThreshold ? getBound( words[0], 'left' ) : leftMostX;
-            var rightBound = rightMostX > rightThreshold && words[ words.length - 1].text.length > 2 ? 
+            var rightBound = rightMostX > rightThreshold && words[ words.length - 1].text.length > 2 ?
                             getBound( words[ words.length - 1], 'right' ) : rightMostX;
             var newRange = rightBound - leftBound;
             var oldRange = rightMostX - leftMostX;
@@ -518,6 +532,71 @@ if (!this.Reading) {
                         if (prevFix !== undefined && prev2Fix !== undefined && prevFix.line != prev2Fix.line) {
                             fix.isRegression = false;
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    function removeTransitiosToNextLine (fixations, words) {
+        var index = fixations.length - 1;
+
+        const getPrevFixationOnLine = function (index) {
+            let result = null;
+            for (; index > 0; index -= 1) {
+                var fix = fixations[ index ];
+                if (fix.line !== undefined) {
+                    result = fix;
+                    break;
+                }
+            }
+
+            return result;
+        };
+
+        const getLastChunkSaccade = function (index, direction) {
+            let result = null;
+            for (; index > 0; index -= 1) {
+                var fix = fixations[ index ];
+                if (fix.line === undefined) {
+                    continue;
+                }
+
+                var prevFix = getPrevFixationOnLine( index - 1 );
+                if (!prevFix) {
+                    index = 0;
+                    break;
+                }
+
+                if (direction < 0 ? fix.x < prevFix.x : fix.x >= prevFix.x) {
+                    result = fix;
+                    break;
+                }
+            }
+
+            return [ result, index ];
+        };
+
+        while (index) {
+            let [firstProgressionFix, firstProgressionFixIndex] = getLastChunkSaccade( index, -1 );
+            if (!firstProgressionFixIndex) {
+                break;
+            }
+
+            var [lastProgressionFix, index] = getLastChunkSaccade( firstProgressionFixIndex, 1 );
+
+            if (!lastProgressionFix) {
+                continue;
+            }
+
+            if (firstProgressionFix.line === lastProgressionFix.line + 1) {
+                for (let i = index + 1; i < firstProgressionFixIndex; i += 1) {
+                    let fix = fixations[ i ];
+                    if (fix.word) {
+                        let word = words[ fix.word.id ];
+                        word.fixations = word.fixations.filter( f => f.id !== fix.id );
+                        fix.word = null;
+                        log( 'Mapping removed for fix #', fix.id );
                     }
                 }
             }
