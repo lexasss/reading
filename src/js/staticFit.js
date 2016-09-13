@@ -9,22 +9,22 @@ if (!this.Reading) {
 
 (function(app) {
 
-    var MARGIN_X = 100;
-    var MARGIN_Y = 180;
-    var FIT_THESHOLD = 27;
-    var SKIMMING_THRESHOLD_X = 500;
-    var SKIMMING_THRESHOLD_Y = 40;
-    var SCALE_DIFF_THRESHOLD = 0.9;
-    var MAX_LINEAR_GRADIENT = 0.15;
-    var LONG_SET_LENGTH_THRESHOLD = 3;
+    const MARGIN_X = 100;
+    const MARGIN_Y = 180;
+    const FIT_THESHOLD = 25;
+    const SKIMMING_THRESHOLD_X = 500;
+    const SKIMMING_THRESHOLD_Y = 40;
+    const SCALE_DIFF_THRESHOLD = 0.9;
+    const MAX_LINEAR_GRADIENT = 0.15;
+    const LONG_SET_LENGTH_THRESHOLD = 3;
 
-    var SET_TYPE = {
+    const SET_TYPE = {
         LONG: 'long',
         SHORT: 'short',
         ANY: 'any'
     };
 
-    var log;
+    let log;
 
     function settings (value) {
         if (!value) {
@@ -58,25 +58,21 @@ if (!this.Reading) {
             return;
         }
 
-        app.Logger.enabled = true;
-        log = (logger || app.Logger).forModule( 'StaticFit' ).log;
+        //log = (logger || app.Logger).forModule( 'StaticFit' ).log;
+        log = (logger || app.Logger).moduleLogPrinter( 'StaticFit' );
 
         var text = getText( data.words );
         var fixations = filterFixations( data.fixations, text.box );
         var progressions = splitToProgressions( fixations );
         var sets = mergeSets( progressions, text.lines.length );
-        sets = dropSingleFixations( sets );
-
-        sets.sort( function (a, b) {
-            return avgY(a) - avgY(b);
-        });
-
-        labelFixations( sets );
-        log( 'Fixation labelled', data.fixations );
+        sets = dropShortFixations( sets, 1 );
+        sortAndAlignLines( sets, text.lines );
+        //assignFixationsToLines( sets );
+        log( 'Fixations distributed across lines', data.fixations );
 
         mapToWords( sets, text.lines );
         computeRegressions( data.fixations );
-        removeTransitiosToNextLine( data.fixations, data.words );
+        removeTransitionsToNextLine( data.fixations, data.words );
     }
 
     function getText (words) {
@@ -164,12 +160,12 @@ if (!this.Reading) {
         return result;
     }
 
-    function dropSingleFixations (fixationSets ) {
+    function dropShortFixations (fixationSets, maxRejectionLength ) {
         var result = [];
 
         for (var i = 0; i < fixationSets.length; i += 1) {
             var fixationSet = fixationSets[i];
-            if (fixationSet.length > 1) {
+            if (fixationSet.length > maxRejectionLength) {
                 result.push( fixationSet );
             }
         }
@@ -177,20 +173,61 @@ if (!this.Reading) {
         return result;
     }
 
-    function labelFixations (fixationSets) {
+    function sortAndAlignLines (fixationLines, textLines) {
+        fixationLines.sort( (a, b) => {
+            return avgY( a ) - avgY( b );
+        });
 
-        for (var i = 0; i < fixationSets.length; i += 1) {
-            var fixationSet = fixationSets[i];
-            for (var j = 0; j < fixationSet.length; j += 1) {
-                fixationSet[j].line = i;
+        let interlineDist = 9;
+        if (textLines.length > 1) {
+            for (let i = 1; i < textLines.length; i += 1) {
+                interlineDist += textLines[i][0].y - textLines[i - 1][0].y;
+            }
+
+            interlineDist = interlineDist / (textLines.length - 1);
+        }
+
+        let currentLineID = 0;
+        let lastLineY = 0;
+        for (let i = 0; i < fixationLines.length; i += 1) {
+            let fixations = fixationLines[i];
+            let currentLineY = 0;
+            for (let j = 0; j < fixations.length; j += 1) {
+                currentLineY += fixations[j].y;
+            }
+            currentLineY /= fixations.length;
+
+            if (i > 0 && (currentLineY - lastLineY) > 1.7 * interlineDist) {
+                console.log('====\nLine must be ', currentLineID);
+                currentLineID += Math.round( (currentLineY - lastLineY) / interlineDist ) - 1;
+                console.log('    but corrected to ', currentLineID);
+            }
+
+            for (let j = 0; j < fixations.length; j += 1) {
+                fixations[j].line = currentLineID;
+            }
+
+            lastLineY = currentLineY;
+            currentLineID += 1;
+        }
+    }
+
+    function assignFixationsToLines (fixationLines) {
+
+        for (var i = 0; i < fixationLines.length; i += 1) {
+            var fixations = fixationLines[i];
+            for (var j = 0; j < fixations.length; j += 1) {
+                fixations[j].line = i;
             }
         }
     }
 
     function mapToWords (fixationLines, textLines) {
-        for (var i = 0; i < fixationLines.length && i < textLines.length; i += 1) {
-            adjustFixations( fixationLines[i], textLines[i] );
-            mapFixationsWithinLine( fixationLines[i], textLines[i] );
+        for (var i = 0; i < fixationLines.length; i += 1) {
+            let fixations = fixationLines[i];
+            let textLine = textLines[ fixations[0].line ] || textLines[i];
+            adjustFixations( fixations, textLine );
+            mapFixationsWithinLine( fixations, textLine );
         }
     }
 
@@ -219,6 +256,7 @@ if (!this.Reading) {
         if (result.length > lineCount) {
             log( '============================' );
             log( 'And still too long... Just merge closest sets until we get the right number' );
+            result = dropShortFixations( result, 2);
             result = mergeSetsOfType( result, lineCount, SET_TYPE.LONG, 1, SET_TYPE.LONG, Number.MAX_VALUE );
         }
 
@@ -375,24 +413,32 @@ if (!this.Reading) {
     }
 
     function adjustFixations( fixations, words ) {
-        var getThreshold = function (word) {
-            return word.x + 1 * word.width;
-        };
-        var getBound = function (word, side) {
-            var expectedFixationCount = 1 + Math.floor( word.text.length / 12 );
-            var wordFixationPart = word.width / expectedFixationCount;
-            var result = word.x;
-            if (side == 'right') {
-                result += (expectedFixationCount - 1) * wordFixationPart;
+        const WORD_CHAR_SKIP_START = 3;
+        const WORD_CHAR_SKIP_END = 6;
+
+        const getNewLeftMostX = function (word) {
+            if (word.text.length > 2 * WORD_CHAR_SKIP_START) {
+                return word.x + Math.floor( WORD_CHAR_SKIP_START / word.text.length * word.width );
             }
-            result += 0.3 * wordFixationPart;
-            return result;
+            else {
+                return word.x + Math.floor( word.width / 2 );
+            }
+        };
+        const getNewRightMostX = function (word) {
+            if (word.text.length > WORD_CHAR_SKIP_START + WORD_CHAR_SKIP_END) {
+                return word.x + Math.floor( (word.text.length - WORD_CHAR_SKIP_END) / word.text.length * word.width );
+            }
+            else {
+                return word.x + Math.floor( word.width / 2 );
+            }
         };
 
-        var leftThreshold = getThreshold( words[0] );
-        var rightThreshold = getThreshold( words[ words.length - 2 ] );
+        const firstWord = words[0];
+        const leftThreshold = firstWord.x + firstWord.width;
+        const lastWord = words[ words.length - 1 ];
+        const rightThreshold = lastWord.fixations && lastWord.fixations.length === 1 ? lastWord.x : lastWord.x + lastWord.width;
 
-        var leftMostX = Number.MAX_VALUE,
+        let leftMostX = Number.MAX_VALUE,
             rightMostX = Number.MIN_VALUE;
 
         for (let i = 0; i < fixations.length; i += 1) {
@@ -409,31 +455,36 @@ if (!this.Reading) {
         log( 'right: ' + rightMostX + ' ' + rightThreshold );
 
         if (leftMostX < leftThreshold || rightMostX > rightThreshold) {
-            var leftBound = leftMostX < leftThreshold ? getBound( words[0], 'left' ) : leftMostX;
-            var rightBound = rightMostX > rightThreshold && words[ words.length - 1].text.length > 2 ?
-                            getBound( words[ words.length - 1], 'right' ) : rightMostX;
-            var newRange = rightBound - leftBound;
-            var oldRange = rightMostX - leftMostX;
-            var scale = newRange / oldRange;
+            // Calculate the scaling factor
+            let newLeftMostX = leftMostX < leftThreshold ?  // if the left-most fixation lands left to the 2nd word...
+                            getNewLeftMostX( words[0] ) :   // ...estimate its expected location
+                            leftMostX;                      // otherwise we do not know where it shoud be...
+            let newRightMostX = rightMostX > rightThreshold ?               // if the right-most fixation lands right to the 2nd last word...
+                            getNewRightMostX( words[ words.length - 1] ) :  // ...estimate its expected location
+                            rightMostX;                                     // otherwise we do not know where it shoud be...
+            let newRange = newRightMostX - newLeftMostX;
+            let oldRange = rightMostX - leftMostX;
+            let scale = newRange / oldRange;
 
+            // limit the scaling factor
+            let boundCorrection = 0;
             if (scale < SCALE_DIFF_THRESHOLD) {
                 scale = SCALE_DIFF_THRESHOLD;
-                let boundCorrection = (scale * oldRange - newRange) / 2;
-                leftBound -= boundCorrection;
-                rightBound -= boundCorrection;
+                boundCorrection = (scale * oldRange - newRange) / 2;
             }
             else if (scale > (2 - SCALE_DIFF_THRESHOLD)) {
                 scale = 2 - SCALE_DIFF_THRESHOLD;
-                let boundCorrection = (scale * oldRange - newRange) / 2;
-                leftBound -= boundCorrection;
-                rightBound -= boundCorrection;
+                boundCorrection = -(scale * oldRange - newRange) / 2;
             }
+            newLeftMostX -= boundCorrection;
+            newRightMostX += boundCorrection;
 
+            // Recalculate x's
             log( 'X >>>>>>' );
             for (let i = 0; i < fixations.length; i += 1) {
                 let fix = fixations[i];
                 fix._x = fix.x;
-                fix.x = leftBound + scale * (fix.x - leftMostX);
+                fix.x = newLeftMostX + scale * (fix.x - leftMostX);
                 log( fix.x + ' >> ' + fix._x );
             }
         }
@@ -538,7 +589,7 @@ if (!this.Reading) {
         }
     }
 
-    function removeTransitiosToNextLine (fixations, words) {
+    function removeTransitionsToNextLine (fixations, words) {
         var index = fixations.length - 1;
 
         const getPrevFixationOnLine = function (index) {
@@ -596,6 +647,7 @@ if (!this.Reading) {
                         let word = words[ fix.word.id ];
                         word.fixations = word.fixations.filter( f => f.id !== fix.id );
                         fix.word = null;
+                        fix.line = undefined;
                         log( 'Mapping removed for fix #', fix.id );
                     }
                 }

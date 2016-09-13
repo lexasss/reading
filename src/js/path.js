@@ -21,12 +21,13 @@
     //          greyFixationColor   - the color of fixation used for inspection
     //          fixationNumberColor - the color of fixation number
     //          greyFixationSize    - size of grey fixations
+    //          numberFont          - fixation number font
     //      }
     function Path (options) {
 
         this.fixationColor = options.fixationColor || '#000';
         this.saccadeColor = options.saccadeColor || '#08F';
-        this.connectionColor = options.connectionColor || '#FF0';
+        this.connectionColor = options.connectionColor || '#F00';
         this.showIDs = options.showIDs || true;
 
         this.showConnections = options.showConnections !== undefined ? options.showConnections : false;
@@ -37,6 +38,7 @@
         this.greyFixationColor = options.greyFixationColor || 'rgba(0,0,0,0.5)';
         this.fixationNumberColor = options.fixationNumberColor || '#FF0';
         this.greyFixationSize = options.greyFixationSize || 15;
+        this.numberFont = options.numberFont || 'bold 16px Verdana';
 
         var lineColorA = 0.5;
         this.lineColors = [
@@ -156,7 +158,7 @@
         ctx.strokeStyle = this.saccadeColor;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.font = '12px Arial';
+        ctx.font = this.numberFont;
 
         var prevFix, fix;
         var id = 0;
@@ -170,13 +172,13 @@
                 this._drawSaccade( ctx, prevFix, fix );
             }
 
-            this._drawFixation( ctx, fix, id );
-
             if (this.showConnections && fix.word) {
                 ctx.strokeStyle = this.connectionColor;
                 this._drawConnection( ctx, fix, {x: fix.word.left, y: fix.word.top} );
                 ctx.strokeStyle = this.saccadeColor;
             }
+
+            this._drawFixation( ctx, fix, id );
 
             prevFix = fix;
             id++;
@@ -186,11 +188,11 @@
     Path.prototype._drawGreyFixation = function (ctx, fixation, id) {
         ctx.fillStyle = this.greyFixationColor;
         ctx.beginPath();
-        ctx.arc( fixation._x, fixation.y, this.greyFixationSize, 0, 2*Math.PI);
+        ctx.arc( fixation._x ? fixation._x : fixation.x, fixation.y, this.greyFixationSize, 0, 2*Math.PI);
         ctx.fill();
 
         ctx.fillStyle = this.fixationNumberColor;
-        ctx.fillText( '' + id, fixation._x, fixation.y );
+        ctx.fillText( '' + id, fixation._x ? fixation._x : fixation.x, fixation.y );
     }
 
     Path.prototype._drawFixation = function (ctx, fixation, id) {
@@ -225,14 +227,14 @@
 
     Path.prototype._drawSaccade = function (ctx, from, to) {
         ctx.beginPath();
-        ctx.moveTo( this.showIDs ? from._x : from.x, from.y );
-        ctx.lineTo( this.showIDs ? to._x : to.x, to.y );
+        ctx.moveTo( this.showIDs ? (from._x ? from._x : from.x) : from.x, from.y );
+        ctx.lineTo( this.showIDs ? (to._x ? to._x : to.x) : to.x, to.y );
         ctx.stroke();
     };
 
     Path.prototype._drawConnection = function (ctx, from, to) {
         ctx.beginPath();
-        ctx.moveTo( this.showIDs ? from._x : from.x, from.y );
+        ctx.moveTo( this.showIDs ? (from._x ? from._x : from.x) : from.x, from.y );
         ctx.lineTo( to.x, to.y );
         ctx.stroke();
     };

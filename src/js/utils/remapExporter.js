@@ -23,7 +23,7 @@
 
     RemapExporter.save = function (data, filename) {
         var blob = new Blob([data], {type: 'text/plain'});
-        
+
         var downloadLink = document.createElement("a");
         downloadLink.download = filename;
         downloadLink.innerHTML = 'Download File';
@@ -39,7 +39,7 @@
         downloadLink.click();
     };
 
-    function createLogs (shapshot, remap) {
+    function createLogs (snapshot, remap) {
         var logs = {
             fixations: [],
             words: [],
@@ -58,7 +58,7 @@
             var id = childSnapshot.key();
             Array.prototype.push.apply( logs.fixations, logFixations( id, fixations ) );
             Array.prototype.push.apply( logs.words, logWords( id, fixations, session.words ) );
-            
+
             logUniqueWords( fixations, session.words, logs.uniqueWords );
             logParticipants( id, fixations, session.words, logs.participants );
         });
@@ -94,12 +94,13 @@
 
     function logFixations (id, fixations) {
         var fixations = fixations.map( fixation => {
-            if (fixation.x < 0 || fixation.y < 0 ) {
+            var x = fixation._x !== undefined ? fixation._x : fixation.x;
+            if (x < 0 || fixation.y < 0 ) {
                 return null;
             }
-            var line = fixation.line === undefined || fixation.line === null ? -1 : fixation.line;
-            var word = !fixation.word ? -1 : fixation.word.index;
-            return `${fixation.x}\t${fixation.y}\t${fixation.duration}\t${line}\t${word}\t` + 
+            var word = !fixation.word ? '' : fixation.word.index;
+            var line = fixation.line === undefined || fixation.line === null || word === '' ? -1 : fixation.line;
+            return `${x}\t${fixation.y}\t${fixation.duration}\t${line}\t${word}\t` +
                 ( !fixation.word ? `\t` : `${fixation.word.text}\t` );
         });
 
@@ -198,5 +199,5 @@
     }
 
     app.RemapExporter = RemapExporter;
-    
+
 })( this.Reading || module.exports );
