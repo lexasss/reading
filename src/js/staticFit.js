@@ -18,6 +18,9 @@ if (!this.Reading) {
     const MAX_LINEAR_GRADIENT = 0.15;
     const LONG_SET_LENGTH_THRESHOLD = 3;
 
+    const MIN_DURATION = 150; // ms
+    const MAX_DIST = 40; // px
+
     const SET_TYPE = {
         LONG: 'long',
         SHORT: 'short',
@@ -62,13 +65,15 @@ if (!this.Reading) {
         log = (logger || app.Logger).moduleLogPrinter( 'StaticFit' );
 
         var text = getText( data.words );
-        var fixations = filterFixations( data.fixations, text.box );
-        var progressions = splitToProgressions( fixations );
+        //var fixations = filterFixations( data.fixations, text.box );
+        //var progressions = splitToProgressions( fixations );
+        data.fixations = filterFixations( data.fixations, text.box );
+        var progressions = splitToProgressions( data.fixations );
         var sets = mergeSets( progressions, text.lines.length );
         sets = dropShortFixations( sets, 1 );
         sortAndAlignLines( sets, text.lines );
         //assignFixationsToLines( sets );
-        log( 'Fixations distributed across lines', data.fixations );
+        //log( 'Fixations distributed across lines', data.fixations );
 
         mapToWords( sets, text.lines );
         computeRegressions( data.fixations );
@@ -112,6 +117,10 @@ if (!this.Reading) {
     }
 
     function filterFixations (fixations, textbox) {
+        return joinShortFixatoins( removeFarFixations( fixations, textbox ) );
+    }
+
+    function removeFarFixations (fixations, textbox) {
         var result = [];
 
         for (var i = 0; i < fixations.length; i += 1) {
@@ -124,6 +133,55 @@ if (!this.Reading) {
                 result.push( fix );
             }
         }
+
+        return result;
+    }
+
+    function joinShortFixatoins (fixations) {
+        const dist = (a, b) => Math.sqrt( Math.pow( a.x - b.x, 2 ) + Math.pow( a.y - b.y, 2 ) );
+        const join = (a, b) => {
+            let totalDuration = a.duration + b.duration;
+            a.x = (a.x * a.duration + b.x * b.duration) / totalDuration;
+            a.y = (a.y * a.duration + b.y * b.duration) / totalDuration;
+            a.duration = totalDuration;
+            a.merged = true;
+        };
+        const joinInteration = (fixes) => {
+            const result = [];
+            let prevFix, prevPrevFix;
+            for (let i = 0; i < fixes.length; i += 1) {
+                let fix = fixes[i];
+                if (prevPrevFix && prevFix.duration < MIN_DURATION ) {
+                    let distToPrev = dist( prevFix, prevPrevFix );
+                    let distToNext = dist( prevFix, fix );
+                    if (distToPrev < MAX_DIST || distToNext < MAX_DIST) {
+                        if (distToNext < distToPrev) {
+                            join( fix, prevFix );
+                        }
+                        else {
+                            join( prevPrevFix, prevFix );
+                        }
+                    }
+
+                    result.pop();
+                    prevFix = prevPrevFix;
+                }
+
+                result.push( fix );
+
+                prevPrevFix = prevFix;
+                prevFix = fix;
+            }
+            return result;
+        };
+
+        let fixationCount;
+        let result = fixations;
+
+        do {
+            fixationCount = result.length;
+            result = joinInteration( result );
+        } while (result.length !== fixationCount);
 
         return result;
     }

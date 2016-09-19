@@ -155,7 +155,6 @@
 
     Path.prototype._drawFixations = function (ctx, fixations) {
         ctx.fillStyle = this.fixationColor;
-        ctx.strokeStyle = this.saccadeColor;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.font = this.numberFont;
@@ -168,6 +167,7 @@
                 continue;
             }
 
+            ctx.strokeStyle = this.saccadeColor;
             if (this.showSaccades && prevFix) {
                 this._drawSaccade( ctx, prevFix, fix );
             }
@@ -175,10 +175,10 @@
             if (this.showConnections && fix.word) {
                 ctx.strokeStyle = this.connectionColor;
                 this._drawConnection( ctx, fix, {x: fix.word.left, y: fix.word.top} );
-                ctx.strokeStyle = this.saccadeColor;
             }
 
-            this._drawFixation( ctx, fix, id );
+            ctx.strokeStyle = '#808';
+            this._drawFixation( ctx, fix, fix.id );
 
             prevFix = fix;
             id++;
@@ -215,6 +215,14 @@
             ctx.beginPath();
             ctx.arc( fixation.x, fixation.y, circleSize, 0, 2*Math.PI);
             ctx.fill();
+
+            if (fixation.merged) {
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc( fixation.x, fixation.y, circleSize + 3, 0, 2*Math.PI);
+                ctx.stroke();
+                ctx.lineWidth = 1;
+            }
         }
 
         if (this.showOriginalFixLocation /*&& fixation._x*/) {

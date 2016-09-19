@@ -56,7 +56,8 @@
             var fixations = remap( session );
 
             var id = childSnapshot.key();
-            Array.prototype.push.apply( logs.fixations, logFixations( id, fixations ) );
+            //Array.prototype.push.apply( logs.fixations, logFixations( id, fixations ) );
+            logs.fixations = logs.fixations.concat( id, ...logFixations( fixations ) );
             Array.prototype.push.apply( logs.words, logWords( id, fixations, session.words ) );
 
             logUniqueWords( fixations, session.words, logs.uniqueWords );
@@ -92,19 +93,19 @@
         }
     }
 
-    function logFixations (id, fixations) {
-        var fixations = fixations.map( fixation => {
-            var x = fixation._x !== undefined ? fixation._x : fixation.x;
-            if (x < 0 || fixation.y < 0 ) {
+    function logFixations (fixations) {
+        var i = 0;
+        var fixations = fixations.map( fix => {
+            var x = fix._x !== undefined ? fix._x : fix.x;
+            if (x < 0 || fix.y < 0 ) {
                 return null;
             }
-            var word = !fixation.word ? '' : fixation.word.index;
-            var line = fixation.line === undefined || fixation.line === null || word === '' ? -1 : fixation.line;
-            return `${x}\t${fixation.y}\t${fixation.duration}\t${line}\t${word}\t` +
-                ( !fixation.word ? `\t` : `${fixation.word.text}\t` );
+            var word = !fix.word ? '' : fix.word.index;
+            var line = fix.line === undefined || fix.line === null || word === '' ? -1 : fix.line;
+            return `${x}\t${fix.y}\t${fix.duration}\t${i++}\t${line}\t${word}`;
+//            return `${x}\t${fix.y}\t${fix.duration}\t${line}\t${word}\t` +
+//                ( !fix.word ? `\t` : `${fix.word.text}\t` );
         });
-
-        fixations.unshift( id );
 
         return fixations.filter( record => { return record !== null; } );
     }
