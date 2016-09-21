@@ -94,7 +94,7 @@
     }
 
     function logFixations (fixations) {
-        var i = 0;
+        //var i = 0;
         var fixations = fixations.map( fix => {
             var x = fix._x !== undefined ? fix._x : fix.x;
             if (x < 0 || fix.y < 0 ) {
@@ -102,7 +102,7 @@
             }
             var word = !fix.word ? '' : fix.word.index;
             var line = fix.line === undefined || fix.line === null || word === '' ? -1 : fix.line;
-            return `${x}\t${fix.y}\t${fix.duration}\t${i++}\t${line}\t${word}`;
+            return `${x}\t${fix.y}\t${fix.duration}\t${fix.id}\t${line}\t${word}`;
 //            return `${x}\t${fix.y}\t${fix.duration}\t${line}\t${word}\t` +
 //                ( !fix.word ? `\t` : `${fix.word.text}\t` );
         });

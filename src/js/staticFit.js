@@ -18,7 +18,8 @@ if (!this.Reading) {
     const MAX_LINEAR_GRADIENT = 0.15;
     const LONG_SET_LENGTH_THRESHOLD = 3;
 
-    const MIN_DURATION = 150; // ms
+    const MIN_DURATION_REMOVING = 150; // ms
+    const MIN_DURATION_MERGING = 240; // ms
     const MAX_DIST = 40; // px
 
     const SET_TYPE = {
@@ -151,7 +152,7 @@ if (!this.Reading) {
             let prevFix, prevPrevFix;
             for (let i = 0; i < fixes.length; i += 1) {
                 let fix = fixes[i];
-                if (prevPrevFix && prevFix.duration < MIN_DURATION ) {
+                if (prevPrevFix && prevFix.duration < MIN_DURATION_MERGING ) {
                     let distToPrev = dist( prevFix, prevPrevFix );
                     let distToNext = dist( prevFix, fix );
                     if (distToPrev < MAX_DIST || distToNext < MAX_DIST) {
@@ -161,10 +162,13 @@ if (!this.Reading) {
                         else {
                             join( prevPrevFix, prevFix );
                         }
+                        result.pop();
+                        prevFix = prevPrevFix;
                     }
-
-                    result.pop();
-                    prevFix = prevPrevFix;
+                    else if (prevFix.duration < MIN_DURATION_REMOVING) {
+                        result.pop();
+                        prevFix = prevPrevFix;
+                    }
                 }
 
                 result.push( fix );

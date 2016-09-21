@@ -30,7 +30,7 @@ mixin options(id, lists)
             .group
                 .name Mapping
                 .row
-                    .label Word color metric
+                    .label Type
                     select.value#path_mapping
                         each mapping in lists.mappings
                             option(value="#{mapping}") #{mapping}
