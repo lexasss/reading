@@ -9,18 +9,18 @@ if (!this.Reading) {
 
 (function(app) {
 
-    const MARGIN_X = 100;
-    const MARGIN_Y = 180;
-    const FIT_THESHOLD = 25;
-    const SKIMMING_THRESHOLD_X = 500;
-    const SKIMMING_THRESHOLD_Y = 40;
-    const SCALE_DIFF_THRESHOLD = 0.9;
-    const MAX_LINEAR_GRADIENT = 0.15;
-    const LONG_SET_LENGTH_THRESHOLD = 3;
+    let MARGIN_X = 100;
+    let MARGIN_Y = 180;
+    let FIT_THESHOLD = 25;
+    let SKIMMING_THRESHOLD_X = 500;
+    let SKIMMING_THRESHOLD_Y = 40;
+    let SCALE_DIFF_THRESHOLD = 0.9;
+    let MAX_LINEAR_GRADIENT = 0.15;
+    let LONG_SET_LENGTH_THRESHOLD = 3;
 
-    const MIN_DURATION_REMOVING = 150; // ms
-    const MIN_DURATION_MERGING = 240; // ms
-    const MAX_DIST = 40; // px
+    let MIN_DURATION_REMOVING = 150; // ms
+    let MIN_DURATION_MERGING = 240; // ms
+    let MAX_DIST = 40; // px
 
     const SET_TYPE = {
         LONG: 'long',
@@ -41,6 +41,9 @@ if (!this.Reading) {
                 scaleDiffThreshold: SCALE_DIFF_THRESHOLD,
                 maxLinearGradient: MAX_LINEAR_GRADIENT,
                 longSetLengthThreshold: LONG_SET_LENGTH_THRESHOLD,
+                minDurationRemoving: MIN_DURATION_REMOVING,
+                minDurationMerging: MIN_DURATION_MERGING,
+                maxDist: MAX_DIST,
                 logging: (logger || app.Logger).enabled
             };
         }
@@ -53,6 +56,9 @@ if (!this.Reading) {
             SCALE_DIFF_THRESHOLD = value.scaleDiffThreshold !== undefined ? value.scaleDiffThreshold : SCALE_DIFF_THRESHOLD;
             MAX_LINEAR_GRADIENT = value.maxLinearGradient !== undefined ? value.maxLinearGradient : MAX_LINEAR_GRADIENT;
             LONG_SET_LENGTH_THRESHOLD = value.longSetLengthThreshold !== undefined ? value.longSetLengthThreshold : LONG_SET_LENGTH_THRESHOLD;
+            MIN_DURATION_REMOVING = value.minDurationRemoving !== undefined ? value.minDurationRemoving : MIN_DURATION_REMOVING,
+            MIN_DURATION_MERGING = value.minDurationMerging !== undefined ? value.minDurationMerging : MIN_DURATION_MERGING,
+            MAX_DIST = value.maxDist !== undefined ? value.maxDist : MAX_DIST,
             (logger || app.Logger).enabled = value.logging !== undefined ? value.logging : (logger || app.Logger).enabled;
         }
     }
