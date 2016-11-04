@@ -1842,7 +1842,7 @@
     root.GazeTargets.ETUDPanel = ETUDPanel;
 
 })(window);
-// Handles communication with ETU-Driver Service application 
+// Handles communication with ETU-Driver Service application
 //
 // Dependencies:
 //      utils.js
@@ -1871,8 +1871,9 @@
             }
 
             panel.setLabel(stateLabel.connecting);
-            
-            var wsURI = 'ws://localhost:' + settings.port + '/';
+
+            var protocol = location.protocol.indexOf("https" >= 0) ? 'wss' : 'ws';
+            var wsURI = protocol + '://localhost:' + settings.port + '/';
             websocket = new WebSocket(wsURI);
             websocket.onopen    = onWebSocketOpen;
             websocket.onclose   = onWebSocketClose;
@@ -1958,7 +1959,7 @@
         data: function (ts, x, y, pupil, ec) { },
         state: function (state) { }
     };
-    
+
     // principal variables
     var settings;
     var storage;
@@ -1983,11 +1984,11 @@
         utils.debug('ETUDriver.send', 'WebSocket sent: ' + message);
         websocket.send(message);
     };
-        
+
     var onWebSocketOpen = function (evt) {
         //debug('onWebSocketOpen', evt);
         var state = getState(stateFlags.none);
-        
+
         panel.setLabel(stateLabel.connected);
         panel.setIsConnected(true);
         panel.update(state);
@@ -2003,7 +2004,7 @@
         //debug('onWebSocketClose', evt);
         websocket = null;
         currentDevice = '';
-        
+
         var state = getState(stateFlags.none);
         if (callbacks.state) {
             callbacks.state(state);
@@ -2063,7 +2064,7 @@
         } else {
             device = currentDevice;
         }
-        
+
         return {
             isServiceRunning: !!websocket,
             isConnected:  (currentStateFlags & stateFlags.connected) > 0,

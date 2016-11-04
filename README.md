@@ -17,6 +17,10 @@ Install depenencies:
 
     npm install
 
+Switch to the `school` branch:
+
+    git checkout school
+
 Build the package:
 
     grunt
