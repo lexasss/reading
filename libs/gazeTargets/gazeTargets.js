@@ -1872,7 +1872,7 @@
 
             panel.setLabel(stateLabel.connecting);
 
-            var protocol = location.protocol.indexOf("https" >= 0) ? 'wss' : 'ws';
+            var protocol = 'ws'; //location.protocol.indexOf("https" >= 0) ? 'wss' : 'ws';
             var wsURI = protocol + '://localhost:' + settings.port + '/';
             websocket = new WebSocket(wsURI);
             websocket.onopen    = onWebSocketOpen;

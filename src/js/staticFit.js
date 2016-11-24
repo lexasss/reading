@@ -17,10 +17,14 @@ if (!this.Reading) {
     let SCALE_DIFF_THRESHOLD = 0.9;
     let MAX_LINEAR_GRADIENT = 0.15;
     let LONG_SET_LENGTH_THRESHOLD = 3;
+    let EMPTY_LINE_DETECTION_FACTOR = 1.7; // factor of the line height
 
-    let MIN_DURATION_REMOVING = 150; // ms
-    let MIN_DURATION_MERGING = 240; // ms
-    let MAX_DIST = 40; // px
+    let MIN_DURATION_REMOVING = 150; // ms, set to 0 to disable
+    let MIN_DURATION_MERGING = 240; // ms, set to 0 to disable
+    let MIN_INTERFIX_DIST = 40; // px
+    let DROP_SHORT_SETS = true;
+
+    let CORRECT_FOR_EMPTY_LINES = true;
 
     const SET_TYPE = {
         LONG: 'long',
@@ -41,9 +45,12 @@ if (!this.Reading) {
                 scaleDiffThreshold: SCALE_DIFF_THRESHOLD,
                 maxLinearGradient: MAX_LINEAR_GRADIENT,
                 longSetLengthThreshold: LONG_SET_LENGTH_THRESHOLD,
+                emptyLineDetectionFactor: EMPTY_LINE_DETECTION_FACTOR,
                 minDurationRemoving: MIN_DURATION_REMOVING,
                 minDurationMerging: MIN_DURATION_MERGING,
-                maxDist: MAX_DIST,
+                minInterfixDist: MIN_INTERFIX_DIST,
+                correctForEmptyLines: CORRECT_FOR_EMPTY_LINES,
+                dropShortSets: DROP_SHORT_SETS,
                 logging: (logger || app.Logger).enabled
             };
         }
@@ -56,9 +63,12 @@ if (!this.Reading) {
             SCALE_DIFF_THRESHOLD = value.scaleDiffThreshold !== undefined ? value.scaleDiffThreshold : SCALE_DIFF_THRESHOLD;
             MAX_LINEAR_GRADIENT = value.maxLinearGradient !== undefined ? value.maxLinearGradient : MAX_LINEAR_GRADIENT;
             LONG_SET_LENGTH_THRESHOLD = value.longSetLengthThreshold !== undefined ? value.longSetLengthThreshold : LONG_SET_LENGTH_THRESHOLD;
-            MIN_DURATION_REMOVING = value.minDurationRemoving !== undefined ? value.minDurationRemoving : MIN_DURATION_REMOVING,
-            MIN_DURATION_MERGING = value.minDurationMerging !== undefined ? value.minDurationMerging : MIN_DURATION_MERGING,
-            MAX_DIST = value.maxDist !== undefined ? value.maxDist : MAX_DIST,
+            EMPTY_LINE_DETECTION_FACTOR = value.emptyLineDetectionFactor !== undefined ? value.emptyLineDetectionFactor : EMPTY_LINE_DETECTION_FACTOR;
+            MIN_DURATION_REMOVING = value.minDurationRemoving !== undefined ? value.minDurationRemoving : MIN_DURATION_REMOVING;
+            MIN_DURATION_MERGING = value.minDurationMerging !== undefined ? value.minDurationMerging : MIN_DURATION_MERGING;
+            MIN_INTERFIX_DIST = value.minInterfixDist !== undefined ? value.minInterfixDist : MIN_INTERFIX_DIST;
+            CORRECT_FOR_EMPTY_LINES = value.correctForEmptyLines !== undefined ? value.correctForEmptyLines : CORRECT_FOR_EMPTY_LINES;
+            DROP_SHORT_SETS = value.dropShortSets !== undefined ? value.dropShortSets : DROP_SHORT_SETS,
             (logger || app.Logger).enabled = value.logging !== undefined ? value.logging : (logger || app.Logger).enabled;
         }
     }
@@ -74,11 +84,18 @@ if (!this.Reading) {
         var text = getText( data.words );
         //var fixations = filterFixations( data.fixations, text.box );
         //var progressions = splitToProgressions( fixations );
-        data.fixations = filterFixations( data.fixations, text.box );
+        if (MIN_DURATION_MERGING || MIN_DURATION_MERGING) {
+            data.fixations = filterFixations( data.fixations, text.box );
+        }
         var progressions = splitToProgressions( data.fixations );
         var sets = mergeSets( progressions, text.lines.length );
-        sets = dropShortFixations( sets, 1 );
+        sets = dropShortSets( sets, 1 );
         sortAndAlignLines( sets, text.lines );
+
+        if (data.maxLineID) {
+            sets = ensureCorrectMaxAssignedLineID( sets, text.lines, data.maxLineID );
+        }
+
         //assignFixationsToLines( sets );
         //log( 'Fixations distributed across lines', data.fixations );
 
@@ -95,6 +112,7 @@ if (!this.Reading) {
 
         var createNewLine = function (word) {
             currentLine = [ word ];
+            currentLine.id = word.row - 1;
             lines.push( currentLine );
         };
 
@@ -161,7 +179,7 @@ if (!this.Reading) {
                 if (prevPrevFix && prevFix.duration < MIN_DURATION_MERGING ) {
                     let distToPrev = dist( prevFix, prevPrevFix );
                     let distToNext = dist( prevFix, fix );
-                    if (distToPrev < MAX_DIST || distToNext < MAX_DIST) {
+                    if (distToPrev < MIN_INTERFIX_DIST || distToNext < MIN_INTERFIX_DIST) {
                         if (distToNext < distToPrev) {
                             join( fix, prevFix );
                         }
@@ -228,7 +246,11 @@ if (!this.Reading) {
         return result;
     }
 
-    function dropShortFixations (fixationSets, maxRejectionLength ) {
+    function dropShortSets (fixationSets, maxRejectionLength ) {
+        if (!DROP_SHORT_SETS) {
+            return fixationSets;
+        }
+
         var result = [];
 
         for (var i = 0; i < fixationSets.length; i += 1) {
@@ -248,11 +270,20 @@ if (!this.Reading) {
 
         let interlineDist = 9;
         if (textLines.length > 1) {
+            let interlineDists = [];
+            for (let i = 1; i < textLines.length; i += 1) {
+                interlineDists.push( textLines[i][0].y - textLines[i - 1][0].y );
+            }
+            interlineDist = median( interlineDists );
+            /*/
             for (let i = 1; i < textLines.length; i += 1) {
                 interlineDist += textLines[i][0].y - textLines[i - 1][0].y;
             }
-
             interlineDist = interlineDist / (textLines.length - 1);
+            */
+        }
+        else {
+            interlineDist = Number.MAX_VALUE;
         }
 
         let currentLineID = 0;
@@ -265,8 +296,8 @@ if (!this.Reading) {
             }
             currentLineY /= fixations.length;
 
-            if (i > 0 && (currentLineY - lastLineY) > 1.7 * interlineDist) {
-                console.log('====\nLine must be ', currentLineID);
+            if (CORRECT_FOR_EMPTY_LINES && i > 0 && (currentLineY - lastLineY) > EMPTY_LINE_DETECTION_FACTOR * interlineDist) {
+                console.log('-- line is ', currentLineID);
                 currentLineID += Math.round( (currentLineY - lastLineY) / interlineDist ) - 1;
                 console.log('    but corrected to ', currentLineID);
             }
@@ -280,22 +311,99 @@ if (!this.Reading) {
         }
     }
 
+    function ensureCorrectMaxAssignedLineID( sets, lines, maxLineID ) {
+
+        const getMaxLineID = function  (sets) {
+            return sets.reduce( (acc1, set) => {
+                return set.reduce( (acc2, value) => {
+                    return acc2 > value.line ? acc2 : value.line;
+                }, acc1);
+            }, 0);
+        };
+
+        if (getMaxLineID( sets ) > maxLineID) {
+            let prevSetCount = sets.length;
+            sets = mergeSetsOfType( sets, maxLineID, SET_TYPE.LONG, 2, SET_TYPE.LONG );
+            if (sets.length != prevSetCount) {
+                console.log('    >1');
+                sortAndAlignLines( sets, lines );
+                console.log('    <');
+            }
+        }
+
+        if (getMaxLineID( sets ) > maxLineID) {
+            let prevSetCount = sets.length;
+            sets = mergeSetsOfType( sets, maxLineID, SET_TYPE.LONG, 1, SET_TYPE.LONG, Number.MAX_VALUE );
+            if (sets.length != prevSetCount) {
+                console.log('    >2');
+                sortAndAlignLines( sets, lines );
+                console.log('    <');
+            }
+        }
+
+        let currentMaxLineID = getMaxLineID( sets );
+        while (currentMaxLineID > maxLineID) {
+            // still the last line ID is too big... then search for a missed line ID
+            let mappedLineIDs = new Array( currentMaxLineID + 1);
+            for (let i = 0; i < sets.length; i += 1) {
+                mappedLineIDs[ sets[i][0].line ] = true;
+            }
+
+            let missingLineID = mappedLineIDs.reduceRight( (acc, val, index) => {
+                return acc < 0 && !val ? index : acc;
+            }, -1);
+
+            if (missingLineID < 0) {
+                break;
+            }
+
+            for (let i = sets.length - 1; i >= 0; i -= 1) {
+                if (sets[i][0].line > missingLineID) {
+                    let fixations = sets[i];
+                    for (let j = 0; j < fixations.length; j += 1) {
+                        fixations[j].line -= 1;
+                    }
+                }
+            }
+
+            currentMaxLineID = getMaxLineID( sets );
+        }
+
+        return sets;
+    }
+
     function assignFixationsToLines (fixationLines) {
 
-        for (var i = 0; i < fixationLines.length; i += 1) {
-            var fixations = fixationLines[i];
-            for (var j = 0; j < fixations.length; j += 1) {
+        for (let i = 0; i < fixationLines.length; i += 1) {
+            let fixations = fixationLines[i];
+            for (let j = 0; j < fixations.length; j += 1) {
                 fixations[j].line = i;
             }
         }
     }
 
     function mapToWords (fixationLines, textLines) {
-        for (var i = 0; i < fixationLines.length; i += 1) {
+
+        let getTextLine = function (lineID) {
+            let textLine;
+            for (let j = 0; j < textLines.length; j += 1) {
+                if (lineID === textLines[j].id) {
+                    textLine = textLines[j];
+                    break;
+                }
+            }
+            return textLine;
+        };
+
+        for (let i = 0; i < fixationLines.length; i += 1) {
             let fixations = fixationLines[i];
-            let textLine = textLines[ fixations[0].line ] || textLines[i];
-            adjustFixations( fixations, textLine );
-            mapFixationsWithinLine( fixations, textLine );
+            let lineID = fixations[0].line;
+            let textLine = getTextLine( lineID );
+
+            if (textLine !== undefined) {
+                adjustFixations( fixations, textLine );
+                mapFixationsWithinLine( fixations, textLine );
+            }
         }
     }
 
@@ -324,7 +432,7 @@ if (!this.Reading) {
         if (result.length > lineCount) {
             log( '============================' );
             log( 'And still too long... Just merge closest sets until we get the right number' );
-            result = dropShortFixations( result, 2);
+            result = dropShortSets( result, 2);
             result = mergeSetsOfType( result, lineCount, SET_TYPE.LONG, 1, SET_TYPE.LONG, Number.MAX_VALUE );
         }
 
@@ -350,7 +458,7 @@ if (!this.Reading) {
 
     function mergeTwoNearestSets (fixationsSets, setLengthType, longSetThreshold, joiningLengthType, fitThreshold) {
 
-        var isForcedMerging = fitThreshold !== FIT_THESHOLD;
+        var isForcedMerging = fitThreshold > 1;
 
         joiningLengthType = joiningLengthType || SET_TYPE.LONG;
         longSetThreshold = longSetThreshold || LONG_SET_LENGTH_THRESHOLD;
@@ -721,6 +829,30 @@ if (!this.Reading) {
                 }
             }
         }
+    }
+
+    function median (array) {
+        if (array.length <= 5) {
+            return array[ Math.floor( array.length / 2 ) ];
+        }
+
+        let sets = new Array( Math.floor( array.length / 5 ) + (array.length % 5 ? 1 : 0) );
+        for (let i = 0; i < sets.length; i+=1) {
+            sets[i] = [];
+        }
+        for (let i = 0; i < array.length; i+=1) {
+            sets[ Math.floor( i / 5 ) ].push( array[i] );
+        }
+
+        let medians = [];
+        sets.forEach( set => {
+            set.sort( (a, b) => {
+                return a - b;
+            });
+            medians.push( set[ Math.floor( set.length / 2 ) ] );
+        });
+
+        return median( medians );
     }
 
     // Export
