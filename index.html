@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>School Reading</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="app.css">
+    <script src="libs/gazeTargets/gazeTargets.js"></script>
+    <script src="libs/firebase.js"></script>
+    <script src="libs/shortcut.js"></script>
+    <script src="libs/regression.js"></script>
+  </head>
+  <body>
+        <div id="textContainer">
+          <div id="text"></div>
+        </div>
+        <div id="controls" class="controls"><span class="device">Connecting</span>
+          <div class="buttonBlock etud">
+            <div class="button options disabled">Options</div>
+            <div class="button calibrate disabled">Calibrate</div>
+            <div class="button toggle disabled">Start</div>
+          </div>
+          <div class="separator"></div>
+          <div class="buttonBlock text"></div>
+          <div class="separator"></div>
+          <div class="buttonBlock spacing"></div>
+          <div class="separator"></div>
+          <div class="button loadSession">Load session</div>
+          <div class="button loadCondition">Load condition</div>
+          <div class="button loadFile">Load file</div>
+          <div class="separator"></div>
+          <div class="button simulate">Simulate</div>
+        </div>
+        <div id="textEditor" class="slideout left auto-expand">
+          <div class="title">Edit text</div>
+          <div class="slideout_inner">
+            <textarea class="text"></textarea><br>
+            <input type="button" value="Apply" class="apply">
+          </div>
+        </div>
+        <div id="options" class="slideout right">
+          <div class="title">Options</div>
+          <div class="slideout_inner">
+            <div class="group">
+              <div class="name">Text</div>
+              <div class="row">
+                <div class="label">Color</div>
+                <input id="text" type="color" class="value">
+              </div>
+              <div class="row">
+                <div class="label">Font size</div>
+                <input id="fontSize" class="value">
+              </div>
+              <div class="row">
+                <div class="label">Hidden initially</div>
+                <input id="hiddenText" type="checkbox" class="value">
+              </div>
+            </div>
+            <div class="group">
+              <div class="name">Gaze</div>
+              <div class="row">
+                <div class="label">Show pointer</div>
+                <input id="showPointer" type="checkbox" class="value">
+              </div>
+              <div class="row">
+                <div class="label">Highlight focused word</div>
+                <input id="highlightWord" type="checkbox" class="value">
+              </div>
+              <div class="row">
+                <div class="label">Highlighting color</div>
+                <input id="currentWord" type="color" class="value">
+              </div>
+            </div>
+            <div class="group">
+              <div class="name">Mapping</div>
+              <div class="row">
+                <div class="label">Type</div>
+                <select id="path_mapping" class="value">
+                  <option value="static">static</option>
+                  <option value="dynamic">dynamic</option>
+                </select>
+              </div>
+            </div>
+            <div class="group">
+              <div class="name">Session visualization</div>
+              <div class="row">
+                <div class="label">Word color metric</div>
+                <select id="path_colorMetric" class="value">
+                  <option value="none">none</option>
+                  <option value="duration">duration</option>
+                  <option value="char speed">char speed</option>
+                  <option value="syllable speed">syllable speed</option>
+                </select>
+              </div>
+              <div class="row">
+                <div class="label">Show IDs</div>
+                <input id="path_showIDs" type="checkbox" class="value">
+              </div>
+              <div class="row">
+                <div class="label">Show word-fixation connections</div>
+                <input id="path_showConnections" type="checkbox" class="value">
+              </div>
+              <div class="row">
+                <div class="label">Show saccades</div>
+                <input id="path_showSaccades" type="checkbox" class="value">
+              </div>
+              <div class="row">
+                <div class="label">Show fixations</div>
+                <input id="path_showFixations" type="checkbox" class="value">
+              </div>
+              <div class="row">
+                <div class="label">Show orig. fixation location</div>
+                <input id="path_showOriginalFixLocation" type="checkbox" class="value">
+              </div>
+            </div>
+            <div class="group">
+              <div class="name">Summary visualization</div>
+              <div class="row">
+                <div class="label">Color metric</div>
+                <select id="wordGazing_colorMetric" class="value">
+                  <option value="none">none</option>
+                  <option value="duration">duration</option>
+                  <option value="char speed">char speed</option>
+                  <option value="syllable speed">syllable speed</option>
+                </select>
+              </div>
+              <div class="row">
+                <div class="label">Show fixations</div>
+                <input id="wordGazing_showFixations" type="checkbox" class="value">
+              </div>
+              <div class="row">
+                <div class="label">Unite spacings</div>
+                <input id="wordGazing_uniteSpacings" type="checkbox" class="value">
+              </div>
+              <div class="row">
+                <div class="label">Show regressions</div>
+                <input id="wordGazing_showRegressions" type="checkbox" class="value">
+              </div>
+            </div>
+            <input type="button" value="Save" class="save">
+            <input type="button" value="Close" class="close">
+          </div>
+        </div>
+        <div id="statistics" class="statistics">
+          <div class="helper"></div>
+          <div class="container">
+            <div class="title">Statistics</div>
+            <textarea class="text"></textarea>
+            <div class="button-strip">
+              <input type="button" value="Close" class="close">
+              <input type="button" value="Save to file" class="saveLocal">
+              <input type="button" value="Save to DB" class="saveRemote">
+            </div>
+          </div>
+        </div>
+        <div id="visualization" class="path">
+          <input type="button" value="Close" class="close">
+          <canvas></canvas>
+          <div id="session" class="prompt">Select a session:
+            <div>
+              <select id="categories" class="hidden"></select>
+              <select id="conditions"></select>
+              <input type="button" value="Select" autofocus="autofocus" class="select">
+            </div>
+          </div>
+          <div id="file" class="prompt">
+            <div class="title">Select a file:</div>
+            <input type="file" class="file">
+          </div>
+        </div>
+    <script src="app.js"></script>
+    <script>
+      Reading.init({
+          text: '#text',
+          textContainer: '#textContainer',
+          visualization: '#visualization',
+          controls: '#controls',
+          options: '#options',
+          statistics: '#statistics',
+          textEditor: '#textEditor',
+      });
+    </script>
+  </body>
+</html>
