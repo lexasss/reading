@@ -3,15 +3,6 @@ module.exports = function(grunt) {
     grunt.initConfig({
         pkg: grunt.file.readJSON('package.json'),
 
-        clean: {
-            build: {
-                src: ['build/**'],
-                filter: function(filepath) {
-                    return filepath.split('\\').length > 1;
-                }
-            }
-        },
-
         jade: {
             compile: {
                 options: {
@@ -21,7 +12,7 @@ module.exports = function(grunt) {
                     }
                 },
                 files: {
-                    'build/index.html': ['src/views/*.jade']
+                    'index.html': ['src/views/*.jade']
                 }
             },
         },
@@ -29,39 +20,15 @@ module.exports = function(grunt) {
         less: {
             main: {
                 files: {
-                    'build/app.css': ['src/styles/*.less']
+                    'app.css': ['src/styles/*.less']
                 }
             }
         },
 
         concat: {
             js: {
-                src: ['src/js/namespace.js', 'src/js/**/*'],
-                dest: 'build/app.js'
-            }
-        },
-
-        copy: {
-            gazeTargets: {
-                expand: true,
-                cwd: '../../GazeTargets/build',
-                src: '**',
-                dest: 'libs/gazeTargets/',
-                flatten: false
-            },
-            libs: {
-                expand: true,
-                cwd: 'libs/',
-                src: '**',
-                dest: 'build/libs/',
-                flatten: false
-            },
-            img: {
-                expand: true,
-                cwd: 'img/',
-                src: '**',
-                dest: 'build/img/',
-                flatten: false
+                src: ['src/js/namespace.js', 'src/js/**'],
+                dest: 'app.js'
             }
         },
 
@@ -75,7 +42,7 @@ module.exports = function(grunt) {
                         })
                     ]
                 },
-                src: 'build/*.css'
+                src: '*.css'
             },
             lint: {
                 options: {
@@ -170,7 +137,6 @@ module.exports = function(grunt) {
         // }
     });
 
-    grunt.loadNpmTasks( 'grunt-contrib-clean' );
     grunt.loadNpmTasks( 'grunt-contrib-jade' );
     grunt.loadNpmTasks( 'grunt-contrib-less' );
     grunt.loadNpmTasks( 'grunt-contrib-copy' );
@@ -180,10 +146,9 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks( 'grunt-eslint' );
     // grunt.loadNpmTasks( 'grunt-stylelint' );
 
-    grunt.registerTask('rebuild', ['clean', 'jade', 'less', 'concat', 'copy', 'postcss:build']);
-    grunt.registerTask('quick', ['jade', 'less', 'concat', 'copy:img', 'postcss:build']);
-    grunt.registerTask('default', ['jade', 'less', 'concat', 'copy:img', 'copy:libs', 'postcss:build']);
-    grunt.registerTask('updatelibs', ['copy:gazeTargets' ]);
+    grunt.registerTask('rebuild', ['jade', 'less', 'concat', 'postcss:build']);
+    grunt.registerTask('quick', ['jade', 'less', 'concat', 'postcss:build']);
+    grunt.registerTask('default', ['jade', 'less', 'concat', 'postcss:build']);
     grunt.registerTask('compile', ['jshint']);
     grunt.registerTask('compile2', ['eslint', 'postcss:lint']);
 };
