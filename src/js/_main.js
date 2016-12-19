@@ -3,7 +3,7 @@
 
 var Reading = Reading || {};
 
-// "components" contains selectors for each component 
+// "components" contains selectors for each component
 Reading.init = function (components) {
 
     Reading.loadingCallbacks.forEach( callback => { callback(); } );
@@ -43,6 +43,9 @@ Reading.init = function (components) {
     var rtv = new Reading.RTV({
         root: components.visualization
     });
+    var gazeReplay = new Reading.GazeReplay({
+        root: components.visualization
+    });
 
     var controls = new Reading.Controls({
         root: components.controls
@@ -55,6 +58,7 @@ Reading.init = function (components) {
         selectCondition: wordGazing.queryData.bind( wordGazing ),
         selectFile: path.queryFile.bind( path ),
         simulate: rtv.queryData.bind( rtv ),
+        gazeReplay: gazeReplay.queryData.bind( gazeReplay ),
     });
 
     var options = new Reading.Options({
@@ -65,7 +69,7 @@ Reading.init = function (components) {
             GazeTargets.getSettings( 'pointer/show' ) :
             GazeTargets.updateSettings( { pointer: { show: value } } );
         },
-        highlightWord: function (value) { return value === undefined ? 
+        highlightWord: function (value) { return value === undefined ?
             textSplitter.highlightCurrentWord :
             (textSplitter.highlightCurrentWord = value);
         },
@@ -124,7 +128,7 @@ Reading.init = function (components) {
     });
 
     var statistics = new Reading.Statistics({
-        root: components.statistics, 
+        root: components.statistics,
         wordClass: textSplitter.wordClass
     }, {
         getTextSetup: text.getSetup.bind( text )

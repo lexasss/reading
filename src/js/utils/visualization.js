@@ -135,7 +135,7 @@
         if (nameParts.length === 3) {
             result = nameParts[1];
             if (considerSpacings) {
-                result += '_' + nameParts[2];
+                result += ', spacing #' + nameParts[2];
             }
         }
         return result;
@@ -153,7 +153,7 @@
             }
         });
 
-        return conditions;
+        return new Map([...conditions.entries()].sort());
     }
 
     Visualization.prototype._showDataSelectionDialog = function (multiple) {

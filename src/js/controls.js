@@ -32,11 +32,12 @@
         _services.selectCondition = _services.selectCondition || logError( 'selectCondition' );
         _services.selectFile = _services.selectFile || logError( 'selectFile' );
         _services.simulate = _services.simulate || logError( 'simulate' );
+        _services.gazeReplay = _services.gazeReplay || logError( 'gazeReplay' );
 
         //var container = document.querySelector( this.root );
 
         _device = document.querySelector( this.root + ' .device' );
-        
+
         _options = document.querySelector( this.root + ' .options' );
         _options.addEventListener('click', function () {
             GazeTargets.ETUDriver.showOptions();
@@ -99,6 +100,11 @@
             _services.simulate( true );
         });
 
+        _gazeReplay = document.querySelector( this.root + ' .gazeReplay' );
+        _gazeReplay.addEventListener('click', function () {
+            _services.gazeReplay( true );
+        });
+
         shortcut.add( 'Space', function() {
             _toggle.click();
         });
@@ -106,7 +112,7 @@
         _connectionTimeout = setTimeout(function () {
             _device.textContent = 'Disconnected';
         }, 3000);
-        
+
         _services.switchText(0);
         _services.switchSpacing(0);
     }
@@ -118,6 +124,7 @@
         _loadCondition.classList.add( 'disabled' );
         _loadFile.classList.add( 'disabled' );
         _simulate.classList.add( 'disabled' );
+        _gazeReplay.classList.add( 'disabled' );
     };
 
     Controls.prototype.unlock = function () {
@@ -126,14 +133,14 @@
         _loadSession.classList.remove( 'disabled' );
         _loadCondition.classList.remove( 'disabled' );
         _loadFile.classList.remove( 'disabled' );
-        _simulate.classList.remove( 'disabled' );
+        _gazeReplay.classList.remove( 'disabled' );
     };
-    
+
     Controls.prototype.onStateUpdated = function (state) {
         if (state.device) {
             _device.textContent = state.device;
             clearTimeout( _connectionTimeout );
-        } 
+        }
         else if (!state.isConnected) {
             _device.textContent = 'Disconnected';
         }
@@ -163,14 +170,14 @@
     }
 
     function getTextSwitcherHandler(index) {
-        return function () { 
+        return function () {
             _services.switchText( index );
             select(this, _textSwitchers);
         };
     }
 
     function getSpacingSwitcherHandler(index) {
-        return function () { 
+        return function () {
             _services.switchSpacing( index );
             select(this, _spacingSwitchers);
         };
@@ -196,9 +203,10 @@
     var _loadCondition;
     var _loadFile;
     var _simulate;
-    
+    var _gazeReplay;
+
     var _connectionTimeout;
 
     app.Controls = Controls;
-    
+
 })( this.Reading || module.exports );

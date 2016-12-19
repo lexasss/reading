@@ -16,8 +16,6 @@
     function RTV (options) {
 
         this.focusColor = options.focusColor || '#F80';
-        this.wordReadingColor = options.wordReadingColor || '#CCC';
-        this.wordLongReadingColor = options.wordLongReadingColor || '#888';
 
         this.longFixationThreshold = 1000;
 
@@ -96,7 +94,7 @@
         this._computeFontSize( words );
         this._drawWords( ctx, tracks[0].words );
         this._drawTracks( ctx, tracks );
-        
+
         this._run( ctx, tracks );
         this._tracks = tracks;
     };
@@ -109,7 +107,7 @@
     };
 
     RTV.prototype._drawWords = function (ctx, words) {
-        ctx.textAlign = 'end'; 
+        ctx.textAlign = 'end';
         ctx.textBaseline = 'top';
         ctx.fillStyle = this.wordColor;
         ctx.font = this.wordFont;
@@ -129,7 +127,7 @@
     };
 
     RTV.prototype._drawTracks = function (ctx, tracks) {
-        ctx.textAlign = 'center'; 
+        ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
         ctx.fillStyle = this.wordColor;
         ctx.font = this.captionFont;
@@ -150,9 +148,9 @@
                 track.y - this.wordPaddingY
             );
             track.words.forEach( (word, wi) => {
-                ctx.strokeRect( 
+                ctx.strokeRect(
                     track.x,
-                    track.y + this.wordHeight * wi, 
+                    track.y + this.wordHeight * wi,
                     track.width,
                     this.wordHeight
                 );
@@ -183,7 +181,7 @@
                     ctx.fillStyle = this.wordColor;
                     ctx.fillText(
                         'done',
-                        track.x + track.width * 0.5, 
+                        track.x + track.width * 0.5,
                         track.y + this.wordHeight * track.words.length + this.wordPaddingY
                     );
                 }
@@ -301,5 +299,5 @@
     }
 
     app.RTV = RTV;
-    
+
 })( this.Reading || module.exports );
