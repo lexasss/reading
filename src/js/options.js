@@ -13,6 +13,7 @@
     //          showPointer (bool)
     //          highlightWord (bool)
     //          syllabify (bool)
+    //          voice (bool)
     //          hideText (bool)
     //          path {
     //              colorMetric (index)
@@ -42,6 +43,7 @@
         _services.showPointer = _services.showPointer || logError( 'showPointer' );
         _services.highlightWord = _services.highlightWord || logError( 'highlightWord' );
         _services.syllabify = _services.syllabify || logError( 'syllabify' );
+        _services.voice = _services.voice || logError( 'voice' );
         _services.hideText = _services.hideText || logError( 'hideText' );
 
         _services.path = _services.path || {};
@@ -313,6 +315,7 @@
         bindCheckbox( 'showPointer', _services.showPointer );
         bindCheckbox( 'highlightWord', _services.highlightWord );
         bindCheckbox( 'syllabify', _services.syllabify );
+        bindCheckbox( 'voice', _services.voice );
         bindCheckbox( 'hiddenText', _services.hideText );
 
         bindSelect( 'path_mapping', _services.path.mapping );

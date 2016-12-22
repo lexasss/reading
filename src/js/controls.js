@@ -133,6 +133,7 @@
         _loadSession.classList.remove( 'disabled' );
         _loadCondition.classList.remove( 'disabled' );
         _loadFile.classList.remove( 'disabled' );
+        _simulate.classList.remove( 'disabled' );
         _gazeReplay.classList.remove( 'disabled' );
     };
 

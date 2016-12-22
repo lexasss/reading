@@ -82,6 +82,10 @@ Reading.init = function (components) {
             syllabifier.syllabificationEnabled :
             (syllabifier.syllabificationEnabled = value);
         },
+        voice: function (value) { return value === undefined ?
+            syllabifier.voiceEnabled :
+            (syllabifier.voiceEnabled = value);
+        },
         hideText: function (value) { return value === undefined ?
             !text.initialVisibility() :
             text.initialVisibility( !value );

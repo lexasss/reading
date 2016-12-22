@@ -5,12 +5,14 @@
     //      options: {
     //          syllabificationEnabled
     //          highlightingEnabled
+    //          voiceEnabled
     //          threshold - minimum fixation duration in ms to consider the word should be split
     //      }
     function Syllabifier( options ) {
 
         this.syllabificationEnabled = options.syllabificationEnabled || false;
         this.highlightingEnabled = options.highlightingEnabled || false;
+        this.voiceEnabled = options.voiceEnabled || false;
         this.threshold = options.threshold || 1000;
 
         this.className = 'currentWord';
@@ -35,8 +37,8 @@
     };
 
     Syllabifier.prototype.init = function () {
+        this.words = new Map();
         if (this.syllabificationEnabled) {
-            this.words = new Map();
             this.timer = setInterval( () => {
                 this._tick();
             }, 30);
@@ -53,7 +55,12 @@
                     duration = -1;
 
                     const textNodes = Array.from( key.childNodes).filter( node => node.nodeType === Node.TEXT_NODE);
-                    key.innerHTML = this.syllabifyWord( textNodes[0].textContent.trim() );
+                    const text = textNodes[0].textContent.trim();
+                    key.innerHTML = this.syllabifyWord( text );
+
+                    if (this.voiceEnabled) {
+                        responsiveVoice.speak( text, 'Finnish Female' );
+                    }
                 }
 
                 this.words.set( key, duration );
