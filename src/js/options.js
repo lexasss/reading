@@ -12,6 +12,7 @@
     //      services: {             - get/set services
     //          showPointer (bool)
     //          highlightWord (bool)
+    //          syllabify (bool)
     //          hideText (bool)
     //          path {
     //              colorMetric (index)
@@ -32,7 +33,7 @@
     function Options(options, services) {
 
         this.root = options.root || '#options';
-        
+
         this._slideout = document.querySelector( this.root );
 
         var logError = app.Logger.moduleErrorPrinter( 'Options' );
@@ -40,6 +41,7 @@
         _services = services;
         _services.showPointer = _services.showPointer || logError( 'showPointer' );
         _services.highlightWord = _services.highlightWord || logError( 'highlightWord' );
+        _services.syllabify = _services.syllabify || logError( 'syllabify' );
         _services.hideText = _services.hideText || logError( 'hideText' );
 
         _services.path = _services.path || {};
@@ -101,9 +103,9 @@
             this._style.innerHTML = cssRules.reduce( function (css, rule) {
                 return css + rule.selector + ' { ' + rule.name + ': ' + rule.initial + rule.suffix + ' !important; } ';
             }, '');
-            
+
             obtainInitialRules( cssRules );
-            
+
             bindSettingsToEditors( this.root );
             bindRulesToEditors( cssRules, this.root + ' #' );
         });
@@ -157,7 +159,7 @@
             var ruleInitilization = (rule) => {
                 if (rule.selector === parts[0] && rule.name === parts[1]) {
                     rule.initial = options.css[ savedRule ];
-                } 
+                }
             };
             for (var savedRule in options.css) {
                 var parts = savedRule.split( '____' );
@@ -186,7 +188,7 @@
 
         options.css = {};
         cssRules.forEach( function (rule) {
-            options.css[ rule.selector + '____' + rule.name ] = rule.value; 
+            options.css[ rule.selector + '____' + rule.name ] = rule.value;
         });
 
         localStorage.setItem( 'options', JSON.stringify( options) );
@@ -202,11 +204,11 @@
     }
 
     function cssColorToHex( cssColor ) {
-        
+
         var colorRegex = /^\D+(\d+)\D+(\d+)\D+(\d+)\D+$/gim;
         var colorComps = colorRegex.exec( cssColor );
 
-        return rgbToHex( 
+        return rgbToHex(
             parseInt( colorComps[ 1 ] ),
             parseInt( colorComps[ 2 ] ),
             parseInt( colorComps[ 3 ] ) );
@@ -310,8 +312,9 @@
 
         bindCheckbox( 'showPointer', _services.showPointer );
         bindCheckbox( 'highlightWord', _services.highlightWord );
+        bindCheckbox( 'syllabify', _services.syllabify );
         bindCheckbox( 'hiddenText', _services.hideText );
-        
+
         bindSelect( 'path_mapping', _services.path.mapping );
 
         bindSelect( 'path_colorMetric', _services.path.colorMetric );
@@ -328,5 +331,5 @@
     }
 
     app.Options = Options;
-    
+
 })( this.Reading || module.this.exports );

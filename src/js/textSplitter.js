@@ -1,18 +1,19 @@
 (function (app) { 'use strict';
 
-    // Text highlighting propagation routine
+    // Text splitting into words routine
     // Constructor arguments:
     //      options: {
-    //          root:         - selector for the element that contains text for reading
-    //          minReadingDuration  - minimum fixation duration to consider the word has been read (ms)
+    //          root:       - selector for the element that contains text for reading
     //      }
-    function TextSplitter(options) {
-
+    //      services: {
+    //          prepareForSyllabification:  - enlarges a word to compensate for word syllabification
+    //      }
+    function TextSplitter( options, services ) {
         this.root = options.root || document.documentElement;
-        this.highlightCurrentWord = options.highlightCurrentWord || true;
+
+        _services = services;
 
         this.wordClass = 'word';
-        //this.split();
     }
 
     // Splits the text nodes into words, each in its own span.word element
@@ -40,7 +41,7 @@
             var word;
             var index = 0;
             var docFrag = document.createDocumentFragment();
-            
+
             while ((word = re.exec( node.textContent )) !== null) {
 
                 if (index < word.index) {
@@ -48,17 +49,19 @@
                     docFrag.appendChild( space );
                 }
 
+                var wordText = _services.prepareForSyllabification( word[ 0 ] );
+
                 var span = document.createElement( 'span' );
                 span.classList.add( this.wordClass );
-                span.textContent = word[ 0 ];
+                span.innerHTML = wordText;
                 docFrag.appendChild( span );
 
                 index = re.lastIndex;
             }
 
-            docFrags.push( { 
+            docFrags.push( {
                 node: node,
-                docFrag: docFrag 
+                docFrag: docFrag
             });
         }
 
@@ -67,45 +70,11 @@
         });
     };
 
-    // Resets the highlighting 
-    TextSplitter.prototype.reset = function () {
-
-        var currentWord = document.querySelector( '.currentWord' );
-        if (currentWord) {
-            currentWord.classList.remove( 'currentWord' );
-        }
-    };
-
-    // Sets the first word highlighted 
-    TextSplitter.prototype.init = function () {
-
-        this.reset();
-    };
-
-    // Propagates the highlighing if the focused word is the next after the current
-    // Arguments:
-    //        word:         - the focused word 
-    TextSplitter.prototype.setFocusedWord = function (word) {
-
-        if (!this.highlightCurrentWord) {
-            return;
-        }
-
-        var currentWord = document.querySelector( '.currentWord' );
-        if (currentWord != word) {
-            if (currentWord) {
-                currentWord.classList.remove( 'currentWord' );
-            }
-            if (word) {
-                word.classList.add( 'currentWord' );
-            }
-        }
-    };
-
     // private
+    var _services;
 
     // export
 
     app.TextSplitter = TextSplitter;
-    
+
 })( this.Reading || module.exports );

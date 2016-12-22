@@ -15,7 +15,8 @@ describe( 'WordSplit', function() {
 			['hänen', 2],
 			['aamulehti', 4],
 			['Kaislarannasta', 5],
-			['Tapasin', 3]
+			['Tapasin', 3],
+			['Asteroidit', 4]
 		];
 		words.forEach( (item) => {
 	    	it( `should return ${item[1]} for ${item[0]}`, function () {

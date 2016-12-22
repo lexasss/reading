@@ -12,13 +12,16 @@
     //          // name font options
     //          nameFontFamily
     //          nameFontSize
-    //          nameFont
+    //          nameFont,
+    //          basePointerSize (Number) - minimum pointer size
     //      }
     function GazeReplay (options) {
 
         this.nameFontFamily = options.nameFontFamily || 'Calibri, Arial, sans-serif';
         this.nameFontSize = options.nameFontFamily || 14;
         this.nameFont = options.nameFontFamily || `bold ${this.nameFontSize}px ${this.nameFontFamily}`;
+
+        Track.basePointerSize = options.basePointerSize || Track.basePointerSize;
 
         this.words = null;
 
@@ -150,6 +153,8 @@
         this.__next = this._next.bind( this );
     }
 
+    Track.basePointerSize = 6;
+
     Track.colorIndex = 0;
 
     Track.colors = [
@@ -278,13 +283,13 @@
             this.onFixation( fixation, this.pointer );
 
             if (fixation.x > 0 && fixation.y > 0) {
-                const size = Math.max( Math.round( fixation.duration / 50 ), 4);
+                const size = Track.basePointerSize + Math.sqrt( fixation.duration / 30 );
                 this.pointer.style = `left: ${fixation.x - size / 2}px;
                                       top: ${fixation.y - size / 2}px;
                                       width: ${size}px;
                                       height: ${size}px;
                                       border-radius: ${size / 2}px;
-                                      background-color: ${this.color}`;
+                                      background-color: ${this.color};`;
                 this.pointer.classList.remove( 'invisible' );
             }
 

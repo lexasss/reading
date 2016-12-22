@@ -14,13 +14,14 @@
     function Text(options, services) {
 
         this.root = options.root || '#textContainer';
+
         _services = services;
 
         var logError = app.Logger.moduleErrorPrinter( 'Text' );
         _services.splitText = _services.splitText || logError( 'splitText' );
 
         _textContainer = document.querySelector( this.root );
-        
+
         this.texts = [
             /*[
                 'Steroidivyöhykkeen pienimpiä kivikappaleita sanotaan',
@@ -63,6 +64,10 @@
         this._initialVisibility = true;
     }
 
+    Text.prototype.reset = function () {
+        this.switchText( _textIndex );
+    }
+
     Text.prototype.initialVisibility = function (value) {
         if (value !== undefined) {
             this._initialVisibility = value;
@@ -86,7 +91,7 @@
         }
 
         _textContainer.innerHTML = '';
-        
+
         for (var i = 0; i < lines.length; i += 1) {
             var line = document.createElement('div');
             line.className = 'line';
@@ -133,5 +138,5 @@
     var _spacingIndex = 0;
 
     app.Text = Text;
-    
+
 })( this.Reading || module.exports );

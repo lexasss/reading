@@ -12,8 +12,13 @@ Reading.init = function (components) {
     Reading.firebase = new Firebase("https://burning-torch-9217.firebaseio.com/school/");
 
     // setup
+    var syllabifier = new Reading.Syllabifier({
+    });
+
     var textSplitter = new Reading.TextSplitter({
         root: components.text
+    }, {
+        prepareForSyllabification: syllabifier.prepareForSyllabification.bind( syllabifier )
     });
 
     var text = new Reading.Text({
@@ -70,8 +75,12 @@ Reading.init = function (components) {
             GazeTargets.updateSettings( { pointer: { show: value } } );
         },
         highlightWord: function (value) { return value === undefined ?
-            textSplitter.highlightCurrentWord :
-            (textSplitter.highlightCurrentWord = value);
+            syllabifier.highlightingEnabled :
+            (syllabifier.highlightingEnabled = value);
+        },
+        syllabify: function (value) { return value === undefined ?
+            syllabifier.syllabificationEnabled :
+            (syllabifier.syllabificationEnabled = value);
         },
         hideText: function (value) { return value === undefined ?
             !text.initialVisibility() :
@@ -143,7 +152,8 @@ Reading.init = function (components) {
 
     /*var gazeTargetsManager = */new Reading.GazeTargetsManager({
         trackingStarted: function () {
-            textSplitter.init();
+            syllabifier.init();
+            text.reset();
             statistics.init();
             textEditor.lock();
             options.lock();
@@ -153,7 +163,7 @@ Reading.init = function (components) {
             }
         },
         trackingStopped: function () {
-            textSplitter.reset();
+            syllabifier.reset();
             statistics.print();
             textEditor.unlock();
             options.unlock();
@@ -161,13 +171,14 @@ Reading.init = function (components) {
             if (!text.initialVisibility()) {
                 text.hide();
             }
+            text.reset();
         },
         wordFocused: function (word) {
-            textSplitter.setFocusedWord( word );
+            syllabifier.setFocusedWord( word );
             statistics.setFocusedWord( word );
         },
         wordLeft: function (/*word*/) {
-            textSplitter.setFocusedWord( null );
+            syllabifier.setFocusedWord( null );
             statistics.setFocusedWord( null );
         },
         updateControls: controls.onStateUpdated,
