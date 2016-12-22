@@ -6,7 +6,8 @@
         controls: 'controls',
         options: 'options',
         statistics: 'statistics',
-        visualization: 'visualization'
+        visualization: 'visualization',
+        wordlist: 'wordlist'
     };
 
     // the order must match the corresponding enums
@@ -46,12 +47,16 @@ html
         include ./components/visualization.jade
         +visualization( ids.visualization )
 
+        include ./components/wordlist.jade
+        +wordlist( ids.wordlist )
+
         script(src='app.js')
         script.
             Reading.init({
                 text: '##{ids.text}',
                 textContainer: '##{ids.textContainer}',
                 visualization: '##{ids.visualization}',
+                wordlist: '##{ids.wordlist}',
                 controls: '##{ids.controls}',
                 options: '##{ids.options}',
                 statistics: '##{ids.statistics}',

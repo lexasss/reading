@@ -112,7 +112,7 @@ if (!this.Reading) {
 
         var createNewLine = function (word) {
             currentLine = [ word ];
-            currentLine.id = word.row - 1;
+            currentLine.id = word.row ? word.row - 1 : lines.length;
             lines.push( currentLine );
         };
 

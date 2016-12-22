@@ -2,8 +2,9 @@
 
 mixin visualization(id)
     div(id=id).path
-        input.close(type="button", value="Close")
+        //- input.close(type="button", value="Close")
         canvas
+        .close
         div#session.prompt Select a session:
             div
                 select.hidden#categories
