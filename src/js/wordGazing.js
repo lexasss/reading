@@ -1,6 +1,7 @@
 // Requires:
 //      app,Colors
 //      app.firebase
+//      app.WordList
 //      utils/metric
 //      utils/visualization
 
@@ -19,7 +20,7 @@
 
         this.spacingNames = options.spacingNames;
         this.fixationColor = options.fixationColor || '#000';
-        
+
         this.showFixations = options.showFixations !== undefined ? options.showFixations : false;
         this.uniteSpacings = options.uniteSpacings !== undefined ? options.uniteSpacings : true;
         this.showRegressions = options.showRegressions !== undefined ? options.showRegressions : false;
@@ -54,6 +55,8 @@
             return;
         }
 
+        app.WordList.instance.show();
+
         var words, fixes;
         var fixations = [];
         var sessionNames = [];
@@ -81,6 +84,8 @@
             }
 
             this._drawTitle( ctx, `${conditionTitle} for ${sessionNames.length} sessions` );
+
+            app.WordList.instance.fill( words, { units: app.WordList.Units.PERCENTAGE } );
         }
     };
 
@@ -199,5 +204,5 @@
     }
 
     app.WordGazing = WordGazing;
-    
+
 })( this.Reading || module.exports );

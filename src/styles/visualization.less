@@ -22,6 +22,19 @@
         background: rgba(255,255,255,0.3) url("img/close.png") no-repeat right top;
     }
 
+    .wait {
+        position: fixed;
+        top: 8px;
+        left: 8px;
+        width: 100vw;
+        height: 100vh;
+        background: url("img/wait.gif") no-repeat fixed center;
+
+        &.invisible {
+            display: none;
+        }
+    }
+
     canvas {
         position: relative;
         top: 0;

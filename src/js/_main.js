@@ -38,9 +38,10 @@ Reading.init = function (components) {
 
     Reading.Visualization.init( components.visualization, visualizationCallbacks );
 
+    Reading.WordList.instance = new Reading.WordList( { container: components.wordlist } );
+
     var path = new Reading.Path({
-        root: components.visualization,
-        wordlist: components.wordlist
+        root: components.visualization
     });
     var wordGazing = new Reading.WordGazing({
         root: components.visualization,

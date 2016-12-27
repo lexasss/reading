@@ -1,4 +1,7 @@
 // Base for visualizations
+//
+// Requires:
+//
 // Interface to implement:
 //        _load
 //        _fillDataQueryList
@@ -43,6 +46,7 @@
         _callbacks = callbacks;
 
         _view = document.querySelector( root );
+        _wait = _view.querySelector( '.wait' );
         _canvas = document.querySelector( root + ' canvas');
         _sessionPrompt = document.querySelector( root + ' #session' );
         _filePrompt = document.querySelector( root + ' #file' );
@@ -106,19 +110,36 @@
     };
 
     Visualization.prototype.queryData = function (multiple) {
+        if (_callbacks.shown) {
+            _callbacks.shown();
+        }
+
+        _view.classList.remove( 'invisible' );
+        _wait.classList.remove( 'invisible' );
+
         if (this._snapshot) {
             this._showDataSelectionDialog( multiple );
             return;
         }
 
+        if (_waiting) {
+            return;
+        }
+
+        _waiting = true;
         app.firebase.once( 'value', snapshot => {
+            _waiting = false;
+
             if (!snapshot.exists()) {
                 window.alert( 'no records in DB' );
                 return;
             }
 
             this._snapshot = snapshot;
-            this._showDataSelectionDialog( multiple );
+
+            if (!_view.classList.contains('invisible')) {
+                this._showDataSelectionDialog( multiple );
+            }
 
         }, function (err) {
             window.alert( err );
@@ -157,11 +178,7 @@
     }
 
     Visualization.prototype._showDataSelectionDialog = function (multiple) {
-        if (_callbacks.shown) {
-            _callbacks.shown();
-        }
-
-        _view.classList.remove( 'invisible' );
+        _wait.classList.add( 'invisible' );
 
         var list = _sessionPrompt.querySelector( '#conditions' );
         list.multiple = !!multiple;
@@ -290,12 +307,15 @@
     var _width;
     var _callbacks;
     var _view;
+    var _wait;
     var _canvas;
     var _sessionPrompt;
     var _filePrompt;
 
     var _sessionPromtCallback;
     var _filePromtCallback;
+
+    var _waiting = false;
 
     var IndexComputer = function () {
         var lastX = -1;

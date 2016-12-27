@@ -1,6 +1,7 @@
 // Requires:
 //      app,Colors
 //      app.firebase
+//      app.WordList
 //      utils.metric
 //      utils.remapExporter
 
@@ -51,8 +52,6 @@
         ];
 
         app.Visualization.call( this, options );
-
-        this._initDOM( options.wordlist );
     }
 
     app.loaded( () => { // we have to defer the prototype definition until the Visualization mudule is loaded
@@ -60,22 +59,6 @@
     Path.prototype = Object.create( app.Visualization.prototype );
     Path.prototype.base = app.Visualization.prototype;
     Path.prototype.constructor = Path;
-
-    Path.prototype._initDOM = function (selector) {
-        this._wordlist = document.querySelector( selector );
-
-        const close = app.Visualization.root.querySelector( '.close' );
-        close.addEventListener( 'click', () => {
-            this._wordlist.classList.add( 'invisible' );
-        });
-
-        const drowpdown = this._wordlist.querySelector( '.button' );
-        const table = this._wordlist.querySelector( '.table' );
-        drowpdown.addEventListener( 'click', () => {
-            drowpdown.classList.toggle( 'dropped' );
-            table.classList.toggle( 'invisible' );
-        });
-    }
 
     Path.prototype.queryFile = function () {
 
@@ -136,7 +119,7 @@
             return;
         }
 
-        this._wordlist.classList.remove( 'invisible' );
+        app.WordList.instance.show();
 
         //app.RemapExporter.save( app.RemapExporter.exportFixations( this._snapshot ).join( '\n' ), 'fixations.txt' );
         //app.RemapExporter.save( app.RemapExporter.exportWords( this._snapshot ).join( '\n' ), 'words.txt' );
@@ -172,7 +155,7 @@
         }
         this._drawTitle( ctx, name );
 
-        this._fillTable( data );
+        app.WordList.instance.fill( data.words );
     };
 
     Path.prototype._drawFixations = function (ctx, fixations) {
@@ -310,31 +293,6 @@
         // localStorage.setItem('data', JSON.stringify(session));
         app.StaticFit.map( session );
         return session.fixations;
-    };
-
-    Path.prototype._fillTable = function (data) {
-        const table = this._wordlist.querySelector( '.table' );
-        table.innerHTML = '';
-
-        const descending = (a, b) => b.duration - a.duration;
-        const words = data.words.map( word => word }).sort( descending );
-
-        words.forEach( word => {
-            const wordItem = document.createElement( 'span' );
-            wordItem.classList.add( 'word' );
-            wordItem.textContent = word.text;
-
-            const durationItem = document.createElement( 'span' );
-            durationItem.classList.add( 'duration' );
-            durationItem.textContent = Math.round( word.duration );
-
-            const record = document.createElement( 'div' );
-            record.classList.add( 'record' );
-            record.appendChild( wordItem );
-            record.appendChild( durationItem );
-
-            table.appendChild( record );
-        });
     };
 
     }); // end of delayed call
