@@ -105,9 +105,9 @@
             _services.gazeReplay( true );
         });
 
-        shortcut.add( 'Space', function() {
-            _toggle.click();
-        });
+        // shortcut.add( 'Space', function() {
+        //     _toggle.click();
+        // });
 
         _connectionTimeout = setTimeout(function () {
             _device.textContent = 'Disconnected';

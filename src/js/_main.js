@@ -54,6 +54,15 @@ Reading.init = function (components) {
         root: components.visualization
     });
 
+    var textEditor = new Reading.TextEditor({
+        root: components.textEditor,
+        text: components.text
+    }, {
+        splitText: textSplitter.split.bind( textSplitter ),
+        getText: text.getText.bind( text ),
+        setText: text.setText.bind( text )
+    });
+
     var controls = new Reading.Controls({
         root: components.controls
     }, {
@@ -71,7 +80,7 @@ Reading.init = function (components) {
     var options = new Reading.Options({
         root: components.options,
         text: components.textContainer + ' ' + components.text
-    }, {
+    }, {    // services
         showPointer: function (value) { return value === undefined ?
             GazeTargets.getSettings( 'pointer/show' ) :
             GazeTargets.updateSettings( { pointer: { show: value } } );
@@ -139,7 +148,13 @@ Reading.init = function (components) {
                 wordGazing.showRegressions :
                 (wordGazing.showRegressions = value);
             }
+        },
+        texts: function (value) { return value === undefined ?
+            text.texts :
+            text.setTexts( value )
         }
+    }, {    // utils
+        editText: textEditor.show.bind( textEditor ),
     });
 
     var statistics = new Reading.Statistics({
@@ -147,13 +162,6 @@ Reading.init = function (components) {
         wordClass: textSplitter.wordClass
     }, {
         getTextSetup: text.getSetup.bind( text )
-    });
-
-    var textEditor = new Reading.TextEditor({
-        root: components.textEditor,
-        text: components.text
-    }, {
-        splitText: textSplitter.split.bind( textSplitter )
     });
 
     /*var gazeTargetsManager = */new Reading.GazeTargetsManager({

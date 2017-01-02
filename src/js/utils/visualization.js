@@ -22,7 +22,7 @@
     //      }
     function Visualization (options) {
         this.wordColor = options.wordColor || '#080'//'#CCC';
-        this.wordFont = options.wordFont || '24pt Calibri, Arial, sans-serif';
+        this.wordFont = options.wordFont || '22pt Calibri, Arial, sans-serif';
         this.wordHighlightColor = options.wordHighlightColor || '#606';
         this.wordStrokeColor = options.wordStrokeColor || '#888';
         this.infoColor = options.infoColor || '#444';
@@ -262,6 +262,7 @@
             // ctx.fillRect( Math.round( word.x ), Math.round( word.y ), Math.round( word.width ), Math.round( word.height ) );
         }
 
+        ctx.font = this.wordFont;
         ctx.textAlign = 'start';
         ctx.textBaseline = 'alphabetic';
         ctx.fillStyle = this.wordColor;

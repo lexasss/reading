@@ -132,6 +132,20 @@
         };
     };
 
+    Text.prototype.getText = function () {
+        return this.texts[ _textIndex ].join( '\n' );
+    }
+
+    Text.prototype.setText = function (text) {
+        this.texts[ _textIndex ] = text.split( '\n' );
+        this.switchText( _textIndex );
+    }
+
+    Text.prototype.setTexts = function (texts) {
+        this.texts = texts;
+        this.switchText( _textIndex );
+    }
+
     var _textContainer;
     var _services;
     var _textIndex = 0;

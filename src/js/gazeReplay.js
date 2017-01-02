@@ -103,10 +103,11 @@
             ctx.textBaseline = 'bottom';
             ctx.fillStyle = track.color;
             ctx.font = this.nameFont;
+
             ctx.fillText(
                 track.name,
-                20,
-                20 + 25 * ti
+                8,
+                64 + 25 * ti
             );
         });
     };

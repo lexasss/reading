@@ -31,7 +31,7 @@
     //              showRegressions (bool)
     //          }
     //      }
-    function Options(options, services) {
+    function Options(options, services, utils) {
 
         this.root = options.root || '#options';
 
@@ -40,6 +40,7 @@
         var logError = app.Logger.moduleErrorPrinter( 'Options' );
 
         _services = services;
+
         _services.showPointer = _services.showPointer || logError( 'showPointer' );
         _services.highlightWord = _services.highlightWord || logError( 'highlightWord' );
         _services.syllabify = _services.syllabify || logError( 'syllabify' );
@@ -59,6 +60,8 @@
         _services.wordGazing.showFixations = _services.wordGazing.showFixations || logError( 'wordGazing.showFixations' );
         _services.wordGazing.uniteSpacings = _services.wordGazing.uniteSpacings || logError( 'wordGazing.uniteSpacings' );
         _services.wordGazing.showRegressions = _services.wordGazing.showRegressions || logError( 'wordGazing.showRegressions' );
+
+        _utils = utils;
 
         var cssRules = [
             /*{
@@ -80,6 +83,11 @@
 
         this._style = document.createElement( 'style' );
         document.body.appendChild( this._style );
+
+        var editText = document.querySelector( this.root + ' .editText' );
+        editText.addEventListener( 'click', () => {
+            _utils.editText();
+        });
 
         var apply = document.querySelector( this.root + ' .save' );
         apply.addEventListener( 'click', () => {
@@ -126,6 +134,7 @@
     // private
 
     var _services;
+    var _utils;
 
     function loadSettings(cssRules) {
         var options = JSON.parse( localStorage.getItem('options') );
@@ -139,6 +148,9 @@
             for (var name in storage) {
                 if (name === 'css') {
                     continue;
+                }
+                else if (Array.isArray( storage[ name ] )) {
+                    srv[ name ]( storage[ name ] );
                 }
                 else if (typeof storage[ name ] === 'object') {
                     pop( storage[ name ], srv[ name ] );

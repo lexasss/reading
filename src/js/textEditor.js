@@ -18,33 +18,36 @@
         this.text = options.text || '#text';
 
         var logError = app.Logger.moduleErrorPrinter( 'TextEditor' );
-        services.splitText = services.splitText || logError( 'splitText' );
-        
+        _services.splitText = services.splitText || logError( 'splitText' );
+        _services.getText = services.getText || logError( 'getText' );
+        _services.setText = services.setText || logError( 'setText' );
+
         this._slideout = document.querySelector( this.root );
 
         var text = document.querySelector( this.text );
-        var editorText = document.querySelector( this.root + ' .text' );
-        editorText.value = text.textContent;
 
-        var apply = document.querySelector( this.root + ' .apply' );
-        apply.addEventListener( 'click', function () {
-            text.textContent = editorText.value;
-            services.splitText();
+        this._editorText = document.querySelector( this.root + ' .text' );
+        this._editorText.value = text.textContent;
+
+        var save = document.querySelector( this.root + ' .save' );
+        save.addEventListener( 'click', (e) => {
+            _services.setText( this._editorText.value );
+            this._slideout.classList.add( 'hidden' );
+        });
+
+        var cancel = document.querySelector( this.root + ' .cancel' );
+        cancel.addEventListener( 'click', (e) => {
+            this._slideout.classList.add( 'hidden' );
         });
     }
 
-    // Disables editing
-    TextEditor.prototype.lock = function () {
-
-        this._slideout.classList.add( 'locked' );
+    TextEditor.prototype.show = function () {
+        this._editorText.value = _services.getText();
+        this._slideout.classList.remove( 'hidden' );
     };
 
-    // Enables editing
-    TextEditor.prototype.unlock = function () {
-        
-        this._slideout.classList.remove( 'locked' );
-    };
+    var _services = {};
 
     app.TextEditor = TextEditor;
-    
+
 })( this.Reading || module.exports );

@@ -2,9 +2,9 @@
 //-     slideout.less
 
 mixin textEditor(id)
-    div(id=id).slideout.left.auto-expand
-        .title Edit text
-        .slideout_inner
+    div(id=id).hidden
+        .inner
             textarea.text
             br
-            input.apply(type="button", value="Apply")
+            button.save Save
+            button.cancel Cancel
