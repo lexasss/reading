@@ -112,6 +112,7 @@
         });
 
         // app.RemapExporter.export( this._snapshot, this._remapStatic );
+        //app.RemapExporter.export( this._snapshot, this._remapDynamic );
     };
 
     Path.prototype._load = function (name) {

@@ -169,7 +169,6 @@ Reading.init = function (components) {
             syllabifier.init();
             text.reset();
             statistics.init();
-            textEditor.lock();
             options.lock();
             controls.lock();
             if (!text.initialVisibility()) {
@@ -179,7 +178,6 @@ Reading.init = function (components) {
         trackingStopped: function () {
             syllabifier.reset();
             statistics.print();
-            textEditor.unlock();
             options.unlock();
             controls.unlock();
             if (!text.initialVisibility()) {

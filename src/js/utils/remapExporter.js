@@ -8,7 +8,7 @@
         PARTICIPANTS: 8
     };
 
-    const MAPPING_TO_SAVE = MappingsToSave.NONE;
+    const MAPPING_TO_SAVE = MappingsToSave.FIXATIONS;
 
     var RemapExporter = { };
 
@@ -56,12 +56,22 @@
             var fixations = remap( session );
 
             var id = childSnapshot.key();
-            //Array.prototype.push.apply( logs.fixations, logFixations( id, fixations ) );
-            logs.fixations = logs.fixations.concat( id, ...logFixations( fixations ) );
-            Array.prototype.push.apply( logs.words, logWords( id, fixations, session.words ) );
 
-            logUniqueWords( fixations, session.words, logs.uniqueWords );
-            logParticipants( id, fixations, session.words, logs.participants );
+            if (MAPPING_TO_SAVE & MappingsToSave.FIXATIONS) {
+                //Array.prototype.push.apply( logs.fixations, logFixations( id, fixations ) );
+                logs.fixations = logs.fixations.concat( id, ...logFixations( fixations ) );
+            }
+
+            if (MAPPING_TO_SAVE & MappingsToSave.WORDS) {
+                Array.prototype.push.apply( logs.words, logWords( id, fixations, session.words ) );
+            }
+
+            if (MAPPING_TO_SAVE & MappingsToSave.UNIQUE_WORDS) {
+                logUniqueWords( fixations, session.words, logs.uniqueWords );
+            }
+            if (MAPPING_TO_SAVE & MappingsToSave.PARTICIPANTS) {
+                logParticipants( id, fixations, session.words, logs.participants );
+            }
         });
 
         return logs;
