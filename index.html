@@ -8,6 +8,7 @@
     <script src="libs/firebase.js"></script>
     <script src="libs/shortcut.js"></script>
     <script src="libs/regression.js"></script>
+    <script src="https://code.responsivevoice.org/responsivevoice.js"></script>
   </head>
   <body>
         <div id="textContainer">
@@ -29,19 +30,14 @@
           <div class="button loadFile">Load file</div>
           <div class="separator"></div>
           <div class="button simulate">Simulate</div>
+          <div class="button gazeReplay">Replay</div>
         </div>
-        <div id="textEditor" class="slideout left auto-expand">
-          <div class="title">Edit text</div>
-          <div class="slideout_inner">
-            <textarea class="text"></textarea><br>
-            <input type="button" value="Apply" class="apply">
-          </div>
-        </div>
-        <div id="options" class="slideout right">
+        <div id="options" class="slideout left">
           <div class="title">Options</div>
           <div class="slideout_inner">
             <div class="group">
               <div class="name">Text</div>
+              <button class="editText">Edit...</button>
               <div class="row">
                 <div class="label">Color</div>
                 <input id="text" type="color" class="value">
@@ -64,6 +60,14 @@
               <div class="row">
                 <div class="label">Highlight focused word</div>
                 <input id="highlightWord" type="checkbox" class="value">
+              </div>
+              <div class="row">
+                <div class="label">Syllabify words</div>
+                <input id="syllabify" type="checkbox" class="value">
+              </div>
+              <div class="row">
+                <div class="label">Voice</div>
+                <input id="voice" type="checkbox" class="value">
               </div>
               <div class="row">
                 <div class="label">Highlighting color</div>
@@ -140,6 +144,13 @@
             <input type="button" value="Close" class="close">
           </div>
         </div>
+        <div id="textEditor" class="hidden">
+          <div class="inner">
+            <textarea class="text"></textarea><br>
+            <button class="save">Save</button>
+            <button class="cancel">Cancel</button>
+          </div>
+        </div>
         <div id="statistics" class="statistics">
           <div class="helper"></div>
           <div class="container">
@@ -153,8 +164,9 @@
           </div>
         </div>
         <div id="visualization" class="path">
-          <input type="button" value="Close" class="close">
           <canvas></canvas>
+          <div class="wait">&nbsp;</div>
+          <div class="close"></div>
           <div id="session" class="prompt">Select a session:
             <div>
               <select id="categories" class="hidden"></select>
@@ -167,12 +179,17 @@
             <input type="file" class="file">
           </div>
         </div>
+        <div id="wordlist" class="invisible">
+          <div class="button">Words</div>
+          <div class="table invisible"></div>
+        </div>
     <script src="app.js"></script>
     <script>
       Reading.init({
           text: '#text',
           textContainer: '#textContainer',
           visualization: '#visualization',
+          wordlist: '#wordlist',
           controls: '#controls',
           options: '#options',
           statistics: '#statistics',

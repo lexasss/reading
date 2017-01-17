@@ -4,7 +4,7 @@
 
 var Reading = Reading || {};
 
-// "components" contains selectors for each component 
+// "components" contains selectors for each component
 Reading.init = function (components) {
 
     Reading.loadingCallbacks.forEach( callback => { callback(); } );
@@ -13,8 +13,13 @@ Reading.init = function (components) {
     Reading.firebase = new Firebase("https://burning-torch-9217.firebaseio.com/school/");
 
     // setup
+    var syllabifier = new Reading.Syllabifier({
+    });
+
     var textSplitter = new Reading.TextSplitter({
         root: components.text
+    }, {
+        prepareForSyllabification: syllabifier.prepareForSyllabification.bind( syllabifier )
     });
 
     var text = new Reading.Text({
@@ -34,6 +39,8 @@ Reading.init = function (components) {
 
     Reading.Visualization.init( components.visualization, visualizationCallbacks );
 
+    Reading.WordList.instance = new Reading.WordList( { container: components.wordlist } );
+
     var path = new Reading.Path({
         root: components.visualization
     });
@@ -43,6 +50,18 @@ Reading.init = function (components) {
     });
     var rtv = new Reading.RTV({
         root: components.visualization
+    });
+    var gazeReplay = new Reading.GazeReplay({
+        root: components.visualization
+    });
+
+    var textEditor = new Reading.TextEditor({
+        root: components.textEditor,
+        text: components.text
+    }, {
+        splitText: textSplitter.split.bind( textSplitter ),
+        getText: text.getText.bind( text ),
+        setText: text.setText.bind( text )
     });
 
     var controls = new Reading.Controls({
@@ -56,19 +75,28 @@ Reading.init = function (components) {
         selectCondition: wordGazing.queryData.bind( wordGazing ),
         selectFile: path.queryFile.bind( path ),
         simulate: rtv.queryData.bind( rtv ),
+        gazeReplay: gazeReplay.queryData.bind( gazeReplay ),
     });
 
     var options = new Reading.Options({
         root: components.options,
         text: components.textContainer + ' ' + components.text
-    }, {
+    }, {    // services
         showPointer: function (value) { return value === undefined ?
             GazeTargets.getSettings( 'pointer/show' ) :
             GazeTargets.updateSettings( { pointer: { show: value } } );
         },
-        highlightWord: function (value) { return value === undefined ? 
-            textSplitter.highlightCurrentWord :
-            (textSplitter.highlightCurrentWord = value);
+        highlightWord: function (value) { return value === undefined ?
+            syllabifier.highlightingEnabled :
+            (syllabifier.highlightingEnabled = value);
+        },
+        syllabify: function (value) { return value === undefined ?
+            syllabifier.syllabificationEnabled :
+            (syllabifier.syllabificationEnabled = value);
+        },
+        voice: function (value) { return value === undefined ?
+            syllabifier.voiceEnabled :
+            (syllabifier.voiceEnabled = value);
         },
         hideText: function (value) { return value === undefined ?
             !text.initialVisibility() :
@@ -121,28 +149,27 @@ Reading.init = function (components) {
                 wordGazing.showRegressions :
                 (wordGazing.showRegressions = value);
             }
+        },
+        texts: function (value) { return value === undefined ?
+            text.texts :
+            text.setTexts( value )
         }
+    }, {    // utils
+        editText: textEditor.show.bind( textEditor ),
     });
 
     var statistics = new Reading.Statistics({
-        root: components.statistics, 
+        root: components.statistics,
         wordClass: textSplitter.wordClass
     }, {
         getTextSetup: text.getSetup.bind( text )
     });
 
-    var textEditor = new Reading.TextEditor({
-        root: components.textEditor,
-        text: components.text
-    }, {
-        splitText: textSplitter.split.bind( textSplitter )
-    });
-
     /*var gazeTargetsManager = */new Reading.GazeTargetsManager({
         trackingStarted: function () {
-            textSplitter.init();
+            syllabifier.init();
+            text.reset();
             statistics.init();
-            textEditor.lock();
             options.lock();
             controls.lock();
             if (!text.initialVisibility()) {
@@ -150,21 +177,21 @@ Reading.init = function (components) {
             }
         },
         trackingStopped: function () {
-            textSplitter.reset();
+            syllabifier.reset();
             statistics.print();
-            textEditor.unlock();
             options.unlock();
             controls.unlock();
             if (!text.initialVisibility()) {
                 text.hide();
             }
+            text.reset();
         },
         wordFocused: function (word) {
-            textSplitter.setFocusedWord( word );
+            syllabifier.setFocusedWord( word );
             statistics.setFocusedWord( word );
         },
         wordLeft: function (/*word*/) {
-            textSplitter.setFocusedWord( null );
+            syllabifier.setFocusedWord( null );
             statistics.setFocusedWord( null );
         },
         updateControls: controls.onStateUpdated,
@@ -211,11 +238,12 @@ Reading.loadingCallbacks = [];
         _services.selectCondition = _services.selectCondition || logError( 'selectCondition' );
         _services.selectFile = _services.selectFile || logError( 'selectFile' );
         _services.simulate = _services.simulate || logError( 'simulate' );
+        _services.gazeReplay = _services.gazeReplay || logError( 'gazeReplay' );
 
         //var container = document.querySelector( this.root );
 
         _device = document.querySelector( this.root + ' .device' );
-        
+
         _options = document.querySelector( this.root + ' .options' );
         _options.addEventListener('click', function () {
             GazeTargets.ETUDriver.showOptions();
@@ -278,14 +306,19 @@ Reading.loadingCallbacks = [];
             _services.simulate( true );
         });
 
-        shortcut.add( 'Space', function() {
-            _toggle.click();
+        _gazeReplay = document.querySelector( this.root + ' .gazeReplay' );
+        _gazeReplay.addEventListener('click', function () {
+            _services.gazeReplay( true );
         });
+
+        // shortcut.add( 'Space', function() {
+        //     _toggle.click();
+        // });
 
         _connectionTimeout = setTimeout(function () {
             _device.textContent = 'Disconnected';
         }, 3000);
-        
+
         _services.switchText(0);
         _services.switchSpacing(0);
     }
@@ -297,6 +330,7 @@ Reading.loadingCallbacks = [];
         _loadCondition.classList.add( 'disabled' );
         _loadFile.classList.add( 'disabled' );
         _simulate.classList.add( 'disabled' );
+        _gazeReplay.classList.add( 'disabled' );
     };
 
     Controls.prototype.unlock = function () {
@@ -306,13 +340,14 @@ Reading.loadingCallbacks = [];
         _loadCondition.classList.remove( 'disabled' );
         _loadFile.classList.remove( 'disabled' );
         _simulate.classList.remove( 'disabled' );
+        _gazeReplay.classList.remove( 'disabled' );
     };
-    
+
     Controls.prototype.onStateUpdated = function (state) {
         if (state.device) {
             _device.textContent = state.device;
             clearTimeout( _connectionTimeout );
-        } 
+        }
         else if (!state.isConnected) {
             _device.textContent = 'Disconnected';
         }
@@ -342,14 +377,14 @@ Reading.loadingCallbacks = [];
     }
 
     function getTextSwitcherHandler(index) {
-        return function () { 
+        return function () {
             _services.switchText( index );
             select(this, _textSwitchers);
         };
     }
 
     function getSpacingSwitcherHandler(index) {
-        return function () { 
+        return function () {
             _services.switchSpacing( index );
             select(this, _spacingSwitchers);
         };
@@ -375,11 +410,324 @@ Reading.loadingCallbacks = [];
     var _loadCondition;
     var _loadFile;
     var _simulate;
-    
+    var _gazeReplay;
+
     var _connectionTimeout;
 
     app.Controls = Controls;
-    
+
+})( this.Reading || module.exports );
+
+// Requires:
+//      app,Colors
+//      app.firebase
+//      utils.metric
+//      utils.remapExporter
+
+(function (app) { 'use strict';
+
+    // Real-time visualization constructor
+    // Arguments:
+    //      options: {
+    //          // name font options
+    //          nameFontFamily
+    //          nameFontSize
+    //          nameFont,
+    //          basePointerSize (Number) - minimum pointer size
+    //      }
+    function GazeReplay (options) {
+
+        this.nameFontFamily = options.nameFontFamily || 'Calibri, Arial, sans-serif';
+        this.nameFontSize = options.nameFontFamily || 14;
+        this.nameFont = options.nameFontFamily || `bold ${this.nameFontSize}px ${this.nameFontFamily}`;
+
+        Track.basePointerSize = options.basePointerSize || Track.basePointerSize;
+
+        this.words = null;
+
+        options.wordColor = options.wordColor || '#222';
+        options.colorMetric = app.Metric.Type.NONE;
+
+        app.Visualization.call( this, options );
+    }
+
+    app.loaded( () => { // we have to defer the prototype definition until the Visualization mudule is loaded
+
+    GazeReplay.prototype = Object.create( app.Visualization.prototype );
+    GazeReplay.prototype.base = app.Visualization.prototype;
+    GazeReplay.prototype.constructor = GazeReplay;
+
+    GazeReplay.prototype._stopAll = function () {
+        if (this._tracks) {
+            this._tracks.forEach( track => track.stop() );
+        }
+    }
+
+    GazeReplay.prototype._fillDataQueryList = function (list) {
+
+        var conditions = this._getConditions( false );
+        var result = new Map();
+
+        for (var key of conditions.keys()) {
+            result.set( `Text #${key}`, conditions.get( key ) );
+        }
+
+        return result;
+    };
+
+    GazeReplay.prototype._load = function (names) {
+        if (!this._snapshot) {
+            return;
+        }
+
+        if (!this._tracks) {    // first time, since we do not nullify this._tracks
+            let onHidden = this._callbacks().hidden;
+            this._callbacks().hidden = () => {
+                this._stopAll();
+                if (onHidden) {
+                    onHidden();
+                }
+            }
+        }
+
+        Track.colorIndex = 0;
+        var tracks = [];
+        names.forEach( (name, index) => {
+            var session = this._snapshot.child( name );
+            if (session && session.exists()) {
+                var sessionVal = session.val();
+                if (sessionVal && sessionVal.fixations) {
+                    tracks.push( new Track( app.Visualization.root, name, sessionVal ) );
+                    this.words = sessionVal.words;
+                }
+            }
+        });
+
+        if (!tracks.length) {
+            return;
+        }
+
+        var ctx = this._getCanvas2D();
+
+        // var words = tracks[0].words;
+        this._drawWords( ctx, this.words, null, false, true );
+        this._drawNames( ctx, tracks );
+
+        this._run( ctx, tracks );
+        this._tracks = tracks;
+    };
+
+    GazeReplay.prototype._drawNames = function (ctx, tracks) {
+        tracks.forEach( (track, ti) => {
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'bottom';
+            ctx.fillStyle = track.color;
+            ctx.font = this.nameFont;
+
+            ctx.fillText(
+                track.name,
+                8,
+                64 + 25 * ti
+            );
+        });
+    };
+
+    GazeReplay.prototype._run = function (ctx, tracks) {
+        tracks.forEach( (track, ti) => {
+            track.start(
+                // fixation
+                (fixation, pointer) => {
+                },
+                 // done
+                () => {
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'bottom';
+                    ctx.strokeStyle = '#000';
+                    ctx.fillStyle = track.color;
+                    ctx.font = this.nameFont;
+                    ctx.fillText(
+                        'v',
+                        5,
+                        20 + 25 * ti
+                    );
+                }
+            );
+        })
+    };
+
+    }); // end of delayed call
+
+    function Track (root, name, session) {
+        this.root = root;
+        this.name = name;
+        this.color = Track.colors[ Track.colorIndex++ % Track.colors.length ];
+
+        this.pointerSize = 8;
+        this.fixationTimer = null;
+        this.nextTimer = null;
+
+        this.fixations = session.fixations;
+
+        this.delay = Math.round( 3000 * Math.random() );
+        this.fixationIndex = -1;
+
+        this.__next = this._next.bind( this );
+    }
+
+    Track.basePointerSize = 6;
+
+    Track.colorIndex = 0;
+
+    Track.colors = [
+        '#4D4D4D',
+        '#5DA5DA',
+        '#FAA43A',
+        '#60BD68',
+        '#F17CB0',
+        '#B2912F',
+        '#B276B2',
+        '#DECF3F',
+        '#F15854',
+
+        // '#FF0000',
+        // '#00FF00',
+        // '#0000FF',
+        // '#FFFF00',
+        // '#FF00FF',
+        // '#00FFFF',
+        // '#800000',
+        // '#008000',
+        // '#000080',
+        // '#808000',
+        // '#800080',
+        // '#008080',
+        // '#C0C0C0',
+        // '#808080',
+        // '#9999FF',
+        // '#993366',
+        // '#FFFFCC',
+        // '#CCFFFF',
+        // '#660066',
+        // '#FF8080',
+        // '#0066CC',
+        // '#CCCCFF',
+        // '#000080',
+        // '#FF00FF',
+        // '#FFFF00',
+        // '#00FFFF',
+        // '#800080',
+        // '#800000',
+        // '#008080',
+        // '#0000FF',
+        // '#00CCFF',
+        // '#CCFFFF',
+        // '#CCFFCC',
+        // '#FFFF99',
+        // '#99CCFF',
+        // '#FF99CC',
+        // '#CC99FF',
+        // '#FFCC99',
+        // '#3366FF',
+        // '#33CCCC',
+        // '#99CC00',
+        // '#FFCC00',
+        // '#FF9900',
+        // '#FF6600',
+        // '#666699',
+        // '#969696',
+        // '#003366',
+        // '#339966',
+        // '#003300',
+        // '#333300',
+        // '#993300',
+        // '#993366',
+        // '#333399',
+        // '#333333',
+    ];
+
+    Track.prototype.start = function (onFixation, onCompleted) {
+        this.onFixation = onFixation;
+        this.onCompleted = onCompleted;
+
+        this.fixationIndex = 0;
+
+        this.pointer = document.createElement( 'div' );
+        this.pointer.classList.add( 'track_pointer' );
+        this.pointer.classList.add( 'invisible' );
+        this.root.appendChild( this.pointer );
+
+        this.nextTimer = setTimeout( this.__next, this.delay);
+    }
+
+    Track.prototype.stop = function () {
+        if (this.nextTimer) {
+            clearTimeout( this.nextTimer );
+            this.nextTimer = null;
+        }
+
+        if (this.fixationTimer) {
+            clearTimeout( this.fixationTimer );
+            this.fixationTimer = null;
+        }
+
+        if (this.pointer) {
+            this.root.removeChild( this.pointer );
+            this.pointer = null;
+        }
+    }
+
+    Track.prototype._next = function () {
+        let fixation = this.fixations[ this.fixationIndex ];
+
+        this._moveFixation( fixation );
+
+        this.fixationIndex++;
+        if (this.fixationIndex < this.fixations.length) {
+            let pause = this.fixations[ this.fixationIndex ].ts - fixation.ts;
+            this.nextTimer = setTimeout( this.__next, pause );
+        }
+        else {
+            this.onCompleted();
+            this.root.removeChild( this.pointer );
+            this.pointer = null;
+            this.nextTimer = null;
+        }
+    }
+
+    Track.prototype._moveFixation = function (fixation) {
+        if (this.fixationTimer) {
+            clearTimeout( this.fixationTimer );
+            this.fixationTimer = null;
+        }
+
+        if (fixation) {
+            this.onFixation( fixation, this.pointer );
+
+            if (fixation.x > 0 && fixation.y > 0) {
+                const size = Track.basePointerSize + Math.sqrt( fixation.duration / 30 );
+                this.pointer.style = `left: ${fixation.x - size / 2}px;
+                                      top: ${fixation.y - size / 2}px;
+                                      width: ${size}px;
+                                      height: ${size}px;
+                                      border-radius: ${size / 2}px;
+                                      background-color: ${this.color};`;
+                this.pointer.classList.remove( 'invisible' );
+            }
+
+            this.fixationTimer = setTimeout( () => {
+                this.fixationTimer = null;
+                if (this.pointer) {
+                    this.pointer.classList.add( 'invisible' );
+                }
+            }, fixation.duration);
+        }
+        else {
+            this.pointer.classList.add( 'invisible' );
+        }
+    }
+
+    app.GazeReplay = GazeReplay;
+
 })( this.Reading || module.exports );
 
 // Requires:
@@ -2120,6 +2468,8 @@ if (!this.Reading) {
     //      services: {             - get/set services
     //          showPointer (bool)
     //          highlightWord (bool)
+    //          syllabify (bool)
+    //          voice (bool)
     //          hideText (bool)
     //          path {
     //              colorMetric (index)
@@ -2137,17 +2487,20 @@ if (!this.Reading) {
     //              showRegressions (bool)
     //          }
     //      }
-    function Options(options, services) {
+    function Options(options, services, utils) {
 
         this.root = options.root || '#options';
-        
+
         this._slideout = document.querySelector( this.root );
 
         var logError = app.Logger.moduleErrorPrinter( 'Options' );
 
         _services = services;
+
         _services.showPointer = _services.showPointer || logError( 'showPointer' );
         _services.highlightWord = _services.highlightWord || logError( 'highlightWord' );
+        _services.syllabify = _services.syllabify || logError( 'syllabify' );
+        _services.voice = _services.voice || logError( 'voice' );
         _services.hideText = _services.hideText || logError( 'hideText' );
 
         _services.path = _services.path || {};
@@ -2163,6 +2516,8 @@ if (!this.Reading) {
         _services.wordGazing.showFixations = _services.wordGazing.showFixations || logError( 'wordGazing.showFixations' );
         _services.wordGazing.uniteSpacings = _services.wordGazing.uniteSpacings || logError( 'wordGazing.uniteSpacings' );
         _services.wordGazing.showRegressions = _services.wordGazing.showRegressions || logError( 'wordGazing.showRegressions' );
+
+        _utils = utils;
 
         var cssRules = [
             /*{
@@ -2184,6 +2539,11 @@ if (!this.Reading) {
 
         this._style = document.createElement( 'style' );
         document.body.appendChild( this._style );
+
+        var editText = document.querySelector( this.root + ' .editText' );
+        editText.addEventListener( 'click', () => {
+            _utils.editText();
+        });
 
         var apply = document.querySelector( this.root + ' .save' );
         apply.addEventListener( 'click', () => {
@@ -2209,9 +2569,9 @@ if (!this.Reading) {
             this._style.innerHTML = cssRules.reduce( function (css, rule) {
                 return css + rule.selector + ' { ' + rule.name + ': ' + rule.initial + rule.suffix + ' !important; } ';
             }, '');
-            
+
             obtainInitialRules( cssRules );
-            
+
             bindSettingsToEditors( this.root );
             bindRulesToEditors( cssRules, this.root + ' #' );
         });
@@ -2230,6 +2590,7 @@ if (!this.Reading) {
     // private
 
     var _services;
+    var _utils;
 
     function loadSettings(cssRules) {
         var options = JSON.parse( localStorage.getItem('options') );
@@ -2243,6 +2604,9 @@ if (!this.Reading) {
             for (var name in storage) {
                 if (name === 'css') {
                     continue;
+                }
+                else if (Array.isArray( storage[ name ] )) {
+                    srv[ name ]( storage[ name ] );
                 }
                 else if (typeof storage[ name ] === 'object') {
                     pop( storage[ name ], srv[ name ] );
@@ -2265,7 +2629,7 @@ if (!this.Reading) {
             var ruleInitilization = (rule) => {
                 if (rule.selector === parts[0] && rule.name === parts[1]) {
                     rule.initial = options.css[ savedRule ];
-                } 
+                }
             };
             for (var savedRule in options.css) {
                 var parts = savedRule.split( '____' );
@@ -2294,7 +2658,7 @@ if (!this.Reading) {
 
         options.css = {};
         cssRules.forEach( function (rule) {
-            options.css[ rule.selector + '____' + rule.name ] = rule.value; 
+            options.css[ rule.selector + '____' + rule.name ] = rule.value;
         });
 
         localStorage.setItem( 'options', JSON.stringify( options) );
@@ -2310,11 +2674,11 @@ if (!this.Reading) {
     }
 
     function cssColorToHex( cssColor ) {
-        
+
         var colorRegex = /^\D+(\d+)\D+(\d+)\D+(\d+)\D+$/gim;
         var colorComps = colorRegex.exec( cssColor );
 
-        return rgbToHex( 
+        return rgbToHex(
             parseInt( colorComps[ 1 ] ),
             parseInt( colorComps[ 2 ] ),
             parseInt( colorComps[ 3 ] ) );
@@ -2418,8 +2782,10 @@ if (!this.Reading) {
 
         bindCheckbox( 'showPointer', _services.showPointer );
         bindCheckbox( 'highlightWord', _services.highlightWord );
+        bindCheckbox( 'syllabify', _services.syllabify );
+        bindCheckbox( 'voice', _services.voice );
         bindCheckbox( 'hiddenText', _services.hideText );
-        
+
         bindSelect( 'path_mapping', _services.path.mapping );
 
         bindSelect( 'path_colorMetric', _services.path.colorMetric );
@@ -2436,12 +2802,13 @@ if (!this.Reading) {
     }
 
     app.Options = Options;
-    
+
 })( this.Reading || module.this.exports );
 
 // Requires:
 //      app,Colors
 //      app.firebase
+//      app.WordList
 //      utils.metric
 //      utils.remapExporter
 
@@ -2551,13 +2918,16 @@ if (!this.Reading) {
             list.appendChild( option );
         });
 
-        app.RemapExporter.export( this._snapshot, this._remapStatic );
+        // app.RemapExporter.export( this._snapshot, this._remapStatic );
+        //app.RemapExporter.export( this._snapshot, this._remapDynamic );
     };
 
     Path.prototype._load = function (name) {
         if (!this._snapshot) {
             return;
         }
+
+        app.WordList.instance.show();
 
         //app.RemapExporter.save( app.RemapExporter.exportFixations( this._snapshot ).join( '\n' ), 'fixations.txt' );
         //app.RemapExporter.save( app.RemapExporter.exportWords( this._snapshot ).join( '\n' ), 'words.txt' );
@@ -2592,6 +2962,8 @@ if (!this.Reading) {
             this._drawFixations( ctx, fixations );
         }
         this._drawTitle( ctx, name );
+
+        app.WordList.instance.fill( data.words );
     };
 
     Path.prototype._drawFixations = function (ctx, fixations) {
@@ -2819,8 +3191,6 @@ if (!this.Reading) {
     function RTV (options) {
 
         this.focusColor = options.focusColor || '#F80';
-        this.wordReadingColor = options.wordReadingColor || '#CCC';
-        this.wordLongReadingColor = options.wordLongReadingColor || '#888';
 
         this.longFixationThreshold = 1000;
 
@@ -2899,7 +3269,7 @@ if (!this.Reading) {
         this._computeFontSize( words );
         this._drawWords( ctx, tracks[0].words );
         this._drawTracks( ctx, tracks );
-        
+
         this._run( ctx, tracks );
         this._tracks = tracks;
     };
@@ -2912,7 +3282,7 @@ if (!this.Reading) {
     };
 
     RTV.prototype._drawWords = function (ctx, words) {
-        ctx.textAlign = 'end'; 
+        ctx.textAlign = 'end';
         ctx.textBaseline = 'top';
         ctx.fillStyle = this.wordColor;
         ctx.font = this.wordFont;
@@ -2932,7 +3302,7 @@ if (!this.Reading) {
     };
 
     RTV.prototype._drawTracks = function (ctx, tracks) {
-        ctx.textAlign = 'center'; 
+        ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
         ctx.fillStyle = this.wordColor;
         ctx.font = this.captionFont;
@@ -2953,9 +3323,9 @@ if (!this.Reading) {
                 track.y - this.wordPaddingY
             );
             track.words.forEach( (word, wi) => {
-                ctx.strokeRect( 
+                ctx.strokeRect(
                     track.x,
-                    track.y + this.wordHeight * wi, 
+                    track.y + this.wordHeight * wi,
                     track.width,
                     this.wordHeight
                 );
@@ -2986,7 +3356,7 @@ if (!this.Reading) {
                     ctx.fillStyle = this.wordColor;
                     ctx.fillText(
                         'done',
-                        track.x + track.width * 0.5, 
+                        track.x + track.width * 0.5,
                         track.y + this.wordHeight * track.words.length + this.wordPaddingY
                     );
                 }
@@ -3104,7 +3474,7 @@ if (!this.Reading) {
     }
 
     app.RTV = RTV;
-    
+
 })( this.Reading || module.exports );
 
 // Requires:
@@ -3221,7 +3591,7 @@ if (!this.Reading) {
 
         var createNewLine = function (word) {
             currentLine = [ word ];
-            currentLine.id = word.row - 1;
+            currentLine.id = word.row ? word.row - 1 : lines.length;
             lines.push( currentLine );
         };
 
@@ -4239,6 +4609,198 @@ if (!this.Reading) {
     
 })( this.Reading || module.exports );
 
+(function (app) { 'use strict';
+
+    // Word highlighting propagation routine
+    // Constructor arguments:
+    //      options: {
+    //          syllabificationEnabled
+    //          highlightingEnabled
+    //          voiceEnabled
+    //          threshold - minimum fixation duration in ms to consider the word should be split
+    //      }
+    function Syllabifier( options ) {
+
+        this.syllabificationEnabled = options.syllabificationEnabled || false;
+        this.highlightingEnabled = options.highlightingEnabled || false;
+        this.voiceEnabled = options.voiceEnabled || false;
+        this.threshold = options.threshold || 1000;
+
+        this.className = 'currentWord';
+        this.spacer = '-';
+
+        this.timer = null;
+        this.currentWord = null;
+        this.words = null;
+    }
+
+    // Resets the highlighting
+    Syllabifier.prototype.reset = function () {
+
+        if (this.currentWord) {
+            this.currentWord.classList.remove( this.className );
+            this.currentWord = null;
+        }
+
+        clearTimeout( this.timer );
+        this.timer = null;
+        this.words = null;
+    };
+
+    Syllabifier.prototype.init = function () {
+        this.words = new Map();
+        if (this.syllabificationEnabled) {
+            this.timer = setInterval( () => {
+                this._tick();
+            }, 30);
+        }
+    };
+
+    Syllabifier.prototype._tick = function () {
+        for (let key of this.words.keys()) {
+            let duration = this.words.get( key );
+            if (duration >= 0) {    // if duration is <0, then this word is split already
+                duration = Math.max( 0, duration + (key === this.currentWord ? 30 : -30) );
+
+                if (duration > this.threshold) {
+                    duration = -1;
+
+                    const textNodes = Array.from( key.childNodes).filter( node => node.nodeType === Node.TEXT_NODE);
+                    const text = textNodes[0].textContent.trim();
+                    key.innerHTML = this.syllabifyWord( text );
+
+                    if (this.voiceEnabled) {
+                        responsiveVoice.speak( text, 'Finnish Female' );
+                    }
+                }
+
+                this.words.set( key, duration );
+            }
+        }
+    };
+
+    // Propagates / removed the highlighing
+    // Arguments:
+    //   word: - the focused word (DOM)
+    Syllabifier.prototype.setFocusedWord = function (word) {
+
+        if (this.currentWord != word) {
+            if (this.highlightingEnabled) {
+                if (this.currentWord) {
+                    this.currentWord.classList.remove( this.className );
+                }
+                if (word) {
+                    word.classList.add( this.className );
+                }
+            }
+            this.currentWord = word;
+
+            if (word && !this.words.has( word )) {
+                this.words.set( word, 0 );
+            }
+        }
+    };
+
+    Syllabifier.prototype.syllabify = function( text ) {
+
+        if (!this.syllabificationEnabled) {
+            return text;
+        }
+
+        return text.map( line => {
+            const words = line.split( ' ' ).map( word => word.toLowerCase() );
+            return words.map( word => this.syllabifyWord( word ) ).join( ' ' );
+        });
+    };
+
+    Syllabifier.prototype.prepareForSyllabification = function( text ) {
+
+        if (!this.syllabificationEnabled) {
+            return text;
+        }
+
+        const prepareWord = word => {
+            const syllabifiedWord = this.syllabifyWord( word );
+            const spacesCount = syllabifiedWord.length - word.length;
+            const halfSpacesCount = Math.round( spacesCount / 2 );
+
+            return  '<span class="syllab">' +
+                        (Array( halfSpacesCount + 1 ).join( this.spacer ) ) +
+                    '</span>' +
+                    word +
+                    '<span class="syllab">' +
+                        (Array( spacesCount - halfSpacesCount + 1 ).join( this.spacer ) ) +
+                    '</span>';
+        };
+
+        if ( text instanceof Array ) {
+            return text.map( line => {
+                const words = line.split( ' ' ).map( word => word.toLowerCase() );
+                return words.map( prepareWord ).join( ' ' );
+            });
+        }
+        else {
+            return prepareWord( text );
+        }
+    };
+
+    Syllabifier.prototype.syllabifyWord = function (word) {
+        const vowels = [ 'a', 'o', 'u', 'i', 'e', 'ä', 'ö', 'y' ];
+        const consonants = [ 'b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm',
+                            'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'x', 'z' ];
+        const diftongs = [ 'ai', 'ei', 'oi', 'ui', 'yi', 'äi', 'öi', 'au', 'eu',
+                            'iu', 'ou', 'ey', 'iy', 'äy', 'öy', 'ie', 'uo', 'yö' ];
+
+        const getType = c => vowels.includes( c ) ? 'V' : ( consonants.includes( c ) ? 'C' : '_' );
+
+        const result = [];
+
+        let hasVowel = false;
+        for (let i = word.length - 1; i >= 0; i--) {
+            let separate = false;
+            const char = word[i];
+            const type = getType( char );
+            if (type === 'V') {
+                if (i < word.length - 1) {
+                    const charPrevious = word[ i + 1 ];
+                    const typePrevious = getType( charPrevious );
+                    if (charPrevious !== char && typePrevious === type
+                        && !diftongs.includes( char + charPrevious)) {
+                        result.unshift( this.spacer );
+                    }
+                }
+                hasVowel = true;
+            }
+            else if (type === 'C' && hasVowel) {
+                separate = i > 0;
+                if (i === 1) {
+                    const charNext = word[i - 1];
+                    const typeNext = getType( charNext );
+                    if (typeNext === type) {
+                        separate = false;
+                    }
+                }
+            }
+            result.unshift( char );
+
+            if (separate) {
+                result.unshift( this.spacer );
+                hasVowel = false;
+            }
+        }
+
+        return result.join('');
+    }
+
+    // test
+    // syllabified.forEach( line => line.forEach( word => { console.log(word); } ));
+
+    // export
+
+    app.Syllabifier = Syllabifier;
+
+})( this.Reading || module.exports );
+
 // Requires:
 //      utils/logger
 
@@ -4255,13 +4817,14 @@ if (!this.Reading) {
     function Text(options, services) {
 
         this.root = options.root || '#textContainer';
+
         _services = services;
 
         var logError = app.Logger.moduleErrorPrinter( 'Text' );
         _services.splitText = _services.splitText || logError( 'splitText' );
 
         _textContainer = document.querySelector( this.root );
-        
+
         this.texts = [
             /*[
                 'Steroidivyöhykkeen pienimpiä kivikappaleita sanotaan',
@@ -4304,6 +4867,10 @@ if (!this.Reading) {
         this._initialVisibility = true;
     }
 
+    Text.prototype.reset = function () {
+        this.switchText( _textIndex );
+    }
+
     Text.prototype.initialVisibility = function (value) {
         if (value !== undefined) {
             this._initialVisibility = value;
@@ -4327,7 +4894,7 @@ if (!this.Reading) {
         }
 
         _textContainer.innerHTML = '';
-        
+
         for (var i = 0; i < lines.length; i += 1) {
             var line = document.createElement('div');
             line.className = 'line';
@@ -4368,13 +4935,27 @@ if (!this.Reading) {
         };
     };
 
+    Text.prototype.getText = function () {
+        return this.texts[ _textIndex ].join( '\n' );
+    }
+
+    Text.prototype.setText = function (text) {
+        this.texts[ _textIndex ] = text.split( '\n' );
+        this.switchText( _textIndex );
+    }
+
+    Text.prototype.setTexts = function (texts) {
+        this.texts = texts;
+        this.switchText( _textIndex );
+    }
+
     var _textContainer;
     var _services;
     var _textIndex = 0;
     var _spacingIndex = 0;
 
     app.Text = Text;
-    
+
 })( this.Reading || module.exports );
 
 // Requires:
@@ -4397,52 +4978,56 @@ if (!this.Reading) {
         this.text = options.text || '#text';
 
         var logError = app.Logger.moduleErrorPrinter( 'TextEditor' );
-        services.splitText = services.splitText || logError( 'splitText' );
-        
+        _services.splitText = services.splitText || logError( 'splitText' );
+        _services.getText = services.getText || logError( 'getText' );
+        _services.setText = services.setText || logError( 'setText' );
+
         this._slideout = document.querySelector( this.root );
 
         var text = document.querySelector( this.text );
-        var editorText = document.querySelector( this.root + ' .text' );
-        editorText.value = text.textContent;
 
-        var apply = document.querySelector( this.root + ' .apply' );
-        apply.addEventListener( 'click', function () {
-            text.textContent = editorText.value;
-            services.splitText();
+        this._editorText = document.querySelector( this.root + ' .text' );
+        this._editorText.value = text.textContent;
+
+        var save = document.querySelector( this.root + ' .save' );
+        save.addEventListener( 'click', (e) => {
+            _services.setText( this._editorText.value );
+            this._slideout.classList.add( 'hidden' );
+        });
+
+        var cancel = document.querySelector( this.root + ' .cancel' );
+        cancel.addEventListener( 'click', (e) => {
+            this._slideout.classList.add( 'hidden' );
         });
     }
 
-    // Disables editing
-    TextEditor.prototype.lock = function () {
-
-        this._slideout.classList.add( 'locked' );
+    TextEditor.prototype.show = function () {
+        this._editorText.value = _services.getText();
+        this._slideout.classList.remove( 'hidden' );
     };
 
-    // Enables editing
-    TextEditor.prototype.unlock = function () {
-        
-        this._slideout.classList.remove( 'locked' );
-    };
+    var _services = {};
 
     app.TextEditor = TextEditor;
-    
+
 })( this.Reading || module.exports );
 
 (function (app) { 'use strict';
 
-    // Text highlighting propagation routine
+    // Text splitting into words routine
     // Constructor arguments:
     //      options: {
-    //          root:         - selector for the element that contains text for reading
-    //          minReadingDuration  - minimum fixation duration to consider the word has been read (ms)
+    //          root:       - selector for the element that contains text for reading
     //      }
-    function TextSplitter(options) {
-
+    //      services: {
+    //          prepareForSyllabification:  - enlarges a word to compensate for word syllabification
+    //      }
+    function TextSplitter( options, services ) {
         this.root = options.root || document.documentElement;
-        this.highlightCurrentWord = options.highlightCurrentWord || true;
+
+        _services = services;
 
         this.wordClass = 'word';
-        //this.split();
     }
 
     // Splits the text nodes into words, each in its own span.word element
@@ -4470,7 +5055,7 @@ if (!this.Reading) {
             var word;
             var index = 0;
             var docFrag = document.createDocumentFragment();
-            
+
             while ((word = re.exec( node.textContent )) !== null) {
 
                 if (index < word.index) {
@@ -4478,17 +5063,19 @@ if (!this.Reading) {
                     docFrag.appendChild( space );
                 }
 
+                var wordText = _services.prepareForSyllabification( word[ 0 ] );
+
                 var span = document.createElement( 'span' );
                 span.classList.add( this.wordClass );
-                span.textContent = word[ 0 ];
+                span.innerHTML = wordText;
                 docFrag.appendChild( span );
 
                 index = re.lastIndex;
             }
 
-            docFrags.push( { 
+            docFrags.push( {
                 node: node,
-                docFrag: docFrag 
+                docFrag: docFrag
             });
         }
 
@@ -4497,47 +5084,13 @@ if (!this.Reading) {
         });
     };
 
-    // Resets the highlighting 
-    TextSplitter.prototype.reset = function () {
-
-        var currentWord = document.querySelector( '.currentWord' );
-        if (currentWord) {
-            currentWord.classList.remove( 'currentWord' );
-        }
-    };
-
-    // Sets the first word highlighted 
-    TextSplitter.prototype.init = function () {
-
-        this.reset();
-    };
-
-    // Propagates the highlighing if the focused word is the next after the current
-    // Arguments:
-    //        word:         - the focused word 
-    TextSplitter.prototype.setFocusedWord = function (word) {
-
-        if (!this.highlightCurrentWord) {
-            return;
-        }
-
-        var currentWord = document.querySelector( '.currentWord' );
-        if (currentWord != word) {
-            if (currentWord) {
-                currentWord.classList.remove( 'currentWord' );
-            }
-            if (word) {
-                word.classList.add( 'currentWord' );
-            }
-        }
-    };
-
     // private
+    var _services;
 
     // export
 
     app.TextSplitter = TextSplitter;
-    
+
 })( this.Reading || module.exports );
 
 
@@ -4978,7 +5531,7 @@ if (!this.Reading) {
         PARTICIPANTS: 8
     };
 
-    const MAPPING_TO_SAVE = MappingsToSave.NONE;
+    const MAPPING_TO_SAVE = MappingsToSave.FIXATIONS;
 
     var RemapExporter = { };
 
@@ -5026,12 +5579,22 @@ if (!this.Reading) {
             var fixations = remap( session );
 
             var id = childSnapshot.key();
-            //Array.prototype.push.apply( logs.fixations, logFixations( id, fixations ) );
-            logs.fixations = logs.fixations.concat( id, ...logFixations( fixations ) );
-            Array.prototype.push.apply( logs.words, logWords( id, fixations, session.words ) );
 
-            logUniqueWords( fixations, session.words, logs.uniqueWords );
-            logParticipants( id, fixations, session.words, logs.participants );
+            if (MAPPING_TO_SAVE & MappingsToSave.FIXATIONS) {
+                //Array.prototype.push.apply( logs.fixations, logFixations( id, fixations ) );
+                logs.fixations = logs.fixations.concat( id, ...logFixations( fixations ) );
+            }
+
+            if (MAPPING_TO_SAVE & MappingsToSave.WORDS) {
+                Array.prototype.push.apply( logs.words, logWords( id, fixations, session.words ) );
+            }
+
+            if (MAPPING_TO_SAVE & MappingsToSave.UNIQUE_WORDS) {
+                logUniqueWords( fixations, session.words, logs.uniqueWords );
+            }
+            if (MAPPING_TO_SAVE & MappingsToSave.PARTICIPANTS) {
+                logParticipants( id, fixations, session.words, logs.participants );
+            }
         });
 
         return logs;
@@ -5174,6 +5737,9 @@ if (!this.Reading) {
 })( this.Reading || module.exports );
 
 // Base for visualizations
+//
+// Requires:
+//
 // Interface to implement:
 //        _load
 //        _fillDataQueryList
@@ -5194,7 +5760,7 @@ if (!this.Reading) {
     //      }
     function Visualization (options) {
         this.wordColor = options.wordColor || '#080'//'#CCC';
-        this.wordFont = options.wordFont || '24pt Calibri, Arial, sans-serif';
+        this.wordFont = options.wordFont || '22pt Calibri, Arial, sans-serif';
         this.wordHighlightColor = options.wordHighlightColor || '#606';
         this.wordStrokeColor = options.wordStrokeColor || '#888';
         this.infoColor = options.infoColor || '#444';
@@ -5218,6 +5784,7 @@ if (!this.Reading) {
         _callbacks = callbacks;
 
         _view = document.querySelector( root );
+        _wait = _view.querySelector( '.wait' );
         _canvas = document.querySelector( root + ' canvas');
         _sessionPrompt = document.querySelector( root + ' #session' );
         _filePrompt = document.querySelector( root + ' #file' );
@@ -5281,19 +5848,36 @@ if (!this.Reading) {
     };
 
     Visualization.prototype.queryData = function (multiple) {
+        if (_callbacks.shown) {
+            _callbacks.shown();
+        }
+
+        _view.classList.remove( 'invisible' );
+        _wait.classList.remove( 'invisible' );
+
         if (this._snapshot) {
             this._showDataSelectionDialog( multiple );
             return;
         }
 
+        if (_waiting) {
+            return;
+        }
+
+        _waiting = true;
         app.firebase.once( 'value', snapshot => {
+            _waiting = false;
+
             if (!snapshot.exists()) {
                 window.alert( 'no records in DB' );
                 return;
             }
 
             this._snapshot = snapshot;
-            this._showDataSelectionDialog( multiple );
+
+            if (!_view.classList.contains('invisible')) {
+                this._showDataSelectionDialog( multiple );
+            }
 
         }, function (err) {
             window.alert( err );
@@ -5310,7 +5894,7 @@ if (!this.Reading) {
         if (nameParts.length === 3) {
             result = nameParts[1];
             if (considerSpacings) {
-                result += '_' + nameParts[2];
+                result += ', spacing #' + nameParts[2];
             }
         }
         return result;
@@ -5328,15 +5912,11 @@ if (!this.Reading) {
             }
         });
 
-        return conditions;
+        return new Map([...conditions.entries()].sort());
     }
 
     Visualization.prototype._showDataSelectionDialog = function (multiple) {
-        if (_callbacks.shown) {
-            _callbacks.shown();
-        }
-
-        _view.classList.remove( 'invisible' );
+        _wait.classList.add( 'invisible' );
 
         var list = _sessionPrompt.querySelector( '#conditions' );
         list.multiple = !!multiple;
@@ -5420,6 +6000,7 @@ if (!this.Reading) {
             // ctx.fillRect( Math.round( word.x ), Math.round( word.y ), Math.round( word.width ), Math.round( word.height ) );
         }
 
+        ctx.font = this.wordFont;
         ctx.textAlign = 'start';
         ctx.textBaseline = 'alphabetic';
         ctx.fillStyle = this.wordColor;
@@ -5465,12 +6046,15 @@ if (!this.Reading) {
     var _width;
     var _callbacks;
     var _view;
+    var _wait;
     var _canvas;
     var _sessionPrompt;
     var _filePrompt;
 
     var _sessionPromtCallback;
     var _filePromtCallback;
+
+    var _waiting = false;
 
     var IndexComputer = function () {
         var lastX = -1;
@@ -5606,6 +6190,7 @@ if (!this.Reading) {
 // Requires:
 //      app,Colors
 //      app.firebase
+//      app.WordList
 //      utils/metric
 //      utils/visualization
 
@@ -5624,7 +6209,7 @@ if (!this.Reading) {
 
         this.spacingNames = options.spacingNames;
         this.fixationColor = options.fixationColor || '#000';
-        
+
         this.showFixations = options.showFixations !== undefined ? options.showFixations : false;
         this.uniteSpacings = options.uniteSpacings !== undefined ? options.uniteSpacings : true;
         this.showRegressions = options.showRegressions !== undefined ? options.showRegressions : false;
@@ -5659,6 +6244,8 @@ if (!this.Reading) {
             return;
         }
 
+        app.WordList.instance.show();
+
         var words, fixes;
         var fixations = [];
         var sessionNames = [];
@@ -5686,6 +6273,8 @@ if (!this.Reading) {
             }
 
             this._drawTitle( ctx, `${conditionTitle} for ${sessionNames.length} sessions` );
+
+            app.WordList.instance.fill( words, { units: app.WordList.Units.PERCENTAGE } );
         }
     };
 
@@ -5804,5 +6393,80 @@ if (!this.Reading) {
     }
 
     app.WordGazing = WordGazing;
-    
+
+})( this.Reading || module.exports );
+
+(function (app) { 'use strict';
+
+	// Word statistic list
+    // Arguments:
+    //      options: {
+    //          container   - container selector
+    function WordList (options) {
+        this._container = document.querySelector( options.container );
+
+        const close = app.Visualization.root.querySelector( '.close' );
+        close.addEventListener( 'click', () => {
+            this._container.classList.add( 'invisible' );
+        });
+
+        const drowpdown = this._container.querySelector( '.button' );
+        const table = this._container.querySelector( '.table' );
+        drowpdown.addEventListener( 'click', () => {
+            drowpdown.classList.toggle( 'dropped' );
+            table.classList.toggle( 'invisible' );
+        });
+    }
+
+    WordList.instance = null;
+    WordList.Units = {
+    	MS: 'ms',
+    	PERCENTAGE: '%'
+    };
+
+    WordList.prototype.show = function() {
+		this._container.classList.remove( 'invisible' );
+    }
+
+    // Options: {
+    //		units (String): [ms, %]
+    // }
+    WordList.prototype.fill = function( words, options = {} ) {
+        const table = this._container.querySelector( '.table' );
+        table.innerHTML = '';
+
+        const descending = (a, b) => b.duration - a.duration;
+        words = words.map( word => word ).sort( descending );
+
+        const units = options.units || WordList.Units.MS;
+        const totalDuration = words.reduce( (sum, word) => (sum + word.duration), 0);
+
+        words.forEach( word => {
+        	let value = word.duration;
+        	if (units === WordList.Units.MS) {
+        		value = Math.round( value );
+        	}
+        	else if (units === WordList.Units.PERCENTAGE) {
+        		value = (100 * value / totalDuration).toFixed(1) + '%';
+        	}
+
+            const wordItem = document.createElement( 'span' );
+            wordItem.classList.add( 'word' );
+            wordItem.textContent = word.text;
+
+            const durationItem = document.createElement( 'span' );
+            durationItem.classList.add( 'duration' );
+            durationItem.textContent = value;
+
+            const record = document.createElement( 'div' );
+            record.classList.add( 'record' );
+            record.appendChild( wordItem );
+            record.appendChild( durationItem );
+
+            table.appendChild( record );
+        });
+    }
+
+    app.WordList = WordList;
+
 })( this.Reading || module.exports );

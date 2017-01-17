@@ -284,12 +284,35 @@ body {
 }
 
 #textEditor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  text-align: center;
+  background-color: rgba(200, 200, 200, 0.5);
+}
+#textEditor.hidden {
   display: none;
 }
-#textEditor textarea {
+#textEditor .inner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  -webkit-transform: translate(-50%, -50%);
+          transform: translate(-50%, -50%);
+  padding: 0.7em 1em;
+  text-align: left;
+  background: #518FAE;
+}
+#textEditor .inner textarea {
   width: 800px;
   height: 400px;
   margin-bottom: 6px;
+  color: #555;
+  font-size: 18pt;
+  font-family: Calibri, Arial, sans-serif;
+  font-weight: bold;
 }
 
 #textContainer {
@@ -339,6 +362,9 @@ body {
 #textContainer #text .word {
   /* nothing is needed, just the class declaration */
 }
+#textContainer #text .syllab {
+  color: #fff;
+}
 
 #visualization {
   position: fixed;
@@ -353,9 +379,24 @@ body {
 }
 #visualization .close {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: 8px;
+  left: 8px;
+  width: 32px;
+  height: 32px;
   z-index: 2;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.3) url("img/close.png") no-repeat right top;
+}
+#visualization .wait {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  width: 100vw;
+  height: 100vh;
+  background: url("img/wait.gif") no-repeat fixed center;
+}
+#visualization .wait.invisible {
+  display: none;
 }
 #visualization canvas {
   position: relative;
@@ -403,7 +444,61 @@ body {
   background-color: #F80;
   border: 1px solid black;
   border-radius: 4px;
+  opacity: 0.7;
 }
 #visualization .track_pointer.invisible {
   display: none;
+}
+
+#wordlist {
+  position: fixed;
+  left: 48px;
+  top: 8px;
+  width: 20vw;
+}
+#wordlist.invisible {
+  display: none;
+}
+#wordlist .button {
+  cursor: pointer;
+  line-height: 32px;
+  text-align: center;
+  vertical-align: middle;
+  color: #266;
+  background: #ddd url('img/down.png') no-repeat right top;
+  background-origin: content-box;
+  padding-right: 8px;
+  box-sizing: border-box;
+  border-radius: 5px;
+}
+#wordlist .button.dropped {
+  background-image: url('img/up.png');
+  background-color: #cee;
+}
+#wordlist .table {
+  height: calc(52vh);
+  background-color: rgba(255, 255, 220, 0.8);
+  transition: height 0.25s ease-in;
+  overflow-y: auto;
+}
+#wordlist .table.invisible {
+  height: 0;
+  transition: height 0.25s ease-in;
+}
+#wordlist .table .record {
+  widht: 100%;
+}
+#wordlist .table .record .word {
+  display: inline-block;
+  width: 60%;
+  overflow-x: hidden;
+  padding-left: 0.5em;
+  box-sizing: border-box;
+}
+#wordlist .table .record .duration {
+  display: inline-block;
+  width: 35%;
+  text-align: right;
+  padding-right: 0.4em;
+  box-sizing: border-box;
 }
