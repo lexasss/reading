@@ -831,7 +831,7 @@ if (!this.Reading) {
             _sampleDuration = options.sampleDuration || 33;
             _lpc = options.filterDemph || 0.4;
             _invLpc = 1 - _lpc;
-            
+
             _zone = app.Zone;
 
             _currentFixation = new Fixation( -10000, -10000, Number.MAX_VALUE );
@@ -858,11 +858,11 @@ if (!this.Reading) {
             var fixation = new Fixation( x, y, duration );
             fixation.previous = _currentFixation;
             _currentFixation.next = fixation;
-            
+
             fixation.saccade = new Saccade( x - _currentFixation.x, y - _currentFixation.y );
-            
+
             _currentFixation = fixation;
-                
+
             return _currentFixation;
         },
 
@@ -920,7 +920,7 @@ if (!this.Reading) {
             _currentFixation.duration += _sampleDuration;
             _currentFixation.x = _lpc * _currentFixation.x + _invLpc * x;
             _currentFixation.y = _lpc * _currentFixation.y + _invLpc * y;
-            
+
             if (prevDuration < _minDuration && _currentFixation.duration >= _minDuration) {
                 result = _currentFixation;
             }
@@ -940,19 +940,19 @@ if (!this.Reading) {
             var fixation = new Fixation( progressingFixation.x, progressingFixation.y, progressingFixation.duration );
             fixation.previous = _currentFixation;
             _currentFixation.next = fixation;
-            
+
             var saccade = progressingFixation.saccade;
             if (saccade) {
                 fixation.saccade = new Saccade( saccade.dx, saccade.dy );
             }
             else {
-                fixation.saccade = new Saccade( progressingFixation.x - _currentFixation.x, 
+                fixation.saccade = new Saccade( progressingFixation.x - _currentFixation.x,
                                                 progressingFixation.y - _currentFixation.y );
             }
-            
+
             _currentFixation = fixation;
             _fixations.push( _currentFixation );
-                
+
             result = _currentFixation;
         }
         else {
@@ -2811,7 +2811,6 @@ if (!this.Reading) {
 //      app.WordList
 //      utils.metric
 //      utils.remapExporter
-
 (function (app) { 'use strict';
 
     // Path visualization constructor
@@ -3064,9 +3063,16 @@ if (!this.Reading) {
         app.Logger.enabled = false;
 
         var fixations = app.Fixations;
+        fixations.init( 80, 50 );
+        fixations.reset();
+
+        var layout = session.words.map( (word, id) => {
+            return new Word({ left: word.x, top: word.y, right: word.x + word.width, bottom: word.y + word.height }, word.text  );
+        });
+
+        /*
         var model = app.Model2;
 
-        fixations.init( 80, 50 );
         model.init({
             linePredictor: {
                 factors: {
@@ -3077,18 +3083,47 @@ if (!this.Reading) {
             }
         });
 
-        var layout = session.words.map( function (word) {
-            return new Word({ left: word.x, top: word.y, right: word.x + word.width, bottom: word.y + word.height });
-        });
-
-        fixations.reset();
         model.reset( layout );
         //model.callbacks( { onMapped: function (fixation) {} } );
+        */
+
+        var model = DGWM;
+        model.init({
+            fixationDetector: {
+                minDuration: 100,
+                threshold: 35,
+                sampleDuration: 30,
+                filterDemph: 0.4
+            },
+            textModel: {
+                isTextFixed: true
+            },
+            line: {
+                useModel: false,
+                modelMaxGradient: 0.15,
+                modelTypeSwitchThreshold: 8,
+                modelRemoveOldFixThreshold: 10
+            },
+            dgwm: {
+                saccadeYThresholdInLines: 1.2,
+                saccadeYThresholdInSpacings: 1.75,
+                fixationXDistFromLineThresholdInPixels: 100,
+                fixationYDistFromLineThresholdInSpaces: 0.7,
+                fixationYOffsetDiffThresholdInLines: 0.49,
+                emptyLineSuperority: 0.3,
+                effectiveLengthReductionMinWordLength: 1,
+                effectiveLengthReductionInChars: 3
+            }
+        });
+
+        model.setWords( layout );
 
         var result = [];
+        var fixID = 0;
         session.fixations.forEach( function (fix) {
             var fixation = fixations.add( fix.x, fix.y, fix.duration );
             if (fixation) {
+                fixation.id = fixID++;
                 model.feedFixation( fixation );
                 result.push( fixation );
             }
@@ -3158,11 +3193,12 @@ if (!this.Reading) {
         return records;
     }
 
-    function Word (rect) {
+    function Word (rect, text) {
         this.left = rect.left;
         this.top = rect.top;
         this.right = rect.right;
         this.bottom = rect.bottom;
+        this.textContent = text;
     }
 
     Word.prototype.getBoundingClientRect = function () {
@@ -5760,7 +5796,7 @@ if (!this.Reading) {
     //      }
     function Visualization (options) {
         this.wordColor = options.wordColor || '#080'//'#CCC';
-        this.wordFont = options.wordFont || '22pt Calibri, Arial, sans-serif';
+        this.wordFont = options.wordFont || '24pt Calibri, Arial, sans-serif';
         this.wordHighlightColor = options.wordHighlightColor || '#606';
         this.wordStrokeColor = options.wordStrokeColor || '#888';
         this.infoColor = options.infoColor || '#444';
