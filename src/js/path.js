@@ -4,7 +4,6 @@
 //      app.WordList
 //      utils.metric
 //      utils.remapExporter
-
 (function (app) { 'use strict';
 
     // Path visualization constructor
@@ -180,7 +179,7 @@
 
             if (this.showConnections && fix.word) {
                 ctx.strokeStyle = this.connectionColor;
-                this._drawConnection( ctx, fix, {x: fix.word.left, y: fix.word.top} );
+                this._drawConnection( ctx, fix, {x: fix.word.rect.left, y: fix.word.rect.top} );
             }
 
             ctx.strokeStyle = '#808';
@@ -257,9 +256,16 @@
         app.Logger.enabled = false;
 
         var fixations = app.Fixations;
+        fixations.init( 80, 50 );
+        fixations.reset();
+
+        var layout = session.words.map( (word, id) => {
+            return new Word({ left: word.x, top: word.y, right: word.x + word.width, bottom: word.y + word.height }, word.text  );
+        });
+
+        /*
         var model = app.Model2;
 
-        fixations.init( 80, 50 );
         model.init({
             linePredictor: {
                 factors: {
@@ -270,18 +276,47 @@
             }
         });
 
-        var layout = session.words.map( function (word) {
-            return new Word({ left: word.x, top: word.y, right: word.x + word.width, bottom: word.y + word.height });
-        });
-
-        fixations.reset();
         model.reset( layout );
         //model.callbacks( { onMapped: function (fixation) {} } );
+        */
+
+        var model = DGWM;
+        model.init({
+            fixationDetector: {
+                minDuration: 100,
+                threshold: 35,
+                sampleDuration: 30,
+                filterDemph: 0.4
+            },
+            textModel: {
+                isTextFixed: true
+            },
+            line: {
+                useModel: false,
+                modelMaxGradient: 0.15,
+                modelTypeSwitchThreshold: 8,
+                modelRemoveOldFixThreshold: 10
+            },
+            dgwm: {
+                saccadeYThresholdInLines: 1.2,
+                saccadeYThresholdInSpacings: 1.75,
+                fixationXDistFromLineThresholdInPixels: 100,
+                fixationYDistFromLineThresholdInSpaces: 0.7,
+                fixationYOffsetDiffThresholdInLines: 0.49,
+                emptyLineSuperority: 0.3,
+                effectiveLengthReductionMinWordLength: 1,
+                effectiveLengthReductionInChars: 3
+            }
+        });
+
+        model.setWords( layout );
 
         var result = [];
+        var fixID = 0;
         session.fixations.forEach( function (fix) {
             var fixation = fixations.add( fix.x, fix.y, fix.duration );
             if (fixation) {
+                fixation.id = fixID++;
                 model.feedFixation( fixation );
                 result.push( fixation );
             }
@@ -351,11 +386,12 @@
         return records;
     }
 
-    function Word (rect) {
+    function Word (rect, text) {
         this.left = rect.left;
         this.top = rect.top;
         this.right = rect.right;
         this.bottom = rect.bottom;
+        this.textContent = text;
     }
 
     Word.prototype.getBoundingClientRect = function () {

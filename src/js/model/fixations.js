@@ -17,7 +17,7 @@ if (!this.Reading) {
             _sampleDuration = options.sampleDuration || 33;
             _lpc = options.filterDemph || 0.4;
             _invLpc = 1 - _lpc;
-            
+
             _zone = app.Zone;
 
             _currentFixation = new Fixation( -10000, -10000, Number.MAX_VALUE );
@@ -44,11 +44,11 @@ if (!this.Reading) {
             var fixation = new Fixation( x, y, duration );
             fixation.previous = _currentFixation;
             _currentFixation.next = fixation;
-            
+
             fixation.saccade = new Saccade( x - _currentFixation.x, y - _currentFixation.y );
-            
+
             _currentFixation = fixation;
-                
+
             return _currentFixation;
         },
 
@@ -106,7 +106,7 @@ if (!this.Reading) {
             _currentFixation.duration += _sampleDuration;
             _currentFixation.x = _lpc * _currentFixation.x + _invLpc * x;
             _currentFixation.y = _lpc * _currentFixation.y + _invLpc * y;
-            
+
             if (prevDuration < _minDuration && _currentFixation.duration >= _minDuration) {
                 result = _currentFixation;
             }
@@ -126,19 +126,19 @@ if (!this.Reading) {
             var fixation = new Fixation( progressingFixation.x, progressingFixation.y, progressingFixation.duration );
             fixation.previous = _currentFixation;
             _currentFixation.next = fixation;
-            
+
             var saccade = progressingFixation.saccade;
             if (saccade) {
                 fixation.saccade = new Saccade( saccade.dx, saccade.dy );
             }
             else {
-                fixation.saccade = new Saccade( progressingFixation.x - _currentFixation.x, 
+                fixation.saccade = new Saccade( progressingFixation.x - _currentFixation.x,
                                                 progressingFixation.y - _currentFixation.y );
             }
-            
+
             _currentFixation = fixation;
             _fixations.push( _currentFixation );
-                
+
             result = _currentFixation;
         }
         else {

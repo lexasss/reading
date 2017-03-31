@@ -2,7 +2,7 @@ module.exports = function(grunt) {
 
     grunt.initConfig({
         pkg: grunt.file.readJSON('package.json'),
-        
+
         clean: {
             build: {
                 src: ['build/**'],
@@ -36,7 +36,7 @@ module.exports = function(grunt) {
 
         concat: {
             js: {
-                src: ['src/js/namespace.js', 'src/js/**'], 
+                src: ['src/js/namespace.js', 'src/js/**/*'],
                 dest: 'build/app.js'
             }
         },
@@ -99,7 +99,7 @@ module.exports = function(grunt) {
                 src: 'src/styles/**/*.less'
             }
         },
-        
+
         jshint: {
             files: [
                 'src/js/**/*.js'
@@ -113,7 +113,7 @@ module.exports = function(grunt) {
                 multistr: true
             }
         },
-        
+
         eslint: {
             files: [
                 'src/js/**/*.js'

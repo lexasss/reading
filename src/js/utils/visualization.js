@@ -22,7 +22,7 @@
     //      }
     function Visualization (options) {
         this.wordColor = options.wordColor || '#080'//'#CCC';
-        this.wordFont = options.wordFont || '22pt Calibri, Arial, sans-serif';
+        this.wordFont = options.wordFont || '24pt Calibri, Arial, sans-serif';
         this.wordHighlightColor = options.wordHighlightColor || '#606';
         this.wordStrokeColor = options.wordStrokeColor || '#888';
         this.infoColor = options.infoColor || '#444';
