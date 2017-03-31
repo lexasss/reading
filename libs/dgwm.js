@@ -355,17 +355,22 @@ function fixLinearModel (fixations, gradient) {
 
 // Word object
 function Word (rect, id, element, line) {
-    this.rect = rect;
+    this.left = rect.left;
+    this.top = rect.top;
+    this.right = rect.right;
+    this.bottom = rect.bottom;
+
     this.id = id;
-    this.element = element;
-    this.line = line;
     this.index = line.words.length;
     this.text = element.textContent;
+
+    this.element = element;
+    this.line = line;
     this.fixations = [];
 }
 
 Word.prototype.toString = function () {
-    return this.rect.left + ',' + this.rect.top + ' / ' + this.line.index;
+    return this.left + ',' + this.top + ' / ' + this.line.index;
 };
 
 // Publication
@@ -596,14 +601,6 @@ const TextModel = {
     },
 
     reset: function () {
-        // _lines.forEach(function (line) {
-        //     line.forEach(function (w) {
-        //         _logger.log('new Word({ left: ' + w.rect.left +
-        //             ', top: ' + w.rect.top +
-        //             ', right: ' + w.rect.right +
-        //             ', bottom: ' + w.rect.bottom + ' }),');
-        //     });
-        // });
         _lines = [];
         _lineSpacing = 0;
         _lineHeight = 0;
@@ -1037,7 +1034,7 @@ const DGWM = {
 
         _logger.end( _log );
 
-        return _currentWord ? _currentWord.dom : null;
+        return _currentWord ? _currentWord.element : null;
     },
 
     feed: function (targets, x, y) {
@@ -1356,7 +1353,7 @@ function mapToWord (fixation, words) {
     const mappedWord = mapToWord_Advanced( fixation.x, words );
 
     if (mappedWord) {
-        _log.push( '    mapped to', mappedWord.element.textContent, '=', mappedWord.line.index + ', ' + mappedWord.index );
+        _log.push( '    mapped to', mappedWord.text, '=', mappedWord.line.index + ', ' + mappedWord.index );
     }
     else {
         _log.push( '    not mapped' );
@@ -1371,10 +1368,7 @@ function mapToWord_Naive (x, words) {
 
     for (let i = 0; i < words.length; ++i) {
         const word = words[i];
-        const rect = word.rect;
-
-        const dist = x < rect.left ? (rect.left - x) : (x > rect.right ? x - rect.right : 0);
-        // _log.push( '   ', dist.toFixed(0), 'to', word.element.textContent );
+        const dist = x < word.left ? (word.left - x) : (x > word.right ? x - word.right : 0);
 
         if (dist < minDist) {
             mappedWord = word;
@@ -1400,17 +1394,16 @@ function mapToWord_Advanced (x, words) {
 
     for (let i = 0; i < words.length; i++) {
         const word = words[i];
-        const wordRect = word.rect;
-        const wordWidth = wordRect.right - wordRect.left;
-        const textLength = word.element.textContent.length;
+        const wordWidth = word.right - word.left;
+        const textLength = word.text.length;
         let effectiveWordWidth = wordWidth;
         if (word.fixations.length > 0 || textLength > _effectiveLengthReductionMinWordLength) {
             const reduceBy = Math.min( _effectiveLengthReductionInChars, textLength - _effectiveLengthReductionMinWordLength );
             const effectiveWordWidthReduction = wordWidth * (reduceBy / textLength);
             effectiveWordWidth = wordWidth - effectiveWordWidthReduction;
         }
-        const wordLeft = wordRect.left;
-        const wordRight = wordRect.left + effectiveWordWidth;
+        const wordLeft = word.left;
+        const wordRight = word.left + effectiveWordWidth;
 
         if (x >= wordLeft && x < wordRight) {
             closestWord = word;

@@ -179,7 +179,7 @@
 
             if (this.showConnections && fix.word) {
                 ctx.strokeStyle = this.connectionColor;
-                this._drawConnection( ctx, fix, {x: fix.word.rect.left, y: fix.word.rect.top} );
+                this._drawConnection( ctx, fix, {x: fix.word.left, y: fix.word.top} );
             }
 
             ctx.strokeStyle = '#808';
