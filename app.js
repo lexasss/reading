@@ -3535,7 +3535,7 @@ if (!this.Reading) {
     let EMPTY_LINE_DETECTION_FACTOR = 1.7; // factor of the line height
 
     let MIN_DURATION_REMOVING = 150; // ms, set to 0 to disable
-    let MIN_DURATION_MERGING = 240; // ms, set to 0 to disable
+    let MIN_DURATION_MERGING = 150; // ms, set to 0 to disable
     let MIN_INTERFIX_DIST = 40; // px
     let DROP_SHORT_SETS = true;
 
