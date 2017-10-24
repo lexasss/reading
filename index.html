@@ -15,28 +15,32 @@
         <div id="textContainer">
           <div id="text"></div>
         </div>
-        <div id="controls" class="controls"><span class="device">Connecting</span>
-          <div class="buttonBlock etud">
-            <div class="button options disabled">Options</div>
-            <div class="button calibrate disabled">Calibrate</div>
-            <div class="button toggle disabled">Start</div>
+        <div id="controls" class="controls">
+          <div class="invisible"><span class="device">Connecting</span>
+            <div class="buttonBlock etud">
+              <div class="button options disabled">Options</div>
+              <div class="button calibrate disabled">Calibrate</div>
+              <div class="button toggle disabled">Start</div>
+            </div>
+            <div class="separator"></div>
+            <div class="buttonBlock text"></div>
+            <div class="separator"></div>
+            <div class="buttonBlock spacing"></div>
+            <div class="separator"></div>
+          </div>
+          <div class="button loadSession">Gaze plot</div>
+          <div class="invisible">
+            <div class="button loadCondition">Load condition</div>
+            <div class="button loadFile">Load file</div>
           </div>
           <div class="separator"></div>
-          <div class="buttonBlock text"></div>
-          <div class="separator"></div>
-          <div class="buttonBlock spacing"></div>
-          <div class="separator"></div>
-          <div class="button loadSession">Load session</div>
-          <div class="button loadCondition">Load condition</div>
-          <div class="button loadFile">Load file</div>
-          <div class="separator"></div>
-          <div class="button simulate">Simulate</div>
           <div class="button gazeReplay">Replay</div>
+          <div class="button simulate">Replay, word list</div>
         </div>
         <div id="options" class="slideout left">
           <div class="title">Options</div>
           <div class="slideout_inner">
-            <div class="group">
+            <div class="group invisible">
               <div class="name">Text</div>
               <button class="editText">Edit...</button>
               <div class="row">
@@ -52,7 +56,7 @@
                 <input id="hiddenText" type="checkbox" class="value">
               </div>
             </div>
-            <div class="group">
+            <div class="group invisible">
               <div class="name">Gaze</div>
               <div class="row">
                 <div class="label">Show pointer</div>
@@ -75,7 +79,7 @@
                 <input id="currentWord" type="color" class="value">
               </div>
             </div>
-            <div class="group">
+            <div class="group invisible">
               <div class="name">Mapping</div>
               <div class="row">
                 <div class="label">Type</div>
@@ -117,7 +121,7 @@
                 <input id="path_showOriginalFixLocation" type="checkbox" class="value">
               </div>
             </div>
-            <div class="group">
+            <div class="group invisible">
               <div class="name">Summary visualization</div>
               <div class="row">
                 <div class="label">Color metric</div>
