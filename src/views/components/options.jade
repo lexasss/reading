@@ -5,7 +5,7 @@ mixin options(id, lists)
     div(id=id).slideout.left
         .title Options
         .slideout_inner
-            .group
+            .group.invisible
                 .name Text
                 button.editText Edit...
                 .row
@@ -17,7 +17,7 @@ mixin options(id, lists)
                 .row
                     .label Hidden initially
                     input.value#hiddenText(type="checkbox")
-            .group
+            .group.invisible
                 .name Gaze
                 .row
                     .label Show pointer
@@ -34,7 +34,7 @@ mixin options(id, lists)
                 .row
                     .label Highlighting color
                     input.value#currentWord(type="color")
-            .group
+            .group.invisible
                 .name Mapping
                 .row
                     .label Type
@@ -63,7 +63,7 @@ mixin options(id, lists)
                 .row
                     .label Show orig. fixation location
                     input.value#path_showOriginalFixLocation(type="checkbox")
-            .group
+            .group.invisible
                 .name Summary visualization
                 .row
                     .label Color metric

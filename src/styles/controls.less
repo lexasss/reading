@@ -3,9 +3,10 @@
 #controls {
     background-color: rgba(255, 255, 255, 0.6);
     position: fixed;
-    right: 0;
-    top: 0;
-    width: 5em;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6em;
     font: bold 13px Arial, Helvetica, sans-serif;
 
     @media (min-width: @rowMode) {
@@ -14,8 +15,12 @@
     }
 
     @media (max-width: @rowMode) {
-        height: 100vh;
+        // height: 100vh;
         padding-left: 0.5em;
+    }
+
+    .invisible {
+        display: none;
     }
 
     .button {

@@ -61,7 +61,10 @@
 
         this.spacings = ['x-small', 'small', 'median', 'large', 'x-large'];
 
-        this._initialVisibility = true;
+        this._initialVisibility = false;
+        if (!this._initialVisibility) {
+            this.hide();
+        }
     }
 
     Text.prototype.reset = function () {

@@ -28,11 +28,11 @@
         this.fixationColor = options.fixationColor || '#000';
         this.saccadeColor = options.saccadeColor || '#08F';
         this.connectionColor = options.connectionColor || '#F00';
-        this.showIDs = options.showIDs || true;
+        this.showIDs = options.showIDs || false;
 
-        this.showConnections = options.showConnections !== undefined ? options.showConnections : false;
-        this.showSaccades = options.showSaccades !== undefined ? options.showSaccades : false;
-        this.showFixations = options.showFixations !== undefined ? options.showFixations : false;
+        this.showConnections = options.showConnections !== undefined ? options.showConnections : true;
+        this.showSaccades = options.showSaccades !== undefined ? options.showSaccades : true;
+        this.showFixations = options.showFixations !== undefined ? options.showFixations : true;
         this.showOriginalFixLocation = options.showOriginalFixLocation !== undefined ? options.showOriginalFixLocation : false;
         this.originalFixationColor = options.originalFixationColor || 'rgba(0,0,0,0.15)';
         this.greyFixationColor = options.greyFixationColor || 'rgba(0,0,0,0.5)';

@@ -2,19 +2,21 @@
 
 mixin controls(id)
     div(id=id).controls
-        span.device Connecting
-        .buttonBlock.etud
-            .button.options.disabled Options
-            .button.calibrate.disabled Calibrate
-            .button.toggle.disabled Start
+        .invisible
+            span.device Connecting
+            .buttonBlock.etud
+                .button.options.disabled Options
+                .button.calibrate.disabled Calibrate
+                .button.toggle.disabled Start
+            .separator
+            .buttonBlock.text
+            .separator
+            .buttonBlock.spacing
+            .separator
+        .button.loadSession Gaze plot
+        .invisible
+            .button.loadCondition Load condition
+            .button.loadFile Load file
         .separator
-        .buttonBlock.text
-        .separator
-        .buttonBlock.spacing
-        .separator
-        .button.loadSession Load session
-        .button.loadCondition Load condition
-        .button.loadFile Load file
-        .separator
-        .button.simulate Simulate
         .button.gazeReplay Replay
+        .button.simulate Replay, word list
